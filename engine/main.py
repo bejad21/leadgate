@@ -5,6 +5,7 @@ from engine.adapters.real_estate import RealEstateAdapter
 from engine.config import get_llm_client, load_config
 from engine.core.agent_loop import run_turn
 from engine.odoo_client import OdooClient
+from engine.rate_limiter import FixedWindowRateLimiter
 from engine.telegram_client import extract_message, send_message
 
 app = FastAPI(title="LeadGate Engine")
@@ -16,6 +17,22 @@ config = load_config()
 # persistent store such as Redis or Supabase so history survives restarts
 # and is shared across worker processes.
 conversation_history: dict[int, list[dict]] = {}
+
+# Per-chat_id rate limit for the webhook: 10 requests per 60-second rolling
+# window. Generous enough for a normal back-and-forth conversation but tight
+# enough to stop a single chat from hammering the LLM/Odoo backends and
+# running up API costs. In-memory only, matching conversation_history above
+# - fine for a single-process portfolio deployment, not for multiple workers.
+RATE_LIMIT_MAX_REQUESTS = 10
+RATE_LIMIT_WINDOW_SECONDS = 60
+_rate_limiter = FixedWindowRateLimiter(RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_SECONDS)
+
+# Maximum length (in characters) of incoming Telegram text accepted into the
+# LLM conversation history. Long enough for genuine user messages, short
+# enough to stop a pathological huge message from bloating LLM context/cost.
+# Oversized messages are truncated (rather than rejected outright) so the
+# conversation still proceeds with whatever the user actually meant to say.
+MAX_MESSAGE_LENGTH = 2000
 
 # Lazily-constructed singletons. Built on first use (not at import time) so
 # importing this module - e.g. under pytest - doesn't require a live Odoo
@@ -67,6 +84,13 @@ async def telegram_webhook(request: Request):
         return {"ok": True}
 
     chat_id, text = extracted
+
+    if not _rate_limiter.allow(chat_id):
+        return Response(status_code=429)
+
+    if len(text) > MAX_MESSAGE_LENGTH:
+        text = text[:MAX_MESSAGE_LENGTH]
+
     history = conversation_history.setdefault(chat_id, [])
     history.append({"role": "user", "content": text})
 
