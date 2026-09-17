@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Server action: notify the configured sync webhook whenever it fires.
+             The actual HTTP POST is a no-op if leadgate.sync_webhook_url is
+             unset (see models/lead_webhook.py::_notify_webhook). -->
+        <record id="action_server_catalog_item_notify_webhook" model="ir.actions.server">
+            <field name="name">LeadGate: Notify sync webhook</field>
+            <field name="model_id" ref="model_leadgate_catalog_item"/>
+            <field name="state">code</field>
+            <field name="code">records._notify_webhook()</field>
+        </record>
+
+        <!-- Automated Action: fire the server action above whenever a
+             leadgate.catalog.item's status field changes. -->
+        <record id="automation_catalog_item_status_changed" model="base.automation">
+            <field name="name">Catalog item status changed -&gt; notify webhook</field>
+            <field name="model_id" ref="model_leadgate_catalog_item"/>
+            <field name="trigger">on_write</field>
+            <field name="trigger_field_ids" eval="[(6, 0, [ref('field_leadgate_catalog_item__status')])]"/>
+            <field name="action_server_ids" eval="[(4, ref('action_server_catalog_item_notify_webhook'))]"/>
+        </record>
+
+    </data>
+</odoo>

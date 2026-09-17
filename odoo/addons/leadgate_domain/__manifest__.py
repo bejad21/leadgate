@@ -10,9 +10,10 @@ catalog inventory regardless of vertical.
     "category": "Sales/CRM",
     "author": "LeadGate",
     "license": "LGPL-3",
-    "depends": ["base", "crm"],
+    "depends": ["base", "crm", "base_automation"],
     "data": [
         "security/ir.model.access.csv",
+        "data/automated_action.xml",
     ],
     "installable": True,
     "application": False,
