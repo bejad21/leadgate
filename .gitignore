@@ -28,6 +28,7 @@ dashboard/dist/
 # Data and volumes
 odoo-data/
 postgres-data/
+data/downloads/  # Raw Kaggle dataset downloads
 
 # IDE
 .vscode/
