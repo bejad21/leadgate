@@ -1,3 +1,5 @@
+import hmac
+
 from fastapi import FastAPI, Request, Response
 
 from engine.adapters.cars import CarsAdapter
@@ -71,9 +73,12 @@ def health() -> dict:
 async def telegram_webhook(request: Request):
     # Verify the secret token before doing anything else, including
     # parsing the request body, so a malformed/malicious body can't cause
-    # a crash before the auth check runs.
-    secret_header = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
-    if secret_header != config["TELEGRAM_WEBHOOK_SECRET"]:
+    # a crash before the auth check runs. Comparison is constant-time
+    # (hmac.compare_digest) rather than `!=` so a network attacker timing
+    # responses can't use early-exit string comparison to guess the secret
+    # one character at a time.
+    secret_header = request.headers.get("X-Telegram-Bot-Api-Secret-Token") or ""
+    if not hmac.compare_digest(secret_header, config["TELEGRAM_WEBHOOK_SECRET"]):
         return Response(status_code=401)
 
     body = await request.json()
