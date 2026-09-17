@@ -17,6 +17,7 @@ BASE_ENV = {
     "ODOO_PASSWORD": "admin",
     "OPENROUTER_API_KEY": "test-openrouter-key",
     "TELEGRAM_BOT_TOKEN": "test-telegram-token",
+    "TELEGRAM_WEBHOOK_SECRET": "test-webhook-secret",
 }
 
 

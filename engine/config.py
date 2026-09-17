@@ -8,6 +8,7 @@ REQUIRED_VARS = [
     "ODOO_USER",
     "ODOO_PASSWORD",
     "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_WEBHOOK_SECRET",
 ]
 
 # At least one of these must be present.
