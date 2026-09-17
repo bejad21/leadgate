@@ -36,6 +36,19 @@ services:
       postgres:
         condition: service_healthy
 
+  n8n:
+    image: n8nio/n8n
+    container_name: leadgate-n8n
+    environment:
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Asia/Dubai}
+      TZ: ${GENERIC_TIMEZONE:-Asia/Dubai}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    ports:
+      - "5678:5678"
+
 volumes:
   postgres_data:
   odoo_data:
+  n8n_data:
