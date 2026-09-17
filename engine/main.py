@@ -1,6 +1,10 @@
 from fastapi import FastAPI, Request, Response
 
-from engine.config import load_config
+from engine.adapters.cars import CarsAdapter
+from engine.adapters.real_estate import RealEstateAdapter
+from engine.config import get_llm_client, load_config
+from engine.core.agent_loop import run_turn
+from engine.odoo_client import OdooClient
 from engine.telegram_client import extract_message, send_message
 
 app = FastAPI(title="LeadGate Engine")
@@ -13,7 +17,32 @@ config = load_config()
 # and is shared across worker processes.
 conversation_history: dict[int, list[dict]] = {}
 
-PLACEHOLDER_REPLY = "Got your message — the AI backend isn't wired in yet (Task 2.4)."
+# Lazily-constructed singletons. Built on first use (not at import time) so
+# importing this module - e.g. under pytest - doesn't require a live Odoo
+# connection or LLM API key just to collect tests. Tests patch these two
+# factory functions directly to avoid real network calls.
+_adapter = None
+_llm_client = None
+
+
+def _get_adapter():
+    global _adapter
+    if _adapter is None:
+        odoo = OdooClient(
+            config["ODOO_URL"], config["ODOO_DB"], config["ODOO_USER"], config["ODOO_PASSWORD"]
+        )
+        if config["ACTIVE_DOMAIN"] == "real_estate":
+            _adapter = RealEstateAdapter(odoo)
+        else:
+            _adapter = CarsAdapter(odoo)
+    return _adapter
+
+
+def _get_llm_client():
+    global _llm_client
+    if _llm_client is None:
+        _llm_client = get_llm_client(config)
+    return _llm_client
 
 
 @app.get("/health")
@@ -38,10 +67,10 @@ async def telegram_webhook(request: Request):
         return {"ok": True}
 
     chat_id, text = extracted
-    conversation_history.setdefault(chat_id, []).append({"role": "user", "content": text})
+    history = conversation_history.setdefault(chat_id, [])
+    history.append({"role": "user", "content": text})
 
-    # Task 2.4 will replace this placeholder with a real run_turn() call
-    # through the agent loop.
-    send_message(chat_id, PLACEHOLDER_REPLY)
+    result = run_turn(history, _get_adapter(), _get_llm_client())
+    send_message(chat_id, result.reply)
 
     return {"ok": True}

@@ -1,7 +1,10 @@
 import httpx
+import pytest
 import respx
 from fastapi.testclient import TestClient
 
+import engine.main as main_module
+from engine.core.agent_loop import AgentTurnResult
 from engine.main import app, config, conversation_history
 
 client = TestClient(app)
@@ -14,6 +17,20 @@ VALID_UPDATE = {
         "text": "Hello there",
     },
 }
+
+
+@pytest.fixture(autouse=True)
+def fake_agent_dependencies(monkeypatch):
+    """Prevent the webhook handler's real adapter/LLM construction (which
+    would otherwise open a live Odoo XML-RPC connection and call a real LLM
+    API) from running during these fast, deterministic unit tests."""
+    monkeypatch.setattr(main_module, "_get_adapter", lambda: object())
+    monkeypatch.setattr(main_module, "_get_llm_client", lambda: object())
+    monkeypatch.setattr(
+        main_module,
+        "run_turn",
+        lambda history, adapter, llm: AgentTurnResult(reply="Stubbed grounded reply"),
+    )
 
 
 def test_webhook_rejects_missing_secret_token():
@@ -49,6 +66,12 @@ def test_webhook_accepts_correct_secret_and_replies():
     assert send_route.called
     assert 12345 in conversation_history
     assert conversation_history[12345][0]["content"] == "Hello there"
+
+    # The webhook must send back run_turn's grounded reply, not a placeholder.
+    import json as _json
+
+    sent_payload = _json.loads(send_route.calls.last.request.content)
+    assert sent_payload["text"] == "Stubbed grounded reply"
 
 
 @respx.mock

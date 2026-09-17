@@ -1,7 +1,7 @@
 import pytest
 
 import engine.config as config_module
-from engine.config import load_config
+from engine.config import get_llm_client, load_config
 
 
 @pytest.fixture(autouse=True)
@@ -18,6 +18,7 @@ BASE_ENV = {
     "OPENROUTER_API_KEY": "test-openrouter-key",
     "TELEGRAM_BOT_TOKEN": "test-telegram-token",
     "TELEGRAM_WEBHOOK_SECRET": "test-webhook-secret",
+    "ACTIVE_DOMAIN": "cars",
 }
 
 
@@ -69,3 +70,32 @@ def test_load_config_fails_fast_when_no_llm_key_present(monkeypatch):
 
     with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY.*MISTRAL_API_KEY|MISTRAL_API_KEY.*OPENROUTER_API_KEY"):
         load_config()
+
+
+def test_get_llm_client_uses_mistral_settings_when_mistral_key_present(monkeypatch):
+    for key, value in BASE_ENV.items():
+        if key == "OPENROUTER_API_KEY":
+            continue
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setenv("MISTRAL_API_KEY", "test-mistral-key")
+
+    config = load_config()
+    client = get_llm_client(config)
+
+    assert client.api_key == "test-mistral-key"
+    assert client.base_url == "https://api.mistral.ai/v1"
+    assert client.model == "mistral-small-latest"
+
+
+def test_get_llm_client_uses_openrouter_settings_when_only_openrouter_key_present(monkeypatch):
+    for key, value in BASE_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
+
+    config = load_config()
+    client = get_llm_client(config)
+
+    assert client.api_key == "test-openrouter-key"
+    assert client.base_url == "https://openrouter.ai/api/v1"
+    assert client.model == "meta-llama/llama-3.3-70b-instruct:free"
