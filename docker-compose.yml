@@ -28,6 +28,7 @@ services:
       DB_FILTER: ${ODOO_DB:-odoo}
     volumes:
       - odoo_data:/var/lib/odoo
+      - ./odoo/addons:/mnt/extra-addons
     ports:
       - "8069:8069"
       - "8072:8072"
