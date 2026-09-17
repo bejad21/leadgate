@@ -21,8 +21,6 @@ services:
   odoo:
     image: odoo:18.0
     container_name: leadgate-odoo
-    depends_on:
-      - postgres
     environment:
       HOST: postgres
       USER: ${POSTGRES_USER:-odoo}
