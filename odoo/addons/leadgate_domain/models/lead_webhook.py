@@ -39,6 +39,8 @@ class CatalogItem(models.Model):
                     "id": record.id,
                     "domain_type": record.domain_type,
                     "status": record.status,
+                    "name": record.name,
+                    "price": record.price,
                 }
             ).encode("utf-8")
             request = urllib.request.Request(
