@@ -98,4 +98,4 @@ def test_get_llm_client_uses_openrouter_settings_when_only_openrouter_key_presen
 
     assert client.api_key == "test-openrouter-key"
     assert client.base_url == "https://openrouter.ai/api/v1"
-    assert client.model == "meta-llama/llama-3.3-70b-instruct:free"
+    assert client.model == "deepseek/deepseek-v4-flash-0731:free"

@@ -15,12 +15,23 @@ _PROVIDER_SETTINGS = {
     },
     "OPENROUTER_API_KEY": {
         "base_url": "https://openrouter.ai/api/v1",
-        "model": "meta-llama/llama-3.3-70b-instruct:free",
+        # OpenRouter's free-tier catalog rotates; "meta-llama/llama-3.3-70b-
+        # instruct:free" (the original choice) was moved to paid-only and now
+        # 404s. Re-verified live against openrouter.ai/api/v1/models on
+        # 2026-09-18: this one is free and confirmed to return correct
+        # tool_calls for our exact function-calling schema.
+        "model": "deepseek/deepseek-v4-flash-0731:free",
     },
 }
 
 # Preference order when more than one LLM key happens to be present.
-_PROVIDER_PREFERENCE = ["MISTRAL_API_KEY", "OPENROUTER_API_KEY"]
+# OpenRouter is tried first: the configured Mistral account has been
+# confirmed (live, 2026-09-18) to return HTTP 429 with a 0 req/minute quota
+# on chat completions across two different API keys, while listing models
+# succeeds -- an account-level restriction, not a transient rate limit.
+# OpenRouter remains second so a working Mistral account still gets used
+# automatically if this ever changes.
+_PROVIDER_PREFERENCE = ["OPENROUTER_API_KEY", "MISTRAL_API_KEY"]
 
 REQUIRED_VARS = [
     "ODOO_URL",
