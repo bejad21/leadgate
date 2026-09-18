@@ -3,15 +3,34 @@ import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import './App.css'
+import { CatalogStatus } from './components/CatalogStatus'
+import { DomainSwitcher } from './components/DomainSwitcher'
+import { LiveLeadsFeed } from './components/LiveLeadsFeed'
+import type { DomainType } from './lib/useCatalogItems'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [domain, setDomain] = useState<DomainType>('cars')
 
   return (
     <>
       <div className="bg-blue-500 text-white p-4" data-testid="tailwind-check">
         Tailwind test: this box should have a blue background.
       </div>
+
+      <section id="leadgate-dashboard" className="mx-auto w-full max-w-3xl px-4 py-6">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="!m-0 !text-2xl">LeadGate Dashboard</h1>
+          <DomainSwitcher value={domain} onChange={setDomain} />
+        </div>
+        <div className="mt-6">
+          <CatalogStatus domain={domain} />
+        </div>
+        <div className="mt-6">
+          <LiveLeadsFeed domain={domain} />
+        </div>
+      </section>
+
       <section id="center">
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
