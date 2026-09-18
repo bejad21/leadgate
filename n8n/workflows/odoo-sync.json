@@ -1,0 +1,173 @@
+{
+  "name": "Odoo Catalog Sync (Supabase + MongoDB)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "odoo-sync",
+        "responseMode": "onReceived",
+        "responseData": "success",
+        "options": {}
+      },
+      "id": "1a1b1c1d-0000-4000-8000-000000000001",
+      "name": "Odoo Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        300
+      ],
+      "webhookId": "odoo-sync-leadgate"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rbtmpkxywwttuvqobybc.supabase.co/rest/v1/catalog_items",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "odoo_id"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"odoo_id\": $json.body.id, \"domain_type\": $json.body.domain_type, \"name\": $json.body.name, \"price\": $json.body.price, \"status\": $json.body.status, \"updated_at\": $now.toISO() } }}",
+        "options": {}
+      },
+      "id": "2a2b2c2d-0000-4000-8000-000000000002",
+      "name": "Upsert Supabase catalog_items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        160
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ggAatmKezPnY8KJc",
+          "name": "LeadGate Supabase (service role)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-odoo-id",
+              "name": "odoo_id",
+              "type": "number",
+              "value": "={{ $json.body.id }}"
+            },
+            {
+              "id": "assign-domain-type",
+              "name": "domain_type",
+              "type": "string",
+              "value": "={{ $json.body.domain_type }}"
+            },
+            {
+              "id": "assign-status",
+              "name": "status",
+              "type": "string",
+              "value": "={{ $json.body.status }}"
+            },
+            {
+              "id": "assign-timestamp",
+              "name": "timestamp",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "id": "assign-raw-payload",
+              "name": "raw_payload",
+              "type": "object",
+              "value": "={{ $json.body }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3a3b3c3d-0000-4000-8000-000000000003",
+      "name": "Build MongoDB Event",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "catalog_events",
+        "options": {},
+        "fields": "odoo_id,domain_type,status,timestamp,raw_payload"
+      },
+      "id": "4a4b4c4d-0000-4000-8000-000000000004",
+      "name": "Insert MongoDB catalog_events",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        520,
+        440
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "6NDOM7XlRROboqZB",
+          "name": "LeadGate MongoDB (leadgate db)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Odoo Webhook": {
+      "main": [
+        [
+          {
+            "node": "Upsert Supabase catalog_items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build MongoDB Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build MongoDB Event": {
+      "main": [
+        [
+          {
+            "node": "Insert MongoDB catalog_events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true
+}

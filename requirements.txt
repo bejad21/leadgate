@@ -4,3 +4,4 @@ httpx
 python-dotenv
 pytest
 respx
+pymongo
