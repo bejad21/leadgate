@@ -1,0 +1,13 @@
+domain      | n_cases    | tool_selection_accuracy | slot_extraction_accuracy | hallucination_rate | task_completion_rate | mean_latency_ms
+------------+------------+-------------------------+--------------------------+--------------------+----------------------+----------------
+cars        | 45         | 0.8889                  | 0.9565                   | 0.0000             | 0.8444               | 15158.6889     
+real_estate | 48         | 0.8125                  | 1.0000                   | 0.0244             | 0.7917               | 21174.4375     
+
+--- Hallucination audit (flagged cases) ---
+
+cars: 0 flagged case(s)
+
+real_estate: 1 flagged case(s)
+  message: Looking for a townhouse with at least 3 bedrooms
+    ungrounded_prices: []
+    false_zero_claim: True, total_matches: 5

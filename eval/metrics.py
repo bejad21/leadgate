@@ -1,0 +1,566 @@
+"""Offline metrics computation for the LeadGate evaluation harness (Task 5.3).
+
+Consumes the per-case result records produced by Task 5.2 (`eval/results/*.json`)
+and computes five metrics:
+
+- tool_selection_accuracy: did the agent call the right tool (or correctly call
+  no tool at all for out-of-scope requests)?
+- slot_extraction_accuracy: for cases where a tool call was expected, did the
+  agent extract the right argument values into that call?
+- hallucination_rate: for cases where a tool actually returned results, does
+  the agent's natural-language reply only state facts (prices, "no results")
+  that are actually grounded in what the tool returned?
+- task_completion_rate: a composite judgment call (see docstring) of whether
+  the case was handled correctly end-to-end.
+- mean_latency_ms: mean wall-clock latency recorded per case.
+
+No live API/DB calls are made here -- this only reads already-collected JSON
+result files and does pure computation.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+
+# ---------------------------------------------------------------------------
+# Loading
+# ---------------------------------------------------------------------------
+
+
+def load_results(path: str | Path) -> list[dict]:
+    """Load a Task 5.2 results JSON file (a list of per-case result dicts)."""
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# ---------------------------------------------------------------------------
+# Step 1: tool_selection_accuracy
+# ---------------------------------------------------------------------------
+
+
+def _first_tool_name(actual: dict) -> str | None:
+    """The name of the first tool call actually made, or None if none was made."""
+    calls = actual.get("tool_calls_made") or []
+    return calls[0]["name"] if calls else None
+
+
+def tool_selection_accuracy(results: list[dict]) -> float:
+    """Fraction of cases where the first tool actually called matches the tool
+    the case expected (including the "no tool expected, no tool called" case
+    for out-of-scope requests, which counts as a correct match).
+
+    Only the first tool call is compared against `expected["tool"]`, since the
+    expected fixtures encode a single expected tool (or None) per case; a case
+    that makes an unexpected *additional* follow-up call (see the "truck for
+    towing" case in cars_results.json, which calls search_inventory twice) is
+    still scored correct here as long as the first call matches expectation.
+    """
+    if not results:
+        return 0.0
+    correct = 0
+    for r in results:
+        expected_tool = r["expected"].get("tool")
+        actual_tool = _first_tool_name(r["actual"])
+        if expected_tool == actual_tool:
+            correct += 1
+    return correct / len(results)
+
+
+# ---------------------------------------------------------------------------
+# Step 2: slot_extraction_accuracy
+# ---------------------------------------------------------------------------
+
+
+def _normalize_value(value: Any) -> Any:
+    """Normalize a slot value for comparison: case-insensitive string match,
+    numeric comparison that tolerates int/float/str-of-number mismatches.
+    This is intentionally forgiving about representation only, not about
+    substantive correctness (e.g. "30000" vs 30000 vs "30,000" all match;
+    "Toyota" vs "toyota" match; "Toyota" vs "Honda" does not).
+    """
+    if isinstance(value, str):
+        stripped = value.strip().lower()
+        # Try to normalize numeric-looking strings (e.g. "30,000" -> 30000.0)
+        numeric_stripped = stripped.replace(",", "").replace("$", "")
+        try:
+            return float(numeric_stripped)
+        except ValueError:
+            return stripped
+    if isinstance(value, (int, float)):
+        return float(value)
+    return value
+
+
+def _values_match(expected_value: Any, actual_value: Any) -> bool:
+    return _normalize_value(expected_value) == _normalize_value(actual_value)
+
+
+def _find_matching_call(calls: list[dict], tool_name: str) -> dict | None:
+    """First call in `calls` whose name equals `tool_name`, else None."""
+    for call in calls:
+        if call.get("name") == tool_name:
+            return call
+    return None
+
+
+def slot_extraction_accuracy(results: list[dict]) -> float:
+    """Fraction of expected argument fields that were correctly extracted,
+    aggregated across all cases where the expected tool was BOTH expected AND
+    actually invoked somewhere in the turn.
+
+    Cases where no tool call was expected (`expected["tool"] is None`) are
+    skipped entirely -- there is no meaningful "slot" denominator for them.
+    Cases where the expected tool was never called at all (a tool-selection
+    failure -- including the case where the agent called a *different* tool
+    instead, e.g. searching instead of calling create_lead) are also skipped
+    for this metric: there are no genuinely comparable arguments to grade,
+    and that failure is already captured by tool_selection_accuracy. Grading
+    e.g. a search_listings call's arguments against an expected create_lead
+    call's arguments would only double-penalize the same tool-selection
+    miss under a different metric name.
+
+    When a case does have multiple tool calls (e.g. the agent searched twice
+    with different filters in one turn), the first call whose name matches
+    the expected tool is used for comparison, not strictly index 0 -- this
+    matters for turns where a non-matching call happens to come first.
+
+    Within an applicable case, only keys present in `expected["args"]` are
+    checked (an expected dict of `{}` contributes 0 fields, which is correct
+    since those cases explicitly declare exact args as "not strictly graded").
+    Each key contributes 1 to the denominator; it contributes 1 to the
+    numerator if the same key (case-insensitive) is present in the matching
+    call's arguments and its normalized value matches (case-insensitive
+    string compare, numeric-string tolerant -- see `_values_match`).
+    """
+    total_fields = 0
+    correct_fields = 0
+    for r in results:
+        expected = r["expected"]
+        expected_tool = expected.get("tool")
+        expected_args = expected.get("args") or {}
+        if expected_tool is None:
+            continue  # no tool call expected; not applicable to this metric
+        if not expected_args:
+            continue  # nothing to check for this case (e.g. subjective query)
+
+        calls = r["actual"].get("tool_calls_made") or []
+        matching_call = _find_matching_call(calls, expected_tool)
+        if matching_call is None:
+            continue  # tool-selection failure already covered elsewhere
+
+        actual_args = matching_call.get("arguments") or {}
+        # Build a case-insensitive lookup of actual arg keys -> values
+        actual_lookup = {str(k).lower(): v for k, v in actual_args.items()}
+
+        for key, expected_value in expected_args.items():
+            total_fields += 1
+            # None counts as "key absent" -- an expected value of None (e.g.
+            # price_max: null, meaning "no filter should be applied") is
+            # correctly matched by the key being absent from the actual call,
+            # not just by an explicit null being present.
+            actual_value = actual_lookup.get(str(key).lower())
+            if _values_match(expected_value, actual_value):
+                correct_fields += 1
+
+    return correct_fields / total_fields if total_fields else 0.0
+
+
+# ---------------------------------------------------------------------------
+# Step 3: hallucination_rate
+# ---------------------------------------------------------------------------
+
+_MONEY_RE = re.compile(r"\$\s?([0-9][0-9,]*(?:\.[0-9]+)?)\s?([kK])?")
+_ZERO_RESULT_PHRASES = (
+    "don't have any",
+    "do not have any",
+    "don't see any",
+    "no matching",
+    "no results",
+    "no vehicles",
+    "no listings",
+    "no properties",
+    "couldn't find any",
+    "could not find any",
+    "none available",
+    "no suitable options",
+    "came back empty",
+    "no actual",
+)
+
+
+_SUGGESTION_KEYWORDS = ("refine", "narrow", "would you like", "expand your search", "widen")
+
+
+def _parse_money(text: str, skip_suggestions: bool = True) -> set[float]:
+    """Extract dollar amounts mentioned in free text, as floats.
+
+    Handles both full figures ("$28,510") and "k" shorthand ("$250k" -> 250000.0),
+    since agents sometimes restate a budget in shorthand.
+
+    When `skip_suggestions` is True (the default, used for grounding checks),
+    a dollar figure is excluded if it falls in a sentence containing a
+    suggestion/follow-up keyword (e.g. "Would you like me to refine the
+    search to $800,000-$1,000,000?"). Those are proposed next steps, not
+    factual claims about the results already returned, so they should not be
+    graded as grounded-or-hallucinated facts.
+    """
+    amounts = set()
+    sentences = re.split(r"(?<=[.!?])\s+", text) if skip_suggestions else [text]
+    for sentence in sentences:
+        if skip_suggestions and any(kw in sentence.lower() for kw in _SUGGESTION_KEYWORDS):
+            continue
+        for match in _MONEY_RE.finditer(sentence):
+            raw = match.group(1).replace(",", "")
+            suffix = match.group(2)
+            try:
+                value = float(raw)
+            except ValueError:
+                continue
+            if suffix:
+                value *= 1000
+            amounts.add(value)
+    return amounts
+
+
+def _grounded_prices(tool_results: list[dict], price_max: float | None, message: str) -> set[float]:
+    """All prices that would be legitimate for a reply to cite: every match's
+    real price, the price_max boundary itself (agents often restate the
+    user's own ceiling, e.g. "under $30,000"), and any dollar figure the user
+    themselves mentioned in their message (agents also restate/compare against
+    the user's own stated number, e.g. "no properties over $20,000,000" when
+    the user asked about $20,000,000 -- that's an honest comparison, not a
+    fabricated data point)."""
+    grounded: set[float] = set()
+    for tool_result in tool_results:
+        for match in tool_result.get("matches", []):
+            price = match.get("price")
+            if isinstance(price, (int, float)):
+                grounded.add(round(float(price), 2))
+    if price_max is not None:
+        try:
+            grounded.add(round(float(price_max), 2))
+        except (TypeError, ValueError):
+            pass
+    grounded |= _parse_money(message)
+    return grounded
+
+
+def _is_grounded(amount: float, grounded: set[float], rel_tol: float = 0.1) -> bool:
+    """An amount counts as grounded if it exactly matches a grounded price, or
+    is within a relative tolerance of one (agents commonly round a real price
+    to a colloquial figure, e.g. citing a $949,900 listing as "well above
+    $900k", or a $239,000 listing as "still under $250K" -- these are
+    approximations of a real, grounded number, not fabrications)."""
+    for g in grounded:
+        if g == 0:
+            if amount == 0:
+                return True
+            continue
+        if abs(amount - g) / g <= rel_tol:
+            return True
+    return False
+
+
+def _mentions_zero_results(reply: str) -> bool:
+    lowered = reply.lower()
+    return any(phrase in lowered for phrase in _ZERO_RESULT_PHRASES)
+
+
+def _reply_cites_real_matches(reply: str, search_tool_results: list[dict]) -> bool:
+    """True if the reply demonstrably engages with the real matches it got
+    back (cites a real price, a real city/state from `attributes`, or a
+    distinctive word from a match's `name`) rather than blindly claiming
+    emptiness. This distinguishes "we have zero results" (a literal, checkable
+    claim) from "none of these specific results are a townhouse" /
+    "these matches are all in NJ/CT/PA, not West Warwick" (a true, grounded
+    claim about a *subset* of the results that happens to use "no"/"none"
+    language) -- both use similar wording but only the first is a factual
+    claim this checker can call false when matches exist.
+    """
+    lowered = reply.lower()
+    for tool_result in search_tool_results:
+        for match in tool_result.get("matches", []):
+            attrs_raw = match.get("attributes")
+            if isinstance(attrs_raw, str):
+                try:
+                    attrs = json.loads(attrs_raw)
+                except json.JSONDecodeError:
+                    attrs = {}
+            else:
+                attrs = attrs_raw or {}
+            for key in ("city", "state", "location", "make", "model"):
+                value = attrs.get(key)
+                if value and str(value).lower() in lowered:
+                    return True
+    return False
+
+
+def hallucination_rate(results: list[dict]) -> float:
+    """Fraction of applicable cases where the reply makes a factual claim that
+    is not grounded in the tool results actually returned.
+
+    Applicable cases: a search-style tool (search_inventory / search_listings)
+    was called and returned at least one tool_result block. (create_lead calls
+    and no-tool-call cases are not "search grounding" claims and are excluded
+    from the denominator -- there's nothing to hallucinate against there in
+    the same sense.)
+
+    Two concrete, checkable hallucination signals are used:
+
+    1. Price grounding: every dollar amount mentioned in the reply must equal
+       either a real price from `tool_results[*].matches[*].price`, or the
+       `price_max` value from the expected args (agents legitimately restate
+       the user's own budget ceiling, e.g. "under $30,000"). A reply that
+       states a dollar figure matching neither is flagged.
+    2. Zero-result honesty: if the reply uses "no results" language (e.g.
+       "we don't have any", "no matching vehicles"), the tool results must
+       actually show zero total matches (all `count` fields are 0, or all
+       `matches` lists are empty). A reply claiming emptiness when the tool
+       actually returned real matches is flagged (and vice versa is a
+       generation-quality issue, but not tested here since the brief's
+       hallucination concern is specifically citing something the DB didn't
+       return).
+
+    A case is flagged if either signal fails. Price grounding tolerates a 10%
+    relative rounding margin (agents commonly say "well above $900k" for a
+    $949,900 listing, or restate the user's own number back, e.g. "no
+    listings over $20,000,000" when the user asked about exactly that figure
+    -- these are honest approximations/comparisons, not fabrications).
+
+    This is a lightweight, regex/substring-based check, not an NLP pipeline --
+    it will not catch hallucinated *names* that come with no numeric price
+    (e.g. a made-up model name with no $ amount attached), nor mileage/
+    location hallucinations, nor a reply that claims "no matches" for only
+    part of a multi-call turn while matches did exist for a different sub-
+    query (see the manual audit in the report for a concrete instance of this
+    boundary case). That is a documented limitation appropriate for a
+    portfolio-project eval, not a production-grade grounding checker.
+    """
+    return len(hallucination_details(results)) / len(_applicable_cases(results)) if _applicable_cases(results) else 0.0
+
+
+def _applicable_cases(results: list[dict]) -> list[dict]:
+    applicable = []
+    for r in results:
+        actual = r["actual"]
+        tool_results = actual.get("tool_results") or []
+        calls = actual.get("tool_calls_made") or []
+        search_tool_results = [
+            tr
+            for call, tr in zip(calls, tool_results)
+            if call.get("name") in ("search_inventory", "search_listings")
+        ]
+        if search_tool_results:
+            applicable.append(r)
+    return applicable
+
+
+def hallucination_details(results: list[dict]) -> list[dict]:
+    """Same logic as hallucination_rate but returns the flagged cases with
+    the reasons, for manual auditing."""
+    details = []
+    for r in results:
+        actual = r["actual"]
+        tool_results = actual.get("tool_results") or []
+        calls = actual.get("tool_calls_made") or []
+        search_tool_results = [
+            tr
+            for call, tr in zip(calls, tool_results)
+            if call.get("name") in ("search_inventory", "search_listings")
+        ]
+        if not search_tool_results:
+            continue
+
+        reply = actual.get("reply", "")
+        price_max = r["expected"].get("args", {}).get("price_max")
+        grounded = _grounded_prices(search_tool_results, price_max, r["message"])
+        mentioned = _parse_money(reply)
+        ungrounded_prices = sorted(m for m in mentioned if not _is_grounded(m, grounded))
+
+        total_matches = sum(len(tr.get("matches", [])) for tr in search_tool_results)
+        claims_zero = _mentions_zero_results(reply)
+        engages_with_real_matches = _reply_cites_real_matches(reply, search_tool_results)
+        false_zero_claim = claims_zero and total_matches > 0 and not engages_with_real_matches
+
+        if ungrounded_prices or false_zero_claim:
+            details.append(
+                {
+                    "message": r["message"],
+                    "reply": reply,
+                    "ungrounded_prices": ungrounded_prices,
+                    "grounded_prices": sorted(grounded),
+                    "false_zero_claim": false_zero_claim,
+                    "total_matches": total_matches,
+                }
+            )
+    return details
+
+
+# ---------------------------------------------------------------------------
+# Step 4: task_completion_rate
+# ---------------------------------------------------------------------------
+
+
+def task_completion_rate(results: list[dict]) -> float:
+    """Fraction of cases judged "completed" end-to-end.
+
+    Definition (documented since this is the most subjective metric): a case
+    counts as completed if ALL of the following hold:
+
+    1. Tool selection was correct (same check as tool_selection_accuracy):
+       the first tool called matches `expected["tool"]` (including the
+       "no tool expected and none called" case).
+    2. IF a tool call was expected AND made: every expected argument field
+       was correctly extracted (same per-field check as
+       slot_extraction_accuracy) -- i.e. this case contributes 0 mismatches,
+       not just a nonzero average. Cases with no expected args, or where no
+       tool call was expected, automatically satisfy this condition.
+    3. The reply is non-empty and not just a placeholder (more than a couple
+       of characters after stripping whitespace) -- a sanity check that the
+       agent actually produced a user-facing response rather than silently
+       failing.
+    4. The case is not flagged by the hallucination check (see
+       hallucination_rate) -- a reply that mis-states facts about what was
+       actually found is not a "completed" task even if the tool/slots were
+       right, since the user walks away misinformed.
+
+    This is deliberately a strict, all-or-nothing composite (rather than a
+    partial-credit blend) because "task completion" from a user's point of
+    view is binary: either they got a correct, honest, on-topic answer, or
+    they didn't. Softer partial-credit variants are possible but would bury
+    the signal this metric is meant to give: how often would a real user have
+    been fully, correctly served.
+    """
+    if not results:
+        return 0.0
+
+    flagged_messages = {d["message"] for d in hallucination_details(results)}
+
+    completed = 0
+    for r in results:
+        expected = r["expected"]
+        expected_tool = expected.get("tool")
+        expected_args = expected.get("args") or {}
+        actual = r["actual"]
+        calls = actual.get("tool_calls_made") or []
+        actual_tool = _first_tool_name(actual)
+
+        # 1. Tool selection correct
+        if expected_tool != actual_tool:
+            continue
+
+        # 2. Slot extraction correct (only applicable if a tool call was
+        #    expected, made, and has expected args to check)
+        if expected_tool is not None and calls and expected_args:
+            actual_args = calls[0].get("arguments") or {}
+            actual_lookup = {str(k).lower(): v for k, v in actual_args.items()}
+            slots_ok = all(
+                _values_match(expected_value, actual_lookup.get(str(key).lower()))
+                for key, expected_value in expected_args.items()
+            )
+            if not slots_ok:
+                continue
+
+        # 3. Reply is non-trivial
+        reply = actual.get("reply", "") or ""
+        if len(reply.strip()) < 5:
+            continue
+
+        # 4. Not flagged as hallucinated
+        if r["message"] in flagged_messages:
+            continue
+
+        completed += 1
+
+    return completed / len(results)
+
+
+# ---------------------------------------------------------------------------
+# Step 5: mean_latency_ms
+# ---------------------------------------------------------------------------
+
+
+def mean_latency_ms(results: list[dict]) -> float:
+    """Mean of the recorded `latency_ms` field across all cases."""
+    if not results:
+        return 0.0
+    latencies = [r["latency_ms"] for r in results if "latency_ms" in r]
+    return sum(latencies) / len(latencies) if latencies else 0.0
+
+
+# ---------------------------------------------------------------------------
+# Runner
+# ---------------------------------------------------------------------------
+
+
+def summarize(name: str, results: list[dict]) -> dict:
+    return {
+        "domain": name,
+        "n_cases": len(results),
+        "tool_selection_accuracy": tool_selection_accuracy(results),
+        "slot_extraction_accuracy": slot_extraction_accuracy(results),
+        "hallucination_rate": hallucination_rate(results),
+        "task_completion_rate": task_completion_rate(results),
+        "mean_latency_ms": mean_latency_ms(results),
+    }
+
+
+def print_table(summaries: list[dict]) -> None:
+    headers = [
+        "domain",
+        "n_cases",
+        "tool_selection_accuracy",
+        "slot_extraction_accuracy",
+        "hallucination_rate",
+        "task_completion_rate",
+        "mean_latency_ms",
+    ]
+    col_widths = {h: max(len(h), 10) for h in headers}
+    for s in summaries:
+        for h in headers:
+            col_widths[h] = max(col_widths[h], len(f"{s[h]:.4f}" if isinstance(s[h], float) else str(s[h])))
+
+    def fmt_row(values: list[str]) -> str:
+        return " | ".join(v.ljust(col_widths[h]) for h, v in zip(headers, values))
+
+    print(fmt_row(headers))
+    print("-+-".join("-" * col_widths[h] for h in headers))
+    for s in summaries:
+        row = []
+        for h in headers:
+            v = s[h]
+            row.append(f"{v:.4f}" if isinstance(v, float) else str(v))
+        print(fmt_row(row))
+
+
+def main() -> None:
+    base = Path(__file__).parent / "results"
+    domains = {
+        "cars": base / "cars_results.json",
+        "real_estate": base / "real_estate_results.json",
+    }
+
+    summaries = []
+    for name, path in domains.items():
+        results = load_results(path)
+        summaries.append(summarize(name, results))
+
+    print_table(summaries)
+
+    print("\n--- Hallucination audit (flagged cases) ---")
+    for name, path in domains.items():
+        results = load_results(path)
+        details = hallucination_details(results)
+        print(f"\n{name}: {len(details)} flagged case(s)")
+        for d in details[:5]:
+            print(f"  message: {d['message']}")
+            print(f"    ungrounded_prices: {d['ungrounded_prices']}")
+            print(f"    false_zero_claim: {d['false_zero_claim']}, total_matches: {d['total_matches']}")
+
+
+if __name__ == "__main__":
+    main()
