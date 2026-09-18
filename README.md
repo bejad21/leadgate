@@ -36,9 +36,13 @@ test cases:
 
 100% grounding means zero hallucinated facts across both runs: every price, count, and
 feature the agent stated was traceable back to a real tool result. None of this is
-rounded up. `eval/REPORT.md` also documents the two remaining known gaps (no
-price-minimum filter, one residual non-deterministic case) and the round of fixes an
-independent adversarial review confirmed were genuine rather than metric-gaming.
+rounded up. `eval/REPORT.md` also documents the remaining known gaps -- no
+price-minimum filter, one residual non-deterministic case, and `RealEstateAdapter`
+declaring `property_type`/`bedrooms` in its tool schema but never actually filtering
+on them server-side (11 of real_estate's 48 eval cases, 23%, are labeled and graded
+around exactly this; fixing it needs new structured columns on the catalog model, not
+just an adapter change) -- and the round of fixes an independent adversarial review
+confirmed were genuine rather than metric-gaming.
 
 ## Architecture
 

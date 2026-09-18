@@ -132,8 +132,24 @@ weakness, described below.
 
 ## Weakest points, stated plainly
 
-Two limitations are documented and left unfixed on purpose, and one weakness in the
+Three limitations are documented and left unfixed on purpose, and one weakness in the
 metric itself remains open.
+
+`property_type`/`bedrooms` are declared but never actually filtered on.
+`RealEstateAdapter.search_listings` (`engine/adapters/real_estate.py`) declares
+`property_type` and `bedrooms` in its tool schema, so the LLM extracts them from a
+message like "a 3-bedroom house" as arguments, but `execute_tool` only ever turns
+`price_max` into an Odoo domain filter; `property_type` and `bedrooms` are silently
+dropped and never reach the `search_read` call. This is not a small edge case:
+`eval/datasets/real_estate_test_set.json` labels 11 of its 48 cases (23%) as
+`bedroom_or_type_limitation` specifically because of this, and those cases are graded
+knowing the returned matches won't actually respect bedroom count or property type. It
+can't be fixed by changing the adapter alone: `leadgate.catalog.item` (the single
+domain-agnostic Odoo model both adapters query) has no structured `bedrooms` or
+`property_type` columns, only a free-form JSON `attributes` field, so filtering on
+either would first require adding real columns to the catalog model (and a migration
+of the already-seeded 350 real-estate rows), which was judged out of scope for this
+round.
 
 No price-minimum parameter. The search tool schema only accepts a price_max
 argument. A message like "anything over $400,000?" has no correct way to be
@@ -159,7 +175,7 @@ paraphrase, so this weakness was not triggered here, but it is real, unfixed, an
 would need attention before trusting this matcher on a larger or more adversarial
 dataset.
 
-None of these three are cosmetic. They are the actual remaining gaps between "this
+None of these four are cosmetic. They are the actual remaining gaps between "this
 eval scores well" and "this system is complete," and they are recorded here
 instead of smoothed into the numbers above.
 
