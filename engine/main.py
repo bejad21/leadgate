@@ -1,4 +1,6 @@
 import hmac
+import logging
+import os
 
 from fastapi import FastAPI, Request, Response
 
@@ -6,9 +8,12 @@ from engine.adapters.cars import CarsAdapter
 from engine.adapters.real_estate import RealEstateAdapter
 from engine.config import get_llm_client, load_config
 from engine.core.agent_loop import run_turn
+from engine.mongo_client import log_turn
 from engine.odoo_client import OdooClient
 from engine.rate_limiter import FixedWindowRateLimiter
 from engine.telegram_client import extract_message, send_message
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LeadGate Engine")
 
@@ -19,6 +24,16 @@ config = load_config()
 # persistent store such as Redis or Supabase so history survives restarts
 # and is shared across worker processes.
 conversation_history: dict[int, list[dict]] = {}
+
+# Cap on how many user turns of history are kept per chat_id. Without a
+# cap, conversation_history grows forever for any chat_id that keeps
+# messaging, unlike the rate limiter (Task 6.1) which evicts old entries.
+# Every message in history is resent to the LLM on every subsequent call,
+# so unbounded growth means unbounded per-request token cost, not just
+# unbounded memory. 20 turns is generous enough for a real back-and-forth
+# sales conversation (the eval's longest real transcripts are far shorter)
+# while keeping a hard ceiling on both memory and LLM spend per chat_id.
+CONVERSATION_HISTORY_MAX_TURNS = 20
 
 # Per-chat_id rate limit for the webhook: 10 requests per 60-second rolling
 # window. Generous enough for a normal back-and-forth conversation but tight
@@ -64,6 +79,26 @@ def _get_llm_client():
     return _llm_client
 
 
+def _trim_conversation_history(chat_id: int) -> None:
+    """Keep only the last CONVERSATION_HISTORY_MAX_TURNS user turns (and
+    their associated assistant/tool messages) for a given chat_id, always
+    preserving the leading system-prompt message if present.
+    """
+    history = conversation_history.get(chat_id)
+    if not history:
+        return
+
+    system_msgs = [m for m in history if m.get("role") == "system"]
+    rest = [m for m in history if m.get("role") != "system"]
+
+    user_indices = [i for i, m in enumerate(rest) if m.get("role") == "user"]
+    if len(user_indices) > CONVERSATION_HISTORY_MAX_TURNS:
+        cutoff = user_indices[-CONVERSATION_HISTORY_MAX_TURNS]
+        rest = rest[cutoff:]
+
+    conversation_history[chat_id] = system_msgs + rest
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
@@ -99,7 +134,49 @@ async def telegram_webhook(request: Request):
     history = conversation_history.setdefault(chat_id, [])
     history.append({"role": "user", "content": text})
 
-    result = run_turn(history, _get_adapter(), _get_llm_client())
-    send_message(chat_id, result.reply)
+    # Everything below this point talks to Odoo, the LLM provider, Telegram,
+    # and MongoDB -- any of which can fault (Odoo down, LLM timeout/429,
+    # Telegram API error, Mongo unreachable). None of those should crash this
+    # process or return a 500: Telegram retries a failed webhook delivery by
+    # re-sending the *same* update, which would re-run this whole handler
+    # (re-billing the LLM call and, worse, potentially re-executing a tool
+    # call that already wrote a crm.lead, if the fault happened after tool
+    # execution but before the reply was sent). Returning 200 here stops that
+    # retry storm. This is NOT full exactly-once delivery: it does not
+    # deduplicate by Telegram's `update_id`, so a retry that arrives despite
+    # a *successful* prior 200 (e.g. the 200 itself got lost in transit)
+    # could still double-process. That's a known, real follow-up, not
+    # something silently assumed solved here.
+    try:
+        result = run_turn(history, _get_adapter(), _get_llm_client())
+    except Exception:
+        logger.exception("run_turn failed for chat_id=%s", chat_id)
+        return {"ok": True}
+
+    _trim_conversation_history(chat_id)
+
+    try:
+        send_message(chat_id, result.reply)
+    except Exception:
+        logger.exception("send_message failed for chat_id=%s", chat_id)
+        return {"ok": True}
+
+    # Log the completed turn to MongoDB's `conversations` collection
+    # (Task 3.4). This is best-effort audit logging: a Mongo fault must
+    # never take down the webhook after a real reply has already been
+    # computed and sent to the customer.
+    mongodb_uri = os.environ.get("MONGODB_URI")
+    if mongodb_uri:
+        try:
+            log_turn(
+                mongodb_uri,
+                chat_id,
+                config["ACTIVE_DOMAIN"],
+                text,
+                result.reply,
+                result.tool_calls_made,
+            )
+        except Exception:
+            logger.exception("log_turn failed for chat_id=%s", chat_id)
 
     return {"ok": True}
