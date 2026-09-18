@@ -86,13 +86,18 @@ data-residency, retention, or no-training guarantee. A real deployment handling 
 customer conversations would need a paid tier with an explicit data-processing agreement
 before this is acceptable.
 
-**Conversation history is in-memory, unencrypted, and unbounded by policy.**
+**Conversation history is in-memory and unencrypted, with no per-chat expiry.**
 `conversation_history: dict[int, list[dict]]` in `engine/main.py` lives entirely in
 process memory: it doesn't survive a restart, isn't shared across worker processes, and
-is never encrypted at rest because it's never at rest, it's just a live dict. This is an
-explicit, commented trade-off in the code (a production deployment would move it to
-Redis or Supabase), but as shipped, every customer conversation this process has ever
-handled sits in plaintext memory for as long as the process runs, with no expiry.
+is never encrypted at rest because it's never at rest, it's just a live dict. Each
+chat's own turn history is capped at `CONVERSATION_HISTORY_MAX_TURNS` (20) to bound
+per-request token cost and memory growth for any single conversation, but the
+`chat_id` keys themselves are never evicted, so a process that talks to enough distinct
+chats over a long enough uptime still grows unbounded, and there's no time-based expiry
+for an idle chat's history. This is an explicit, commented trade-off in the code (a
+production deployment would move this to Redis or Supabase with real TTLs), but as
+shipped, every customer conversation this process has ever handled sits in plaintext
+memory for as long as the process runs.
 
 **No authentication on the eval or seed scripts' outputs.** `eval/results/*.json` and
 the seeded catalog data are plain files with no access control beyond the filesystem;
