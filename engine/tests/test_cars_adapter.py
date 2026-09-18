@@ -175,18 +175,53 @@ def test_live_search_inventory_make_filter_only_returns_matching_make():
     Confirms search_inventory({"make": "Toyota", "price_max": ...}) only
     returns cars whose name actually contains "Toyota" -- proving the fix
     works end-to-end against real data, not just against a mock.
+
+    NOTE: execute_tool truncates "matches" to the first 5 records
+    (`records[:5]` in CarsAdapter.execute_tool), so checking only
+    result["matches"] would silently miss leakage anywhere past position 5.
+    This test therefore checks result["count"] (computed from the full,
+    untruncated `records` list) against a full, untruncated recount obtained
+    via a direct search_read call below -- not just the truncated preview.
     """
     client = _live_odoo_client()
     adapter = CarsAdapter(client)
 
     result = adapter.execute_tool("search_inventory", {"make": "Toyota", "price_max": 40000})
-
     assert result["count"] > 0, "expected at least one live Toyota match under 40000"
+
+    # The 5-record preview should still look correct...
     for record in result["matches"]:
         assert "toyota" in record["name"].lower(), (
             f"non-Toyota record leaked into make-filtered results: {record['name']}"
         )
         assert record["price"] <= 40000
+
+    # ...but the real proof has to cover the FULL result set, not just the
+    # truncated preview. Query the same domain execute_tool builds
+    # internally, directly via search_read with no [:5] slicing, and check
+    # every single returned record.
+    full_domain = [
+        ("domain_type", "=", "cars"),
+        ("status", "=", "available"),
+        ("name", "ilike", "Toyota"),
+        ("price", "<=", 40000),
+    ]
+    full_records = client.search_read("leadgate.catalog.item", full_domain, ["name", "price"])
+
+    assert len(full_records) == result["count"], (
+        "full search_read result count should match execute_tool's reported count "
+        "(execute_tool must not be silently under- or over-counting)"
+    )
+    assert len(full_records) > 5, (
+        "expected more than 5 live Toyota matches under 40000 so this test actually "
+        "exercises records past the [:5] truncation point"
+    )
+    non_toyota_leaks = [r["name"] for r in full_records if "toyota" not in r["name"].lower()]
+    assert non_toyota_leaks == [], (
+        f"non-Toyota records leaked into the FULL result set: {non_toyota_leaks}"
+    )
+    over_budget = [r["name"] for r in full_records if r["price"] > 40000]
+    assert over_budget == [], f"records over price_max leaked into the FULL result set: {over_budget}"
 
     # Sanity check: without the make filter, the live dataset has strictly
     # more matches under the same price cap, proving the filter is genuinely
@@ -196,3 +231,23 @@ def test_live_search_inventory_make_filter_only_returns_matching_make():
         "expected the unfiltered live query to return more cars than the "
         "Toyota-filtered query, to prove the make filter is doing real work"
     )
+
+
+@pytest.mark.parametrize("make", ["Toyota", "Honda", "Ford"])
+def test_live_search_inventory_full_result_set_has_zero_leakage_across_makes(make):
+    """Mirrors the reviewer's independent verification: for each of several
+    makes, pull the FULL (untruncated) live result set directly via
+    search_read and assert zero non-matching records anywhere in it, not
+    just within the first 5 previewed by execute_tool."""
+    client = _live_odoo_client()
+
+    domain = [
+        ("domain_type", "=", "cars"),
+        ("status", "=", "available"),
+        ("name", "ilike", make),
+    ]
+    full_records = client.search_read("leadgate.catalog.item", domain, ["name", "price"])
+
+    assert len(full_records) > 0, f"expected at least one live {make} match"
+    leaks = [r["name"] for r in full_records if make.lower() not in r["name"].lower()]
+    assert leaks == [], f"non-{make} records leaked into the full {make} result set: {leaks}"
