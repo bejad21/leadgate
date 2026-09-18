@@ -41,3 +41,7 @@ def test_chat_parses_tool_call():
     assert isinstance(call, ToolCall)
     assert call.name == "search_odoo_catalog"
     assert call.arguments == {"make": "Toyota", "max_price": 20000}
+    # The real API response's tool_call id must be preserved, not dropped --
+    # it's required downstream to link the assistant's tool_calls to the
+    # matching tool-result message per the OpenAI/OpenRouter protocol.
+    assert call.id == "call_1"

@@ -1,3 +1,5 @@
+import json
+
 from engine.core.adapter_base import DomainAdapter
 from engine.core.agent_loop import AgentTurnResult, run_turn
 from engine.llm_client import LLMResponse, ToolCall
@@ -67,7 +69,26 @@ def test_run_turn_executes_tool_and_grounds_reply():
     tool_messages = [m for m in second_call_messages if m.get("role") == "tool"]
     assert len(tool_messages) == 1
     assert tool_messages[0]["name"] == "search_inventory"
-    assert str(tool_result) in tool_messages[0]["content"]
+    assert json.loads(tool_messages[0]["content"]) == tool_result
+
+    # Protocol compliance: the assistant message carrying the original
+    # tool_calls must be appended BEFORE the tool result message, and the
+    # tool message's tool_call_id must match the assistant's tool_calls id.
+    assistant_messages = [m for m in second_call_messages if m.get("role") == "assistant"]
+    assert len(assistant_messages) == 1
+    assistant_tool_calls = assistant_messages[0]["tool_calls"]
+    assert len(assistant_tool_calls) == 1
+    assert assistant_tool_calls[0]["type"] == "function"
+    assert assistant_tool_calls[0]["function"]["name"] == "search_inventory"
+    assert json.loads(assistant_tool_calls[0]["function"]["arguments"]) == {
+        "make": "Toyota",
+        "price_max": 30000,
+    }
+    assert tool_messages[0]["tool_call_id"] == assistant_tool_calls[0]["id"]
+
+    assistant_index = second_call_messages.index(assistant_messages[0])
+    tool_index = second_call_messages.index(tool_messages[0])
+    assert assistant_index < tool_index
 
     # The second follow-up call must not offer tools (it's asked to
     # summarize, not to call more tools).
@@ -77,3 +98,26 @@ def test_run_turn_executes_tool_and_grounds_reply():
     assert result.reply == "We have a Toyota Corolla for $18,000 available."
     assert result.tool_calls_made == [tool_call]
     assert result.tool_results == [tool_result]
+
+
+def test_run_turn_uses_real_tool_call_id_when_provided():
+    """When the LLM response includes a real tool_call id (as OpenRouter's
+    API actually does), that id -- not a generated fallback -- must be the
+    one used to link the assistant message to the tool result message."""
+    tool_result = {"matches": [], "count": 0}
+    tool_call = ToolCall(name="search_inventory", arguments={}, id="call_abc123")
+
+    first_response = LLMResponse(content=None, tool_calls=[tool_call])
+    second_response = LLMResponse(content="No matches found.", tool_calls=[])
+
+    llm = FakeLLMClient([first_response, second_response])
+    adapter = FakeCarsAdapter(tool_result)
+    history = [{"role": "user", "content": "anything under 5000?"}]
+
+    run_turn(history, adapter, llm)
+
+    tool_message = next(m for m in history if m.get("role") == "tool")
+    assistant_message = next(m for m in history if m.get("role") == "assistant")
+
+    assert tool_message["tool_call_id"] == "call_abc123"
+    assert assistant_message["tool_calls"][0]["id"] == "call_abc123"

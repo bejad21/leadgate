@@ -5,6 +5,7 @@ from dataclasses import dataclass
 class ToolCall:
     name: str
     arguments: dict
+    id: str | None = None
 
 @dataclass
 class LLMResponse:
@@ -28,7 +29,11 @@ class LLMClient:
         choice = resp.json()["choices"][0]["message"]
         raw_calls = choice.get("tool_calls") or []
         calls = [
-            ToolCall(name=c["function"]["name"], arguments=_parse_args(c["function"]["arguments"]))
+            ToolCall(
+                name=c["function"]["name"],
+                arguments=_parse_args(c["function"]["arguments"]),
+                id=c.get("id"),
+            )
             for c in raw_calls
         ]
         return LLMResponse(content=choice.get("content"), tool_calls=calls)

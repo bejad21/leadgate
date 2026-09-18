@@ -1,3 +1,5 @@
+import json
+import uuid
 from dataclasses import dataclass, field
 from engine.llm_client import LLMClient, ToolCall
 from engine.core.adapter_base import DomainAdapter
@@ -52,10 +54,51 @@ def run_turn(history: list[dict], adapter: DomainAdapter, llm: LLMClient) -> Age
         history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
     response = llm.chat(history, tools=adapter.tool_schemas())
     tool_results = []
-    for call in response.tool_calls:
-        result = adapter.execute_tool(call.name, call.arguments)
-        tool_results.append(result)
-        history.append({"role": "tool", "name": call.name, "content": str(result)})
+
+    if response.tool_calls:
+        # The OpenAI/OpenRouter tool-calling protocol requires the
+        # assistant's own message (carrying its `tool_calls` array, each
+        # with an `id`) to be appended to history BEFORE any `tool` role
+        # messages, and each `tool` message must carry a `tool_call_id`
+        # that matches one of those ids. Skipping the assistant message
+        # and omitting tool_call_id (as this used to do) happens to work
+        # against the currently-configured free-tier model, but is a real
+        # protocol violation that could break silently if the model/
+        # provider ever changes -- a real risk given this project's own
+        # free-tier constraint (see config.py's provider fallback logic).
+        assistant_tool_calls = []
+        for call in response.tool_calls:
+            call_id = call.id or f"call_{uuid.uuid4().hex}"
+            call.id = call_id
+            assistant_tool_calls.append(
+                {
+                    "id": call_id,
+                    "type": "function",
+                    "function": {
+                        "name": call.name,
+                        "arguments": json.dumps(call.arguments),
+                    },
+                }
+            )
+        history.append(
+            {
+                "role": "assistant",
+                "content": response.content,
+                "tool_calls": assistant_tool_calls,
+            }
+        )
+
+        for call in response.tool_calls:
+            result = adapter.execute_tool(call.name, call.arguments)
+            tool_results.append(result)
+            history.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call.id,
+                    "name": call.name,
+                    "content": json.dumps(result),
+                }
+            )
 
     if response.tool_calls:
         # Ask the LLM to turn tool results into a natural-language reply, grounded only in those results
