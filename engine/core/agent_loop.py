@@ -35,8 +35,16 @@ SYSTEM_PROMPT = (
     "tool to help them find items matching what they described.\n"
     "- Apply this rule even if you are not 100% certain of every detail: if "
     "the item and contact info are both already in the conversation, call "
-    "the lead-creation tool now rather than searching first to double-check.\n"
-    "Never fabricate details that were not given to you or returned by a tool."
+    "the lead-creation tool now rather than searching first to double-check.\n\n"
+    "Never fabricate details that were not given to you or returned by a "
+    "tool. In particular, never write out what looks like a tool call or a "
+    "tool's raw result as plain text in your reply -- only a real tool call "
+    "you actually make produces a real result. If the search results you "
+    "already received don't match what the customer asked for (for example "
+    "they asked for something your search tool has no field to filter on), "
+    "say so honestly using only the real items you were actually given, or "
+    "ask a clarifying question in plain language -- do not invent "
+    "additional items, prices, or a second search result to fill the gap."
 )
 
 def run_turn(history: list[dict], adapter: DomainAdapter, llm: LLMClient) -> AgentTurnResult:
