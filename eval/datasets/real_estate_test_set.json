@@ -1,0 +1,410 @@
+{
+  "dataset_info": {
+    "domain": "real_estate",
+    "disclosure": "HAND-AUTHORED SYNTHETIC TEST DATA. Every 'message' in this file was written by a human/agent for evaluation purposes. None of it is real customer data, real conversation transcripts, or real leads. Do not treat any message, name, email, or phone number below as belonging to a real person.",
+    "created": "2026-09-18",
+    "author": "Task 5.1 (LeadGate eval harness)",
+    "source_of_truth_for_labels": "data/real_estate_raw.csv (350 rows) as of the date above; property_type/price facts used to construct genuine no-match cases were verified against this exact file.",
+    "case_count": 48,
+    "category_counts": {
+      "clear_query_price_only": 8,
+      "bedroom_or_type_limitation": 11,
+      "ambiguous_phrasing": 8,
+      "no_match_genuine": 7,
+      "out_of_scope": 6,
+      "create_lead": 8
+    },
+    "known_limitations_reflected_in_labels": [
+      "Every single row in real_estate_raw.csv has property_type == 'residential' -- there is no other property_type value in the seeded data at all.",
+      "RealEstateAdapter.search_listings (engine/adapters/real_estate.py) accepts 'property_type' and 'bedrooms' in its tool schema (the LLM SHOULD extract them when mentioned), but the adapter's Odoo domain only ever filters on price_max -- property_type and bedrooms are not applied as filters server-side because the underlying catalog model has no structured columns for them yet. This is documented in Task 2.2's review. Cases that mention bedrooms or a property type are labeled 'bedroom_or_type_limitation' and their expected_outcome says explicitly that the filter will not actually apply, so a passing grade should not require the returned matches to actually respect bedroom count or type.",
+      "price_max is falsy-checked in the adapter (`if args.get('price_max')`), so a price_max of 0 would be silently ignored. No case in this file uses price_max: 0 deliberately for that reason."
+    ],
+    "grading_note": "expected_tool/expected_args are graded against what a correctly-behaving LLM SHOULD call (tool selection + argument extraction from the message). expected_outcome additionally describes the real downstream result given the adapter's current, known-limited filtering behavior, so Task 5.2's runner can distinguish 'the LLM chose right' from 'the system produced the right answer end-to-end'."
+  },
+  "cases": [
+    {
+      "id": "r01",
+      "category": "clear_query_price_only",
+      "message": "Do you have anything under $300,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 300000},
+      "expected_outcome": "price_max is a genuinely applied filter. real_estate_raw.csv has many rows under 300000 (e.g. 299900, 285000, 265000), so this should correctly return real matches end-to-end."
+    },
+    {
+      "id": "r02",
+      "category": "clear_query_price_only",
+      "message": "Show me listings under $500,000",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 500000},
+      "expected_outcome": "price_max filtering is real and reliable; plenty of rows in real_estate_raw.csv fall under 500000."
+    },
+    {
+      "id": "r03",
+      "category": "clear_query_price_only",
+      "message": "What properties do you have for around $1,000,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 1000000},
+      "expected_outcome": "Several rows are near or under 1,000,000 (e.g. 949900, 899000, 975000). price_max filtering is genuinely applied."
+    },
+    {
+      "id": "r04",
+      "category": "clear_query_price_only",
+      "message": "I have a budget of $650,000, what's available?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 650000},
+      "expected_outcome": "Multiple rows are at or under 650000 (e.g. 637000, 649900, 649000). Reliable end-to-end since only price_max is genuinely filtered."
+    },
+    {
+      "id": "r05",
+      "category": "clear_query_price_only",
+      "message": "Anything below $150,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 150000},
+      "expected_outcome": "Several inexpensive rows exist under 150000 (e.g. 128000, 134567, 135000, 122000). price_max filtering is genuine and reliable."
+    },
+    {
+      "id": "r06",
+      "category": "clear_query_price_only",
+      "message": "What's the cheapest thing you have around $100,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 100000},
+      "expected_outcome": "Rows exist near/under 100000 (e.g. 99000, 85500, 94900, 84900, 80000). price_max filtering is reliable."
+    },
+    {
+      "id": "r07",
+      "category": "clear_query_price_only",
+      "message": "Do you have anything for under $2,000,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 2000000},
+      "expected_outcome": "Many rows fall under 2,000,000. price_max filtering is genuine."
+    },
+    {
+      "id": "r08",
+      "category": "clear_query_price_only",
+      "message": "I'm looking to spend no more than $450,000",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 450000},
+      "expected_outcome": "Many rows are at/under 450000. price_max filtering is genuine and reliable."
+    },
+    {
+      "id": "r09",
+      "category": "bedroom_or_type_limitation",
+      "message": "I need a 3-bedroom house under $400,000",
+      "expected_tool": "search_listings",
+      "expected_args": {"bedrooms": 3, "price_max": 400000},
+      "expected_outcome": "LLM should extract bedrooms=3 and price_max=400000. real_estate_raw.csv does have 3-bed rows under 400000, so a correct implementation could satisfy this. HOWEVER the adapter does not actually filter on bedrooms (known limitation) -- the real returned matches will only respect price_max and may include listings with a different bed count. Grade the tool call/args extraction as correct; do not require the actual matches to all have 3 bedrooms."
+    },
+    {
+      "id": "r10",
+      "category": "bedroom_or_type_limitation",
+      "message": "Looking for a 5-bedroom home, budget up to $700,000",
+      "expected_tool": "search_listings",
+      "expected_args": {"bedrooms": 5, "price_max": 700000},
+      "expected_outcome": "bedrooms=5 and price_max=700000 should be extracted. 5-bed rows exist under 700000 in the data, but since bedrooms isn't actually filtered server-side, the returned matches may include non-5-bed listings. This is expected and not a failure of tool-call correctness."
+    },
+    {
+      "id": "r11",
+      "category": "bedroom_or_type_limitation",
+      "message": "Do you have any condos available?",
+      "expected_tool": "search_listings",
+      "expected_args": {"property_type": "condo"},
+      "expected_outcome": "Every row in real_estate_raw.csv has property_type == 'residential' -- there are no condos labeled as such in the seeded data, and the adapter does not filter on property_type at all. The LLM should still extract property_type='condo' (or similar) from the message. The real downstream result will be whatever the unfiltered/price-only query returns (likely all 'residential' rows), not an honest empty result and not actually condos -- this case exists specifically to document that double limitation (no condo data + no property_type filtering)."
+    },
+    {
+      "id": "r12",
+      "category": "bedroom_or_type_limitation",
+      "message": "I need a 2-bedroom apartment under $250,000",
+      "expected_tool": "search_listings",
+      "expected_args": {"bedrooms": 2, "property_type": "apartment", "price_max": 250000},
+      "expected_outcome": "bedrooms/property_type should be extracted from the message even though neither is actually filtered by the adapter. 2-bed rows under 250000 do exist in the data, but returned matches are not guaranteed to be 2-bed or apartments specifically -- known limitation, not a tool-selection failure."
+    },
+    {
+      "id": "r13",
+      "category": "bedroom_or_type_limitation",
+      "message": "Any commercial properties for sale?",
+      "expected_tool": "search_listings",
+      "expected_args": {"property_type": "commercial"},
+      "expected_outcome": "real_estate_raw.csv contains zero commercial listings (every row is 'residential'). A correct, fully-filtering implementation would return zero matches. The current adapter ignores property_type entirely, so it will instead return whatever unfiltered residential rows exist -- this is the known limitation, not a hallucination by the LLM if it extracts property_type='commercial' correctly."
+    },
+    {
+      "id": "r14",
+      "category": "bedroom_or_type_limitation",
+      "message": "I want a 4-bedroom, 3-bathroom house, nothing over $600,000",
+      "expected_tool": "search_listings",
+      "expected_args": {"bedrooms": 4, "price_max": 600000},
+      "expected_outcome": "bedrooms=4 and price_max=600000 should be extracted (bathroom count has no schema field and may reasonably be dropped or folded into notes-style context, but there is no notes field on search_listings so it's fine for the LLM to simply omit it). 4-bed rows under 600000 exist, but the bedroom count won't actually be enforced -- known limitation."
+    },
+    {
+      "id": "r15",
+      "category": "bedroom_or_type_limitation",
+      "message": "Do you have any land or lots for sale?",
+      "expected_tool": "search_listings",
+      "expected_args": {"property_type": "land"},
+      "expected_outcome": "No 'land' property_type exists anywhere in real_estate_raw.csv (all rows are 'residential' single properties with house_size values, i.e. built homes). A correct implementation returns zero matches; the current adapter will not enforce that due to the property_type limitation."
+    },
+    {
+      "id": "r16",
+      "category": "bedroom_or_type_limitation",
+      "message": "Looking for a townhouse with at least 3 bedrooms",
+      "expected_tool": "search_listings",
+      "expected_args": {"property_type": "townhouse", "bedrooms": 3},
+      "expected_outcome": "No 'townhouse' property_type exists in the data (only 'residential'). property_type/bedrooms extraction should still happen correctly on the LLM side; downstream filtering limitation applies as documented."
+    },
+    {
+      "id": "r17",
+      "category": "bedroom_or_type_limitation",
+      "message": "I'd like a multi-family property, 2 units or more",
+      "expected_tool": "search_listings",
+      "expected_args": {"property_type": "multi-family"},
+      "expected_outcome": "No 'multi-family' property_type exists in the data (only 'residential'). Correct behavior would be zero matches; adapter limitation prevents that from being enforced."
+    },
+    {
+      "id": "r18",
+      "category": "bedroom_or_type_limitation",
+      "message": "Any single-family homes with 6 bedrooms under $1,000,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"bedrooms": 6, "price_max": 1000000},
+      "expected_outcome": "6-bedroom rows under 1,000,000 do exist in the data (e.g. 515000, 449000, 420000, 294900, 379999). price_max is genuinely applied; bedrooms is not (known limitation), so returned matches aren't guaranteed to all be 6-bed."
+    },
+    {
+      "id": "r19",
+      "category": "ambiguous_phrasing",
+      "message": "I want something affordable",
+      "expected_tool": "search_listings",
+      "expected_args": {},
+      "expected_outcome": "No concrete price or type given. search_listings with empty args (or a clarifying question first) is acceptable; exact args are not strictly graded for this ambiguous case."
+    },
+    {
+      "id": "r20",
+      "category": "ambiguous_phrasing",
+      "message": "I'm looking for a starter home",
+      "expected_tool": "search_listings",
+      "expected_args": {},
+      "expected_outcome": "'Starter home' has no direct schema mapping. search_listings with empty/loose args is acceptable; not strictly graded on args."
+    },
+    {
+      "id": "r21",
+      "category": "ambiguous_phrasing",
+      "message": "Do you have any investment properties?",
+      "expected_tool": "search_listings",
+      "expected_args": {},
+      "expected_outcome": "'Investment property' is not a schema field. search_listings with empty args acceptable; not strictly graded on args."
+    },
+    {
+      "id": "r22",
+      "category": "ambiguous_phrasing",
+      "message": "What's on the market right now?",
+      "expected_tool": "search_listings",
+      "expected_args": {},
+      "expected_outcome": "General browse request maps cleanly to search_listings with no filters -- this is the clearest of the ambiguous cases and args genuinely should be empty."
+    },
+    {
+      "id": "r23",
+      "category": "ambiguous_phrasing",
+      "message": "I want something spacious for a big family",
+      "expected_tool": "search_listings",
+      "expected_args": {},
+      "expected_outcome": "'Spacious' doesn't map directly to bed/bath/price without more info. search_listings with empty args, or a clarifying question, is acceptable; not strictly graded on args."
+    },
+    {
+      "id": "r24",
+      "category": "ambiguous_phrasing",
+      "message": "Looking for a fixer-upper, something cheap I can renovate",
+      "expected_tool": "search_listings",
+      "expected_args": {},
+      "expected_outcome": "'Fixer-upper' has no schema field; 'cheap' has no concrete number. search_listings with empty args (or a guessed low price_max) is acceptable; not strictly graded on args."
+    },
+    {
+      "id": "r25",
+      "category": "ambiguous_phrasing",
+      "message": "I want something near the beach",
+      "expected_tool": "search_listings",
+      "expected_args": {},
+      "expected_outcome": "Location/proximity has no schema field on search_listings (no city/state args exposed). search_listings with empty args is acceptable, or a clarifying/conversational reply about location not being searchable; not strictly graded on args."
+    },
+    {
+      "id": "r26",
+      "category": "ambiguous_phrasing",
+      "message": "What's a good property for a first-time buyer?",
+      "expected_tool": "search_listings",
+      "expected_args": {},
+      "expected_outcome": "Vague qualitative request with no concrete filter. search_listings with empty args acceptable; not strictly graded on args."
+    },
+    {
+      "id": "r27",
+      "category": "no_match_genuine",
+      "message": "Do you have anything under $50,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 50000},
+      "expected_outcome": "The cheapest property in real_estate_raw.csv is 61000. price_max=50000 is genuinely below every seeded price, and since price_max filtering is real (not subject to the bedrooms/property_type limitation), the system should correctly return zero matches end-to-end."
+    },
+    {
+      "id": "r28",
+      "category": "no_match_genuine",
+      "message": "Is there anything over $20,000,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": null},
+      "expected_outcome": "The most expensive property in real_estate_raw.csv is 16,800,000. Asking for something OVER a max isn't representable by the price_max (upper-bound) schema field at all -- the correct behavior is a clarifying response or a conversational answer noting nothing exceeds that price, likely without a meaningful search_listings call. If the LLM does call search_listings, no price_max value can correctly express 'over $20M', so expected_args intentionally leaves it null/unset; grade primarily on whether the reply correctly conveys no such listing exists rather than on tool args."
+    },
+    {
+      "id": "r29",
+      "category": "no_match_genuine",
+      "message": "I need a 5-bedroom condo under $150,000",
+      "expected_tool": "search_listings",
+      "expected_args": {"bedrooms": 5, "property_type": "condo", "price_max": 150000},
+      "expected_outcome": "No condo property_type exists at all in real_estate_raw.csv (only 'residential'), independent of the bedroom/price combination. A fully correct implementation returns zero matches for the type reason alone. The current adapter won't enforce that (property_type is not filtered), so this is both a genuine no-match case and a limitation-exposing case at once."
+    },
+    {
+      "id": "r30",
+      "category": "no_match_genuine",
+      "message": "Do you have anything in Beverly Hills, California?",
+      "expected_tool": "search_listings",
+      "expected_args": {},
+      "expected_outcome": "real_estate_raw.csv covers Northeastern/Mid-Atlantic US states plus Puerto Rico (e.g. Massachusetts, New Jersey, Connecticut, New York, Pennsylvania, Rhode Island, New Hampshire, Maine, Vermont, Delaware) -- no California rows exist at all. There is no city/state arg on search_listings, so the LLM cannot filter by location even if it wanted to; the correct conversational behavior is to say California/Beverly Hills isn't covered, ideally without fabricating a match. This tests hallucination resistance more than tool-arg correctness."
+    },
+    {
+      "id": "r31",
+      "category": "no_match_genuine",
+      "message": "Anything under $10,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 10000},
+      "expected_outcome": "The cheapest property in real_estate_raw.csv is 61000, far above 10000. price_max filtering is real and reliable, so this should correctly return zero matches end-to-end."
+    },
+    {
+      "id": "r32",
+      "category": "no_match_genuine",
+      "message": "I need an 8-bedroom mansion under $200,000",
+      "expected_tool": "search_listings",
+      "expected_args": {"bedrooms": 8, "price_max": 200000},
+      "expected_outcome": "8-bedroom rows in real_estate_raw.csv are all priced well above 200000 (e.g. 674900, 415000, 480000, 339000 minimum for 8-bed is around 339000). A correct implementation would return zero matches for this exact bed+price combo, but since bedrooms isn't actually filtered, the current adapter will return other listings under 200000 that aren't 8-bed -- known limitation, exposed intentionally by this case."
+    },
+    {
+      "id": "r33",
+      "category": "out_of_scope",
+      "message": "What's your commission rate as an agent?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Commission/fee questions are not covered by either tool (search_listings, create_lead). Expected: conversational reply, no tool call."
+    },
+    {
+      "id": "r34",
+      "category": "out_of_scope",
+      "message": "Do you offer virtual tours of the properties?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Virtual tour availability is not a tool-schema concern. Expected: conversational reply, no tool call."
+    },
+    {
+      "id": "r35",
+      "category": "out_of_scope",
+      "message": "What's your office address?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Office location isn't covered by either tool. Expected: conversational reply, no tool call."
+    },
+    {
+      "id": "r36",
+      "category": "out_of_scope",
+      "message": "Can I talk to a real human agent?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Escalation request, not a search or lead action. Expected: conversational reply acknowledging the request, no tool call."
+    },
+    {
+      "id": "r37",
+      "category": "out_of_scope",
+      "message": "Do you accept cryptocurrency as payment?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Payment method policy is out of scope for both tools. Expected: conversational reply, no tool call."
+    },
+    {
+      "id": "r38",
+      "category": "out_of_scope",
+      "message": "What's today's mortgage interest rate?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Mortgage rates are unrelated to search_listings/create_lead. Expected: conversational reply, no tool call."
+    },
+    {
+      "id": "r39",
+      "category": "create_lead",
+      "message": "I want to put in an offer on the house at $299,900 in Monroeville. I'm David Kim, david.kim@example.com.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Monroeville property, $299,900", "customer_name": "David Kim", "customer_contact": "david.kim@example.com", "price": 299900},
+      "expected_outcome": "Clear purchase-intent statement referencing a specific listing, name, contact, and price -- create_lead is expected. Exact wording of the 'name' field may vary; grade on presence of customer_name/customer_contact/price and correct tool selection."
+    },
+    {
+      "id": "r40",
+      "category": "create_lead",
+      "message": "Please have someone contact me about the $649,900 listing in East Providence. Name's Angela Ruiz, phone 555-222-3333.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "East Providence property, $649,900", "customer_name": "Angela Ruiz", "customer_contact": "555-222-3333", "price": 649900},
+      "expected_outcome": "Callback request about a specific priced listing with contact info -- create_lead expected."
+    },
+    {
+      "id": "r41",
+      "category": "create_lead",
+      "message": "I'm ready to move forward on the $450,000 property. This is Michael Chen, michael.chen@example.com. I can close within 30 days.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Property at $450,000", "customer_name": "Michael Chen", "customer_contact": "michael.chen@example.com", "price": 450000, "notes": "Can close within 30 days"},
+      "expected_outcome": "Clear buy decision with a timeline note -- create_lead expected, with the closing timeline captured as notes."
+    },
+    {
+      "id": "r42",
+      "category": "create_lead",
+      "message": "Sign me up for the property at $825,000 in Yonkers -- Karen White, karen.white@example.com.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Yonkers property, $825,000", "customer_name": "Karen White", "customer_contact": "karen.white@example.com", "price": 825000},
+      "expected_outcome": "Direct request with name, contact, and price -- create_lead expected."
+    },
+    {
+      "id": "r43",
+      "category": "create_lead",
+      "message": "Create a lead for me: interested in the $375,000 home, my name is James Wilson, contact james.wilson@example.com, please follow up this week.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Property at $375,000", "customer_name": "James Wilson", "customer_contact": "james.wilson@example.com", "price": 375000, "notes": "Please follow up this week"},
+      "expected_outcome": "Explicit 'create a lead' phrasing with all fields present -- unambiguous create_lead call."
+    },
+    {
+      "id": "r44",
+      "category": "create_lead",
+      "message": "I'm very interested in the $1,299,000 property in Brooklyn. This is Nina Patel, nina.patel@example.com. Also, do you know the annual property tax?",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Brooklyn property, $1,299,000", "customer_name": "Nina Patel", "customer_contact": "nina.patel@example.com", "price": 1299000, "notes": "Asked about annual property tax"},
+      "expected_outcome": "Primary intent is to be contacted about a specific listing -- create_lead is expected even though a secondary out-of-scope tax question is mentioned; that question may be answered conversationally alongside the tool call."
+    },
+    {
+      "id": "r45",
+      "category": "create_lead",
+      "message": "Please reach out about the $299,900 place in West Warwick. Robert Taylor, 555-444-5555.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "West Warwick property, $299,900", "customer_name": "Robert Taylor", "customer_contact": "555-444-5555", "price": 299900},
+      "expected_outcome": "Contact request about a specific priced listing with name and phone -- create_lead expected."
+    },
+    {
+      "id": "r46",
+      "category": "create_lead",
+      "message": "I'd like to make an offer on the $549,900 house. Grace Lin, grace.lin@example.com.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Property at $549,900", "customer_name": "Grace Lin", "customer_contact": "grace.lin@example.com", "price": 549900},
+      "expected_outcome": "Offer intent with name, contact, and price -- create_lead expected."
+    },
+    {
+      "id": "r47",
+      "category": "bedroom_or_type_limitation",
+      "message": "Looking for a 1-bedroom condo under $250,000 as an investment",
+      "expected_tool": "search_listings",
+      "expected_args": {"bedrooms": 1, "property_type": "condo", "price_max": 250000},
+      "expected_outcome": "1-bed rows under 250000 exist in real_estate_raw.csv, but no 'condo' property_type exists at all (all rows are 'residential'), and bedrooms is not filtered server-side either. LLM extraction of bedrooms/property_type/price_max should still be correct; downstream results won't actually respect bedrooms or property_type -- known limitation, not a tool-selection failure."
+    },
+    {
+      "id": "r48",
+      "category": "no_match_genuine",
+      "message": "Do you have anything in Los Angeles under $800,000?",
+      "expected_tool": "search_listings",
+      "expected_args": {"price_max": 800000},
+      "expected_outcome": "No Los Angeles or any California rows exist in real_estate_raw.csv at all (data covers the Northeast/Mid-Atlantic plus Puerto Rico). There's no location arg on search_listings, so price_max is the only extractable filter; the LLM should ideally note that Los Angeles isn't in the covered area rather than presenting an unrelated result as if it matched the city. This case primarily tests hallucination resistance around location."
+    }
+  ]
+}

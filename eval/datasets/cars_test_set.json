@@ -1,0 +1,384 @@
+{
+  "dataset_info": {
+    "domain": "cars",
+    "disclosure": "HAND-AUTHORED SYNTHETIC TEST DATA. Every 'message' in this file was written by a human/agent for evaluation purposes. None of it is real customer data, real conversation transcripts, or real leads. Do not treat any message, name, email, or phone number below as belonging to a real person.",
+    "created": "2026-09-18",
+    "author": "Task 5.1 (LeadGate eval harness)",
+    "source_of_truth_for_labels": "data/cars_raw.csv (350 rows) as of the date above; make/model/price facts used to construct genuine no-match cases were verified against this exact file.",
+    "case_count": 45,
+    "category_counts": {
+      "clear_query": 15,
+      "ambiguous_phrasing": 8,
+      "no_match_genuine": 8,
+      "out_of_scope": 6,
+      "create_lead": 8
+    },
+    "known_limitations_reflected_in_labels": [
+      "CarsAdapter.search_inventory (engine/adapters/cars.py) only applies 'price_max' as an actual Odoo domain filter. The 'make' and 'model' arguments are part of the tool schema and SHOULD be extracted correctly by the LLM (that is what expected_tool/expected_args test), but the adapter does not currently filter on them server-side. This mirrors the already-documented real_estate property_type/bedrooms limitation from Task 2.2's review, just not previously written down for cars. Where this matters for a case's real-world outcome, expected_outcome says so explicitly.",
+      "price_max is falsy-checked in the adapter (`if args.get('price_max')`), so a price_max of 0 would be silently ignored. No case in this file uses price_max: 0 deliberately for that reason."
+    ],
+    "grading_note": "expected_tool/expected_args are graded against what a correctly-behaving LLM SHOULD call (tool selection + argument extraction). expected_outcome additionally describes the real downstream result given the adapter's current, known-limited filtering behavior, so Task 5.2's runner can distinguish 'the LLM chose right' from 'the system produced the right answer end-to-end'."
+  },
+  "cases": [
+    {
+      "id": "c01",
+      "category": "clear_query",
+      "message": "Do you have any Mazda CX-5 under $30,000?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "MAZDA", "model": "CX-5", "price_max": 30000},
+      "expected_outcome": "Correct tool call with make/model/price_max extracted. cars_raw.csv has two CX-5 rows (28510, 18615), both under 30000. Since price_max IS actually applied by the adapter, the real result will correctly include only cars <= 30000, but because make/model are not filtered server-side, other makes under 30000 will also appear in the returned matches."
+    },
+    {
+      "id": "c02",
+      "category": "clear_query",
+      "message": "Looking for a Ford Mustang under 35000",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Ford", "model": "Mustang", "price_max": 35000},
+      "expected_outcome": "Ford Mustang rows in cars_raw.csv: 46160, 33440, 16960 -- two of three are under 35000. price_max filtering works; make/model filtering does not (known limitation), so results will include non-Mustangs priced under 35000 too."
+    },
+    {
+      "id": "c03",
+      "category": "clear_query",
+      "message": "I want a Honda Odyssey, what have you got?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Honda", "model": "Odyssey"},
+      "expected_outcome": "Honda Odyssey exists in cars_raw.csv (rows at 32900, 37330, 35570, 30640). No price_max given so no downstream filtering applies at all; the adapter will return the first 5 available cars of any make (make/model not filtered)."
+    },
+    {
+      "id": "c04",
+      "category": "clear_query",
+      "message": "Show me Toyota Camry options",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Toyota", "model": "Camry"},
+      "expected_outcome": "Toyota Camry is well represented in cars_raw.csv (multiple rows from 16405 to 34750). No price_max given; make/model extraction should still be correct even though the adapter won't filter by them."
+    },
+    {
+      "id": "c05",
+      "category": "clear_query",
+      "message": "Do you have a Tesla Model 3 in stock?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Tesla", "model": "Model 3"},
+      "expected_outcome": "One Tesla Model 3 row exists (36460). Correct extraction expected; downstream filtering limitation applies as noted in dataset_info."
+    },
+    {
+      "id": "c06",
+      "category": "clear_query",
+      "message": "I'm interested in a Jeep Wrangler under 30000",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Jeep", "model": "Wrangler", "price_max": 30000},
+      "expected_outcome": "Jeep Wrangler appears many times in cars_raw.csv; several rows are under 30000 (e.g. 25250, 27470, 26224, 29900, 26217, 24327). price_max filtering is real; make/model is not."
+    },
+    {
+      "id": "c07",
+      "category": "clear_query",
+      "message": "Any BMW 330i xDrive available?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "BMW", "model": "330i xDrive"},
+      "expected_outcome": "BMW 330i xDrive rows exist at 41050 and 34700 in cars_raw.csv. Correct extraction expected; no price_max mentioned."
+    },
+    {
+      "id": "c08",
+      "category": "clear_query",
+      "message": "Kia Telluride under 50000",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Kia", "model": "Telluride", "price_max": 50000},
+      "expected_outcome": "Kia Telluride rows exist from 22984 up to 52750; several are under 50000 (22984, 47550, 30260). price_max filter is real and will correctly exclude the ones above 50000, but non-Telluride cars under 50000 will also show due to the make/model limitation."
+    },
+    {
+      "id": "c09",
+      "category": "clear_query",
+      "message": "Chevrolet Silverado 1500 under 35000",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Chevrolet", "model": "Silverado 1500", "price_max": 35000},
+      "expected_outcome": "Silverado 1500 rows include 31972, 33917 under 35000 (others like 38110, 42360, 40970 are above). price_max filtering is genuine."
+    },
+    {
+      "id": "c10",
+      "category": "clear_query",
+      "message": "GMC Sierra 1500 under 30000",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "GMC", "model": "Sierra 1500", "price_max": 30000},
+      "expected_outcome": "GMC Sierra 1500 rows include 21355 and 26620 under 30000 (42790, 31400, 42438 are above). price_max filtering is real."
+    },
+    {
+      "id": "c11",
+      "category": "clear_query",
+      "message": "What Subaru Crosstrek do you have?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Subaru", "model": "Crosstrek"},
+      "expected_outcome": "Subaru Crosstrek appears multiple times (25840, 27170, 26900, 26080, 27080). No price given; make/model extraction correctness is what's graded."
+    },
+    {
+      "id": "c12",
+      "category": "clear_query",
+      "message": "Hyundai Tucson under 20000",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Hyundai", "model": "Tucson", "price_max": 20000},
+      "expected_outcome": "Only one Hyundai Tucson row (15315) is under 20000; the others (26610, 23094, 22820) are above. price_max is genuinely applied by the adapter."
+    },
+    {
+      "id": "c13",
+      "category": "clear_query",
+      "message": "Do you have a Nissan Titan pickup?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Nissan", "model": "Titan"},
+      "expected_outcome": "Nissan Titan rows exist at 28905, 24030, 41290. Correct extraction expected."
+    },
+    {
+      "id": "c14",
+      "category": "clear_query",
+      "message": "Dodge Challenger under 30000",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Dodge", "model": "Challenger", "price_max": 30000},
+      "expected_outcome": "One Dodge Challenger row (26417) is under 30000; the other two (34920, 37092) are above. price_max filter is real."
+    },
+    {
+      "id": "c15",
+      "category": "clear_query",
+      "message": "I'd like to see a Land Rover Range Rover",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Land Rover", "model": "Range Rover"},
+      "expected_outcome": "Land Rover Range Rover rows exist at 34726, 40470, 37880. No price given."
+    },
+    {
+      "id": "c16",
+      "category": "ambiguous_phrasing",
+      "message": "I want something reliable and cheap",
+      "expected_tool": "search_inventory",
+      "expected_args": {},
+      "expected_outcome": "No concrete make/model/price signal to extract. A reasonable LLM calls search_inventory with no args (or possibly a low price_max guess). Grading should accept tool selection = search_inventory as the primary pass criterion; exact args are not strictly enforced for this ambiguous case."
+    },
+    {
+      "id": "c17",
+      "category": "ambiguous_phrasing",
+      "message": "I need a family car, nothing fancy",
+      "expected_tool": "search_inventory",
+      "expected_args": {},
+      "expected_outcome": "'Family car' does not map to a specific make/model in the schema. search_inventory with empty/loose args is the acceptable behavior; a clarifying question from the LLM before calling the tool would also be a reasonable alternate outcome."
+    },
+    {
+      "id": "c18",
+      "category": "ambiguous_phrasing",
+      "message": "What's a good truck for towing a boat?",
+      "expected_tool": "search_inventory",
+      "expected_args": {},
+      "expected_outcome": "No specific make/model given (many trucks in inventory: F150, Silverado, Sierra, Titan, RAM 1500, etc). Acceptable for the LLM to ask a clarifying question or call search_inventory with no filters; exact args not strictly graded."
+    },
+    {
+      "id": "c19",
+      "category": "ambiguous_phrasing",
+      "message": "Show me something sporty",
+      "expected_tool": "search_inventory",
+      "expected_args": {},
+      "expected_outcome": "'Sporty' is subjective and not a schema field. search_inventory with empty args is acceptable; args not strictly graded for this case."
+    },
+    {
+      "id": "c20",
+      "category": "ambiguous_phrasing",
+      "message": "I want an SUV, but nothing too expensive",
+      "expected_tool": "search_inventory",
+      "expected_args": {},
+      "expected_outcome": "'SUV' isn't a make/model field and 'not too expensive' has no concrete number. A reasonable LLM either asks a clarifying question about budget or calls search_inventory with a guessed low-to-mid price_max. Exact args not strictly graded."
+    },
+    {
+      "id": "c21",
+      "category": "ambiguous_phrasing",
+      "message": "Looking for something fuel efficient",
+      "expected_tool": "search_inventory",
+      "expected_args": {},
+      "expected_outcome": "No make/model/price extractable. search_inventory with empty args acceptable; not strictly graded on args."
+    },
+    {
+      "id": "c22",
+      "category": "ambiguous_phrasing",
+      "message": "What do you have in stock right now?",
+      "expected_tool": "search_inventory",
+      "expected_args": {},
+      "expected_outcome": "General browse request maps cleanly to search_inventory with no filters. This is the clearest of the ambiguous cases -- args should genuinely be empty here."
+    },
+    {
+      "id": "c23",
+      "category": "ambiguous_phrasing",
+      "message": "Any deals on used trucks?",
+      "expected_tool": "search_inventory",
+      "expected_args": {},
+      "expected_outcome": "'Used trucks' and 'deals' are not schema fields (condition/status aren't LLM-settable args here). search_inventory with empty args is acceptable; not strictly graded on args."
+    },
+    {
+      "id": "c24",
+      "category": "no_match_genuine",
+      "message": "Do you have any Porsche 911s?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Porsche", "model": "911"},
+      "expected_outcome": "Verified against cars_raw.csv: Porsche does not appear anywhere in the 350-row make list. A correct implementation would return zero matches. NOTE: because the adapter does not actually filter by make (known limitation), the real system will currently return other available cars instead of an honest empty result -- this case is useful for catching that specific regression/limitation, not just LLM tool-call correctness."
+    },
+    {
+      "id": "c25",
+      "category": "no_match_genuine",
+      "message": "I'm looking for a Ferrari, any in stock?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Ferrari"},
+      "expected_outcome": "Ferrari is absent from cars_raw.csv's make list. Correct behavior is zero matches; current adapter will not actually enforce that due to the make-filtering limitation described in dataset_info."
+    },
+    {
+      "id": "c26",
+      "category": "no_match_genuine",
+      "message": "Do you sell Lamborghinis?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Lamborghini"},
+      "expected_outcome": "Lamborghini is absent from cars_raw.csv. Correct behavior is zero matches; adapter limitation as above applies."
+    },
+    {
+      "id": "c27",
+      "category": "no_match_genuine",
+      "message": "Any Rivian trucks available?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Rivian"},
+      "expected_outcome": "Rivian is absent from cars_raw.csv (the only EVs are Tesla Model 3/Model Y, Chevy Bolt/Blazer EV, Kia EV6, Hyundai Ioniq 5, Nissan Ariya). Correct behavior is zero matches; adapter limitation as above applies."
+    },
+    {
+      "id": "c28",
+      "category": "no_match_genuine",
+      "message": "I want an Alfa Romeo Giulia",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Alfa Romeo", "model": "Giulia"},
+      "expected_outcome": "Alfa Romeo is absent from cars_raw.csv. Correct behavior is zero matches; adapter limitation as above applies."
+    },
+    {
+      "id": "c29",
+      "category": "no_match_genuine",
+      "message": "Do you have a Toyota under $10,000?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Toyota", "price_max": 10000},
+      "expected_outcome": "Genuinely no match on TWO independent grounds: the cheapest car in the entire cars_raw.csv is 13890 (a Jeep Grand Cherokee), so nothing at all is under 10000, and separately no Toyota row is anywhere near that price. Because price_max IS actually applied by the adapter, this case is reliable end-to-end -- the real system should correctly return zero matches regardless of the make-filtering limitation."
+    },
+    {
+      "id": "c30",
+      "category": "no_match_genuine",
+      "message": "Anything at all under $5,000?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"price_max": 5000},
+      "expected_outcome": "The cheapest car in cars_raw.csv is 13890. price_max=5000 is genuinely below every seeded price, and since price_max filtering is real (not subject to the make/model limitation), the system should correctly return zero matches end-to-end."
+    },
+    {
+      "id": "c31",
+      "category": "no_match_genuine",
+      "message": "Do you have a Ford F150 for under $15,000?",
+      "expected_tool": "search_inventory",
+      "expected_args": {"make": "Ford", "model": "F150", "price_max": 15000},
+      "expected_outcome": "No Ford F150 row is anywhere near 15000 (the cheapest F150 in cars_raw.csv is 20022) -- a correct, fully-filtering implementation would return zero matches. HOWEVER the overall cheapest cars in cars_raw.csv (Jeep Grand Cherokee 13890, Volkswagen Jetta 14355, Acura MDX 14740, Lincoln MKZ 14865) ARE under 15000, so because the adapter only filters price_max and ignores make, the current system will incorrectly return those non-F150 cars as if they matched. This case is intentionally chosen to expose that exact limitation -- label the 'correct' expected result as zero, but expect the current implementation to fail this case honestly."
+    },
+    {
+      "id": "c32",
+      "category": "out_of_scope",
+      "message": "What's your return policy on used cars?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Not a search or lead-creation request; no tool schema covers return policy. Expected behavior is a conversational reply (e.g. deferring to a human/policy page) without any tool call."
+    },
+    {
+      "id": "c33",
+      "category": "out_of_scope",
+      "message": "Do you offer financing or loans?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Financing terms are out of scope for the two available tools (search_inventory, create_lead). Expected behavior is a conversational reply, no tool call."
+    },
+    {
+      "id": "c34",
+      "category": "out_of_scope",
+      "message": "What are your business hours?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "No tool covers hours-of-operation questions. Expected: conversational reply, no tool call."
+    },
+    {
+      "id": "c35",
+      "category": "out_of_scope",
+      "message": "Can I speak to a human manager instead?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Escalation request, not a search or lead action. Expected: conversational reply acknowledging the request, no tool call."
+    },
+    {
+      "id": "c36",
+      "category": "out_of_scope",
+      "message": "Do you take trade-ins on my current car?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Trade-in policy is not covered by either tool. Expected: conversational reply, no tool call."
+    },
+    {
+      "id": "c37",
+      "category": "out_of_scope",
+      "message": "What's the weather like today?",
+      "expected_tool": null,
+      "expected_args": {},
+      "expected_outcome": "Entirely unrelated to the dealership domain. Expected: conversational reply (likely redirecting to on-topic help), no tool call."
+    },
+    {
+      "id": "c38",
+      "category": "create_lead",
+      "message": "I want to buy the Toyota RAV4 listed at $34,905. My name is John Smith and my email is john.smith@example.com.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Toyota RAV4", "customer_name": "John Smith", "customer_contact": "john.smith@example.com", "price": 34905},
+      "expected_outcome": "Customer named a specific car, price, name, and contact -- this is a direct purchase-intent statement that should trigger create_lead rather than a further search."
+    },
+    {
+      "id": "c39",
+      "category": "create_lead",
+      "message": "Please note my interest in the Ford F150. I'm Sarah Lee, reach me at 555-123-4567.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Ford F150", "customer_name": "Sarah Lee", "customer_contact": "555-123-4567"},
+      "expected_outcome": "Clear lead-creation intent with name and contact provided; no price stated so 'price' may be omitted from args."
+    },
+    {
+      "id": "c40",
+      "category": "create_lead",
+      "message": "Go ahead and set up a lead for the Kia Telluride at $47,550 for me -- Mark Davis, mark.davis@example.com. Note: I need it by next month.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Kia Telluride", "customer_name": "Mark Davis", "customer_contact": "mark.davis@example.com", "price": 47550, "notes": "Needs the car by next month"},
+      "expected_outcome": "Explicit request to create a lead with a timing note; 'notes' capturing the timeline is a reasonable optional extraction."
+    },
+    {
+      "id": "c41",
+      "category": "create_lead",
+      "message": "I'll take the Jeep Wrangler for $27,470. Contact me at emily.j@example.com, I'm Emily Johnson.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Jeep Wrangler", "customer_name": "Emily Johnson", "customer_contact": "emily.j@example.com", "price": 27470},
+      "expected_outcome": "Clear buy decision with contact details -- create_lead is expected."
+    },
+    {
+      "id": "c42",
+      "category": "create_lead",
+      "message": "Can you have someone call me about the Chevrolet Silverado 1500 at $31,972? Name's Robert Green, number 555-987-6543.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Chevrolet Silverado 1500", "customer_name": "Robert Green", "customer_contact": "555-987-6543", "price": 31972},
+      "expected_outcome": "Request for a callback about a specific priced vehicle with contact info is a lead-creation request."
+    },
+    {
+      "id": "c43",
+      "category": "create_lead",
+      "message": "I'm very interested in the Tesla Model 3. This is Priya Patel, priya.patel@example.com. I'd like financing info too but mainly want to be contacted.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Tesla Model 3", "customer_name": "Priya Patel", "customer_contact": "priya.patel@example.com", "notes": "Also interested in financing info"},
+      "expected_outcome": "Primary intent is to be contacted about a specific car -- create_lead is expected even though a secondary out-of-scope financing question is mentioned; the financing part may be answered conversationally alongside the tool call."
+    },
+    {
+      "id": "c44",
+      "category": "create_lead",
+      "message": "Sign me up for the Subaru Crosstrek at $25,840 -- Tom Nguyen, tom.nguyen@example.com.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "Subaru Crosstrek", "customer_name": "Tom Nguyen", "customer_contact": "tom.nguyen@example.com", "price": 25840},
+      "expected_outcome": "Direct request with name, contact, car, and price -- create_lead expected."
+    },
+    {
+      "id": "c45",
+      "category": "create_lead",
+      "message": "Create a lead: I'm Lisa Brown (lisa.brown@example.com), interested in the BMW 330i xDrive for $41,050, please follow up this week.",
+      "expected_tool": "create_lead",
+      "expected_args": {"name": "BMW 330i xDrive", "customer_name": "Lisa Brown", "customer_contact": "lisa.brown@example.com", "price": 41050, "notes": "Please follow up this week"},
+      "expected_outcome": "Explicit 'create a lead' phrasing with all fields present -- unambiguous create_lead call."
+    }
+  ]
+}
