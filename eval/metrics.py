@@ -107,26 +107,113 @@ def _find_matching_call(calls: list[dict], tool_name: str) -> dict | None:
     return None
 
 
+def _case_slot_fields(r: dict) -> list[bool] | None:
+    """Per-field match results (True/False) for one case's expected tool
+    arguments, or None if the case is not applicable to slot-extraction
+    grading at all (no tool call expected, no expected args to check, or the
+    expected tool was never actually invoked in the turn -- a tool-selection
+    failure that `tool_selection_accuracy` already captures elsewhere, and
+    which this function deliberately does NOT double-penalize by comparing
+    a *different* tool's arguments against the expected tool's argument
+    names).
+
+    Shared by `slot_extraction_accuracy` (aggregates across all applicable
+    cases and fields) and `task_completion_rate` (requires all fields in a
+    case to match) so the two metrics can't silently drift apart on what
+    counts as a "slot match".
+
+    When a case has multiple tool calls in one turn, the first call whose
+    name matches the expected tool is used, not strictly index 0.
+
+    A key whose expected value is `None` (e.g. `price_max: null`, meaning "no
+    filter should be applied") is matched by the key being absent from the
+    actual call, not just by an explicit null being present.
+    """
+    expected = r["expected"]
+    expected_tool = expected.get("tool")
+    expected_args = expected.get("args") or {}
+    if expected_tool is None or not expected_args:
+        return None
+
+    calls = r["actual"].get("tool_calls_made") or []
+    matching_call = _find_matching_call(calls, expected_tool)
+    if matching_call is None:
+        return None
+
+    actual_args = matching_call.get("arguments") or {}
+    actual_lookup = {str(k).lower(): v for k, v in actual_args.items()}
+
+    return [
+        _values_match(expected_value, actual_lookup.get(str(key).lower()))
+        for key, expected_value in expected_args.items()
+    ]
+
+
+def slot_extraction_stats(results: list[dict]) -> dict:
+    """Full breakdown behind `slot_extraction_accuracy`: total/correct field
+    counts, how many cases actually contributed fields ("applicable"), and
+    how many were excluded and why. Exists so the accuracy fraction is never
+    reported without visibility into its denominator -- a 1.00 built from 40
+    applicable cases (with, say, 8 cases excluded because the agent picked
+    the wrong tool entirely) reads very differently from a 1.00 built from
+    all 48.
+    """
+    total_fields = 0
+    correct_fields = 0
+    n_applicable_cases = 0
+    n_excluded_not_applicable = 0  # no tool expected, or no args to check
+    n_excluded_tool_mismatch = 0  # tool call expected but never actually made
+
+    for r in results:
+        expected = r["expected"]
+        expected_tool = expected.get("tool")
+        expected_args = expected.get("args") or {}
+
+        fields = _case_slot_fields(r)
+        if fields is None:
+            if expected_tool is None or not expected_args:
+                n_excluded_not_applicable += 1
+            else:
+                n_excluded_tool_mismatch += 1
+            continue
+
+        n_applicable_cases += 1
+        total_fields += len(fields)
+        correct_fields += sum(fields)
+
+    return {
+        "accuracy": correct_fields / total_fields if total_fields else 0.0,
+        "total_fields": total_fields,
+        "correct_fields": correct_fields,
+        "n_applicable_cases": n_applicable_cases,
+        "n_excluded_not_applicable": n_excluded_not_applicable,
+        "n_excluded_tool_mismatch": n_excluded_tool_mismatch,
+        "n_cases": len(results),
+    }
+
+
 def slot_extraction_accuracy(results: list[dict]) -> float:
     """Fraction of expected argument fields that were correctly extracted,
     aggregated across all cases where the expected tool was BOTH expected AND
     actually invoked somewhere in the turn.
 
-    Cases where no tool call was expected (`expected["tool"] is None`) are
-    skipped entirely -- there is no meaningful "slot" denominator for them.
-    Cases where the expected tool was never called at all (a tool-selection
-    failure -- including the case where the agent called a *different* tool
-    instead, e.g. searching instead of calling create_lead) are also skipped
-    for this metric: there are no genuinely comparable arguments to grade,
-    and that failure is already captured by tool_selection_accuracy. Grading
-    e.g. a search_listings call's arguments against an expected create_lead
-    call's arguments would only double-penalize the same tool-selection
-    miss under a different metric name.
+    Cases where no tool call was expected (`expected["tool"] is None`), or
+    where `expected["args"]` is empty, are skipped entirely -- there is no
+    meaningful "slot" denominator for them. Cases where the expected tool was
+    never called at all (a tool-selection failure -- including the case
+    where the agent called a *different* tool instead, e.g. searching instead
+    of calling create_lead) are also skipped for this metric: there are no
+    genuinely comparable arguments to grade, and that failure is already
+    captured by tool_selection_accuracy.
 
-    When a case does have multiple tool calls (e.g. the agent searched twice
-    with different filters in one turn), the first call whose name matches
-    the expected tool is used for comparison, not strictly index 0 -- this
-    matters for turns where a non-matching call happens to come first.
+    IMPORTANT CAVEAT (see `slot_extraction_stats` for the full breakdown):
+    this exclusion means a high accuracy here does NOT mean every tool's
+    argument extraction was tested. In real_estate_results.json specifically,
+    all 8 cases expecting `create_lead` had the agent call `search_listings`
+    instead, so all 8 are excluded here -- the reported accuracy reflects
+    only `search_listings` extraction, not `create_lead`. Always read this
+    number together with `slot_extraction_stats(...)["n_applicable_cases"]`
+    (or the summary table's `n_applicable` column), not in isolation.
 
     Within an applicable case, only keys present in `expected["args"]` are
     checked (an expected dict of `{}` contributes 0 fields, which is correct
@@ -136,37 +223,7 @@ def slot_extraction_accuracy(results: list[dict]) -> float:
     call's arguments and its normalized value matches (case-insensitive
     string compare, numeric-string tolerant -- see `_values_match`).
     """
-    total_fields = 0
-    correct_fields = 0
-    for r in results:
-        expected = r["expected"]
-        expected_tool = expected.get("tool")
-        expected_args = expected.get("args") or {}
-        if expected_tool is None:
-            continue  # no tool call expected; not applicable to this metric
-        if not expected_args:
-            continue  # nothing to check for this case (e.g. subjective query)
-
-        calls = r["actual"].get("tool_calls_made") or []
-        matching_call = _find_matching_call(calls, expected_tool)
-        if matching_call is None:
-            continue  # tool-selection failure already covered elsewhere
-
-        actual_args = matching_call.get("arguments") or {}
-        # Build a case-insensitive lookup of actual arg keys -> values
-        actual_lookup = {str(k).lower(): v for k, v in actual_args.items()}
-
-        for key, expected_value in expected_args.items():
-            total_fields += 1
-            # None counts as "key absent" -- an expected value of None (e.g.
-            # price_max: null, meaning "no filter should be applied") is
-            # correctly matched by the key being absent from the actual call,
-            # not just by an explicit null being present.
-            actual_value = actual_lookup.get(str(key).lower())
-            if _values_match(expected_value, actual_value):
-                correct_fields += 1
-
-    return correct_fields / total_fields if total_fields else 0.0
+    return slot_extraction_stats(results)["accuracy"]
 
 
 # ---------------------------------------------------------------------------
@@ -249,12 +306,25 @@ def _grounded_prices(tool_results: list[dict], price_max: float | None, message:
     return grounded
 
 
-def _is_grounded(amount: float, grounded: set[float], rel_tol: float = 0.1) -> bool:
+def _is_grounded(amount: float, grounded: set[float], rel_tol: float = 0.06) -> bool:
     """An amount counts as grounded if it exactly matches a grounded price, or
     is within a relative tolerance of one (agents commonly round a real price
     to a colloquial figure, e.g. citing a $949,900 listing as "well above
     $900k", or a $239,000 listing as "still under $250K" -- these are
-    approximations of a real, grounded number, not fabrications)."""
+    approximations of a real, grounded number, not fabrications).
+
+    rel_tol=0.06 (6%) is deliberately tighter than a round 10%: manually
+    auditing every legitimate rounding case in the 93-case dataset (see the
+    Task 5.3 report) found a worst case of 5.25% ("well above $900k" for a
+    real $949,900 listing). 6% is the smallest round-number margin that still
+    covers every confirmed-legitimate case with a small buffer, rather than
+    an arbitrary looser value that would also let a genuinely fabricated
+    price close to a real one (e.g. inventing "$1,050,000" near a real
+    $949,900 listing, a 10.6% gap) slip through ungrounded-check-free. A
+    reviewer flagged the original 10% as leaving too much room for exactly
+    that kind of near-miss hallucination; 6% narrows that room by nearly
+    half while re-verified to introduce zero new flags against the actual
+    93 cases (see report addendum)."""
     for g in grounded:
         if g == 0:
             if amount == 0:
@@ -361,9 +431,12 @@ def _applicable_cases(results: list[dict]) -> list[dict]:
 
 def hallucination_details(results: list[dict]) -> list[dict]:
     """Same logic as hallucination_rate but returns the flagged cases with
-    the reasons, for manual auditing."""
+    the reasons, for manual auditing. Each entry carries the case's `index`
+    (its position in the `results` list passed in) so callers like
+    `task_completion_rate` can identify flagged cases by position rather than
+    by matching on the `message` string, which is not guaranteed unique."""
     details = []
-    for r in results:
+    for index, r in enumerate(results):
         actual = r["actual"]
         tool_results = actual.get("tool_results") or []
         calls = actual.get("tool_calls_made") or []
@@ -389,6 +462,7 @@ def hallucination_details(results: list[dict]) -> list[dict]:
         if ungrounded_prices or false_zero_claim:
             details.append(
                 {
+                    "index": index,
                     "message": r["message"],
                     "reply": reply,
                     "ungrounded_prices": ungrounded_prices,
@@ -415,10 +489,12 @@ def task_completion_rate(results: list[dict]) -> float:
        the first tool called matches `expected["tool"]` (including the
        "no tool expected and none called" case).
     2. IF a tool call was expected AND made: every expected argument field
-       was correctly extracted (same per-field check as
-       slot_extraction_accuracy) -- i.e. this case contributes 0 mismatches,
-       not just a nonzero average. Cases with no expected args, or where no
-       tool call was expected, automatically satisfy this condition.
+       was correctly extracted, using the exact same per-field logic as
+       `slot_extraction_accuracy` (both call `_case_slot_fields`, so the two
+       metrics cannot silently diverge on what counts as a slot match) --
+       i.e. this case contributes 0 mismatches, not just a nonzero average.
+       Cases with no expected args, or where no tool call was expected,
+       automatically satisfy this condition.
     3. The reply is non-empty and not just a placeholder (more than a couple
        of characters after stripping whitespace) -- a sanity check that the
        agent actually produced a user-facing response rather than silently
@@ -426,7 +502,10 @@ def task_completion_rate(results: list[dict]) -> float:
     4. The case is not flagged by the hallucination check (see
        hallucination_rate) -- a reply that mis-states facts about what was
        actually found is not a "completed" task even if the tool/slots were
-       right, since the user walks away misinformed.
+       right, since the user walks away misinformed. Flagged cases are
+       identified by their position in `results` (via `hallucination_details`'
+       `index` field), not by matching on the `message` string, since two
+       cases could in principle share identical phrasing.
 
     This is deliberately a strict, all-or-nothing composite (rather than a
     partial-credit blend) because "task completion" from a user's point of
@@ -438,32 +517,26 @@ def task_completion_rate(results: list[dict]) -> float:
     if not results:
         return 0.0
 
-    flagged_messages = {d["message"] for d in hallucination_details(results)}
+    flagged_indices = {d["index"] for d in hallucination_details(results)}
 
     completed = 0
-    for r in results:
+    for index, r in enumerate(results):
         expected = r["expected"]
         expected_tool = expected.get("tool")
-        expected_args = expected.get("args") or {}
         actual = r["actual"]
-        calls = actual.get("tool_calls_made") or []
         actual_tool = _first_tool_name(actual)
 
         # 1. Tool selection correct
         if expected_tool != actual_tool:
             continue
 
-        # 2. Slot extraction correct (only applicable if a tool call was
-        #    expected, made, and has expected args to check)
-        if expected_tool is not None and calls and expected_args:
-            actual_args = calls[0].get("arguments") or {}
-            actual_lookup = {str(k).lower(): v for k, v in actual_args.items()}
-            slots_ok = all(
-                _values_match(expected_value, actual_lookup.get(str(key).lower()))
-                for key, expected_value in expected_args.items()
-            )
-            if not slots_ok:
-                continue
+        # 2. Slot extraction correct (same per-field check as
+        #    slot_extraction_accuracy; None means "not applicable", i.e. no
+        #    tool call was expected or there were no args to check, which
+        #    trivially satisfies this condition)
+        fields = _case_slot_fields(r)
+        if fields is not None and not all(fields):
+            continue
 
         # 3. Reply is non-trivial
         reply = actual.get("reply", "") or ""
@@ -471,7 +544,7 @@ def task_completion_rate(results: list[dict]) -> float:
             continue
 
         # 4. Not flagged as hallucinated
-        if r["message"] in flagged_messages:
+        if index in flagged_indices:
             continue
 
         completed += 1
@@ -498,11 +571,13 @@ def mean_latency_ms(results: list[dict]) -> float:
 
 
 def summarize(name: str, results: list[dict]) -> dict:
+    slot_stats = slot_extraction_stats(results)
     return {
         "domain": name,
         "n_cases": len(results),
         "tool_selection_accuracy": tool_selection_accuracy(results),
-        "slot_extraction_accuracy": slot_extraction_accuracy(results),
+        "slot_extraction_accuracy": slot_stats["accuracy"],
+        "slot_n_applicable": slot_stats["n_applicable_cases"],
         "hallucination_rate": hallucination_rate(results),
         "task_completion_rate": task_completion_rate(results),
         "mean_latency_ms": mean_latency_ms(results),
@@ -515,6 +590,7 @@ def print_table(summaries: list[dict]) -> None:
         "n_cases",
         "tool_selection_accuracy",
         "slot_extraction_accuracy",
+        "slot_n_applicable",
         "hallucination_rate",
         "task_completion_rate",
         "mean_latency_ms",
@@ -550,6 +626,17 @@ def main() -> None:
         summaries.append(summarize(name, results))
 
     print_table(summaries)
+
+    print("\n--- Slot-extraction applicability breakdown ---")
+    for name, path in domains.items():
+        results = load_results(path)
+        stats = slot_extraction_stats(results)
+        print(
+            f"{name}: {stats['accuracy']:.4f} accuracy over {stats['total_fields']} fields "
+            f"in {stats['n_applicable_cases']}/{stats['n_cases']} applicable cases "
+            f"({stats['n_excluded_not_applicable']} excluded: no tool/args expected; "
+            f"{stats['n_excluded_tool_mismatch']} excluded: expected tool never actually called)"
+        )
 
     print("\n--- Hallucination audit (flagged cases) ---")
     for name, path in domains.items():
