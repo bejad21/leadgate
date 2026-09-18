@@ -159,7 +159,15 @@ def _live_odoo_client():
     url = os.environ.get("ODOO_URL", "http://localhost:8069")
     db = os.environ.get("ODOO_DB", "leadgate")
     user = os.environ.get("ODOO_USER", "admin")
-    password = os.environ.get("ODOO_PASSWORD", "admin")
+    password = os.environ.get("ODOO_PASSWORD")
+    if not password:
+        # Fail loudly rather than silently falling back to a guessed
+        # credential -- matches config.py's deliberate fail-fast convention
+        # for this same variable. A missing ODOO_PASSWORD here is a real
+        # misconfiguration, not something to paper over with "admin".
+        raise RuntimeError(
+            "ODOO_PASSWORD is not set -- required to run this live Odoo integration test"
+        )
     try:
         client = OdooClient(url, db, user, password)
         if not client.uid:

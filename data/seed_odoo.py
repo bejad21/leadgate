@@ -42,7 +42,14 @@ load_env(DATA_DIR.parent / ".env")
 ODOO_URL = os.environ.get("ODOO_URL", "http://localhost:8069")
 ODOO_DB = os.environ.get("ODOO_DB", "leadgate")
 ODOO_USER = os.environ.get("ODOO_USER", "admin")
-ODOO_PASSWORD = os.environ.get("ODOO_PASSWORD", "admin")
+ODOO_PASSWORD = os.environ.get("ODOO_PASSWORD")
+if not ODOO_PASSWORD:
+    # Fail loudly rather than silently falling back to a guessed
+    # credential -- matches config.py's deliberate fail-fast convention for
+    # this same variable. Silently defaulting to "admin" here would let
+    # this script quietly authenticate against the wrong Odoo instance (or
+    # fail with a confusing XML-RPC error) instead of a clear message.
+    raise SystemExit("ODOO_PASSWORD is not set in .env/the environment - refusing to guess it")
 
 
 def read_rows(csv_path: Path) -> list[dict]:

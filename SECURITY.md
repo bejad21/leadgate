@@ -104,6 +104,37 @@ contact with a real deployment, but there is currently no automated check that s
 someone from running this in a less-trusted environment with those defaults still in
 place.
 
+**The engine authenticates to Odoo entirely as the `admin` service account.**
+`engine/main.py`'s `_get_adapter()` builds a single `OdooClient` from
+`ODOO_URL`/`ODOO_DB`/`ODOO_USER`/`ODOO_PASSWORD`, and every deployment documented in
+this README configures `ODOO_USER=admin`. There is no separate, scoped service user
+with just the permissions the engine actually needs (read/write on
+`leadgate.catalog.item`, create on `crm.lead`); the engine's XML-RPC calls run with
+full admin rights on the whole Odoo database, identical to a human logging into the
+Odoo UI as `admin`. A compromise of the engine process, or a bug in either adapter that
+lets a caller influence which model or method gets called, would carry the full blast
+radius of an Odoo admin session, not a narrowly scoped one. A production deployment
+should create a dedicated Odoo user with access rules restricted to exactly the models
+and operations the two adapters use, and authenticate as that user instead.
+
+**Untrusted customer text drives a tool-calling loop with a real write path.**
+Every Telegram message reaching `run_turn()` (`engine/core/agent_loop.py`) is
+attacker-controllable free text that gets sent to the LLM alongside the system prompt
+and tool schemas, and the LLM's response can trigger `create_lead`, a real write that
+creates a `crm.lead` record in Odoo. This is a prompt-injection surface: a customer
+could try to craft a message designed to make the model call `create_lead` with
+misleading arguments, or to make it ignore the system prompt's instructions. The
+practical blast radius is narrower than a general-purpose agent, though: there are only
+two hardcoded domains, each with exactly two fixed tool names and a fixed, small
+argument schema (`search_inventory`/`search_listings` and `create_lead`); there is no
+dynamic model name, table name, or arbitrary-code-execution path the model could steer
+into, and the worst a successful injection could do through the exposed tools is create
+a spurious `crm.lead` or shape a search's filter arguments. That said, this has not been
+formally red-teamed with adversarial prompts, and "the tool surface is narrow" is a
+mitigating factor, not proof the path is safe. A production deployment handling real
+leads should add explicit adversarial testing of the prompt-injection surface before
+trusting `create_lead`'s output unreviewed.
+
 **Negation-blind free-text matching in the eval harness.** Not a production security
 issue, but worth naming here since it was found during an adversarial review of this
 project's own metrics: `eval/metrics.py`'s free-text matcher checks for word overlap
