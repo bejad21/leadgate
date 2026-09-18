@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from './supabaseClient'
 
 export type DomainType = 'cars' | 'real_estate'
-export type CatalogStatus = 'available' | 'reserved' | 'sold'
+export type CatalogItemStatus = 'available' | 'reserved' | 'sold'
 
 export interface CatalogItem {
   id: number
@@ -11,7 +11,7 @@ export interface CatalogItem {
   domain_type: DomainType
   name: string | null
   price: number | null
-  status: CatalogStatus | string | null
+  status: CatalogItemStatus | string | null
   updated_at: string
 }
 
@@ -21,9 +21,12 @@ export interface CatalogItem {
  * then keeps the in-memory list in sync via a Postgres Changes subscription.
  *
  * Both LiveLeadsFeed and CatalogStatus consume this hook so the subscription
- * logic lives in exactly one place.
+ * logic lives in exactly one place. Pass `domain` to get back an
+ * already-filtered `items` list, so the `item.domain_type === domain`
+ * check itself also lives in one place instead of being repeated in every
+ * consumer.
  */
-export function useCatalogItems() {
+export function useCatalogItems(domain?: DomainType) {
   const [items, setItems] = useState<CatalogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -86,5 +89,10 @@ export function useCatalogItems() {
     }
   }, [])
 
-  return { items, loading, error }
+  const filteredItems = useMemo(() => {
+    if (!domain) return items
+    return items.filter((item) => item.domain_type === domain)
+  }, [items, domain])
+
+  return { items: filteredItems, loading, error }
 }

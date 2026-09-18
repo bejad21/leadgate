@@ -27,25 +27,33 @@ const TILE_LABEL_STYLES: Record<(typeof STATUS_ORDER)[number], string> = {
  * Realtime subscription is only wired up in one place.
  */
 export function CatalogStatus({ domain }: CatalogStatusProps) {
-  const { items, loading } = useCatalogItems()
+  const { items, loading, error } = useCatalogItems(domain)
 
   const counts = useMemo(() => {
     const base: Record<string, number> = { available: 0, reserved: 0, sold: 0 }
     for (const item of items) {
-      if (item.domain_type !== domain) continue
       const key = (item.status ?? '').toLowerCase()
       if (key in base) {
         base[key] += 1
       }
     }
     return base
-  }, [items, domain])
+  }, [items])
 
   return (
     <section aria-labelledby="catalog-status-heading" className="text-left">
       <h2 id="catalog-status-heading" className="text-lg font-semibold text-[var(--text-h)]">
         Catalog Status
       </h2>
+
+      {!loading && error && (
+        <p className="mt-2 text-sm text-[var(--text)]">
+          Couldn't reach the catalog right now. This is expected until the
+          Supabase table and credentials are live -- counts below are not
+          reliable until then.
+        </p>
+      )}
+
       <div className="mt-3 grid grid-cols-3 gap-3">
         {STATUS_ORDER.map((status) => (
           <div
@@ -53,7 +61,7 @@ export function CatalogStatus({ domain }: CatalogStatusProps) {
             className={`rounded-lg border-2 px-4 py-3 text-center ${TILE_STYLES[status]}`}
           >
             <p className="text-2xl font-semibold tabular-nums text-[var(--text-h)]">
-              {loading ? '—' : counts[status]}
+              {loading || error ? '—' : counts[status]}
             </p>
             <p className={`mt-1 text-xs font-medium uppercase tracking-wide ${TILE_LABEL_STYLES[status]}`}>
               {status}

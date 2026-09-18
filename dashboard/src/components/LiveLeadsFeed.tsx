@@ -19,16 +19,15 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
  * and keeps the list current via a Realtime `postgres_changes` subscription.
  */
 export function LiveLeadsFeed({ domain }: LiveLeadsFeedProps) {
-  const { items, loading, error } = useCatalogItems()
+  const { items, loading, error } = useCatalogItems(domain)
 
   const sortedItems = useMemo(() => {
     return items
-      .filter((item) => item.domain_type === domain)
       .slice()
       .sort(
         (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
       )
-  }, [items, domain])
+  }, [items])
 
   return (
     <section aria-labelledby="live-leads-heading" className="text-left">
