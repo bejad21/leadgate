@@ -28,3 +28,26 @@ create table if not exists public.catalog_items (
 
 create index if not exists catalog_items_domain_type_idx
   on public.catalog_items (domain_type);
+
+-- Task final-review-fixes finding 10: RLS was previously not enabled on
+-- this table at all, so the public anon key (embedded in the dashboard's
+-- client-side JS bundle by necessity, per SECURITY.md) could read -- and,
+-- if PostgREST's default grants weren't restricted, potentially write --
+-- every row in Supabase's default posture. The dashboard only ever needs
+-- to SELECT this table (it reads via Supabase Realtime; every write comes
+-- from n8n's own service-role credential, never from the anon key), so a
+-- read-only policy for the anon role is both sufficient and correct here.
+alter table public.catalog_items enable row level security;
+
+drop policy if exists catalog_items_anon_read on public.catalog_items;
+create policy catalog_items_anon_read
+  on public.catalog_items
+  for select
+  to anon
+  using (true);
+
+-- No insert/update/delete policy is created for `anon` or `authenticated`,
+-- so with RLS enabled those operations are denied by default for both
+-- roles. Only the service_role key (used exclusively by n8n's workflow,
+-- never shipped to the browser) can still write, since service_role
+-- bypasses RLS entirely.

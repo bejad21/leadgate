@@ -60,6 +60,23 @@ prevent the other branch's insert from running (this was a real bug caught durin
 Even if the workflow logic were compromised, that credential couldn't be used to call
 an attacker-controlled endpoint.
 
+**Row Level Security is enabled on the dashboard's Supabase table.** The React
+dashboard talks to Supabase using `VITE_SUPABASE_ANON_KEY`, the public, client-side key,
+which is expected to be world-readable by design and is necessarily embedded in the
+dashboard's client-side JavaScript bundle, so treating it as secret isn't an option.
+What makes an anon key safe in a real Supabase deployment is Row Level Security (RLS)
+policies on the underlying table restricting what that key can actually see or do.
+`public.catalog_items` has RLS enabled (`n8n/scripts/setup_supabase_table.sql`, applied
+live to the real project) with exactly one policy: a `for select ... to anon using
+(true)` read-only policy. No insert/update/delete policy exists for `anon` or
+`authenticated`, so with RLS on, those operations are denied by default for both roles;
+only n8n's own `service_role` credential (which bypasses RLS entirely and is never
+shipped to the browser) can still write. This was verified live, not just checked in the
+DDL: querying `pg_class`/`pg_policy` directly confirms `relrowsecurity = true` and the
+single `catalog_items_anon_read` policy, a real anon-key `GET` still returns rows
+(`200`), and a real anon-key `POST` attempting to insert a row is rejected (`401`,
+Postgres error `42501`, "new row violates row-level security policy").
+
 ## What a formal security review would still flag
 
 **No data-residency guarantee from the free-tier LLM provider.** Every customer message
@@ -76,22 +93,6 @@ is never encrypted at rest because it's never at rest, it's just a live dict. Th
 explicit, commented trade-off in the code (a production deployment would move it to
 Redis or Supabase), but as shipped, every customer conversation this process has ever
 handled sits in plaintext memory for as long as the process runs, with no expiry.
-
-**No authentication on the dashboard.** The React dashboard talks to Supabase using
-`VITE_SUPABASE_ANON_KEY`, the public, client-side key, which is expected to be
-world-readable by design. What makes an anon key safe in a real Supabase deployment is
-Row Level Security (RLS) policies on the underlying table restricting what that key can
-actually see or do. This project has not configured RLS on `public.catalog_items`,
-checked directly against `n8n/scripts/setup_supabase_table.sql`, the only DDL that
-creates this table, which contains no `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` and no
-policy statements at all. In Supabase's default posture that means the anon key can read
-(and, if PostgREST's default grants weren't restricted, potentially write) every row in
-that table, from anyone who obtains the key, and the key is necessarily embedded in the
-dashboard's client-side JavaScript bundle, so treating it as secret isn't an option. For
-a portfolio catalog with no real customer PII in that table, the practical exposure is
-low, but this is a genuine, unresolved gap, not something checked and dismissed. RLS
-should be enabled with an explicit read-only policy before this table carries anything
-sensitive.
 
 **No authentication on the eval or seed scripts' outputs.** `eval/results/*.json` and
 the seeded catalog data are plain files with no access control beyond the filesystem;
