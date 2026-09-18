@@ -79,6 +79,11 @@ Fill in `.env`. `.env.example` documents the baseline set:
   register with Telegram in Step 7 below
 - `ACTIVE_DOMAIN`: `cars` or `real_estate`, picks which adapter the engine loads
 - `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`: from your Supabase project's API settings
+- `SUPABASE_ANON_KEY`: the dashboard's public anon key, also from your Supabase
+  project's API settings (used in Step 8, never the service key)
+- `SUPABASE_DB_PASSWORD` or `SUPABASE_ACCESS_TOKEN`: fill in one of these two (leave the
+  other as the placeholder). Needed once, to create the Supabase table in Step 5, since
+  the service key alone can't run DDL (see that step for where to get either one)
 - `MONGODB_URI`: your MongoDB connection string
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`: the Odoo Postgres container's
   credentials (defaults are fine for local dev)
@@ -86,16 +91,10 @@ Fill in `.env`. `.env.example` documents the baseline set:
   Step 3's dataset download
 - `GENERIC_TIMEZONE`, `N8N_OWNER_EMAIL`, `N8N_OWNER_PASSWORD`: n8n's timezone and the
   owner account you'll create in Step 5
-
-Two more variables are needed later but are deliberately not in `.env.example`, because
-they're one-time setup secrets rather than steady-state config. Add them to `.env` when
-you reach the step that needs them:
-
-- `SUPABASE_ANON_KEY`: the dashboard's public anon key (Step 8)
-- `SUPABASE_DB_PASSWORD` or `SUPABASE_ACCESS_TOKEN`: needed once, to create the
-  Supabase table in Step 5 (see that step for why the service key alone can't do this)
-- `N8N_API_KEY`: generate this from the n8n UI (Settings > n8n API) after Step 4, then
-  export it or add it to `.env` before running the n8n scripts in Step 5
+- `N8N_API_KEY`: `.env.example` carries this as a placeholder like everything else, but
+  it can't actually be filled in until n8n is already running. Generate it from the n8n
+  UI (Settings > n8n API) after Step 4, then add the real value to `.env` before running
+  the n8n scripts in Step 5
 
 ### 2. Start the core services
 
@@ -166,9 +165,10 @@ curl -X POST http://localhost:5678/rest/owner/setup \
   -d '{"email":"<N8N_OWNER_EMAIL>","firstName":"LeadGate","lastName":"Admin","password":"<N8N_OWNER_PASSWORD>"}'
 ```
 
-Then, from the n8n UI (Settings > n8n API), generate an API key and add it to your
-environment as `N8N_API_KEY` (not stored in `.env.example`, since it's created after n8n
-is already running rather than beforehand). With that in place:
+Then, from the n8n UI (Settings > n8n API), generate an API key and replace the
+`N8N_API_KEY` placeholder in `.env` with the real value (it can't be filled in until n8n
+is already running, which is why it's a placeholder at this point rather than a real
+value from Step 1). With that in place:
 
 ```bash
 python n8n/scripts/setup_n8n_credentials.py   # creates the Supabase + MongoDB credentials n8n needs
@@ -178,8 +178,9 @@ python n8n/scripts/set_odoo_webhook_param.py  # points Odoo's sync webhook at th
 
 Before the first script above will do anything useful, the Supabase destination table
 has to exist. `SUPABASE_URL` plus `SUPABASE_SERVICE_KEY` alone cannot create it:
-Supabase's REST API (PostgREST) has no DDL endpoint by design. Add one of the following
-to `.env`, then run the table-creation script:
+Supabase's REST API (PostgREST) has no DDL endpoint by design. Fill in one of the two
+placeholders already in `.env` (leave the other one as-is), then run the table-creation
+script:
 
 - `SUPABASE_DB_PASSWORD`: the project's direct Postgres password (Supabase dashboard >
   Project Settings > Database > Connection string)
@@ -232,11 +233,12 @@ npm install
 
 Create `dashboard/.env.local` (this is a separate, browser-facing env file: Vite only
 exposes variables prefixed `VITE_`, and only the public anon key belongs here, never the
-service key):
+service key). Reuse the same `SUPABASE_URL` and `SUPABASE_ANON_KEY` values already in
+your root `.env`:
 
 ```
 VITE_SUPABASE_URL=<your SUPABASE_URL>
-VITE_SUPABASE_ANON_KEY=<your Supabase project's anon/public key>
+VITE_SUPABASE_ANON_KEY=<your SUPABASE_ANON_KEY>
 ```
 
 ```bash
