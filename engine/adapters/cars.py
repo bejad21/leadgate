@@ -58,6 +58,10 @@ class CarsAdapter(DomainAdapter):
     def execute_tool(self, name: str, args: dict) -> dict:
         if name == "search_inventory":
             odoo_domain = [("domain_type", "=", "cars"), ("status", "=", "available")]
+            if args.get("make"):
+                odoo_domain.append(("name", "ilike", args["make"]))
+            if args.get("model"):
+                odoo_domain.append(("name", "ilike", args["model"]))
             if args.get("price_max"):
                 odoo_domain.append(("price", "<=", args["price_max"]))
             records = self.odoo.search_read("leadgate.catalog.item", odoo_domain, ["name", "price", "attributes"])

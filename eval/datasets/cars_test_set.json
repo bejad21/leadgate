@@ -14,7 +14,7 @@
       "create_lead": 8
     },
     "known_limitations_reflected_in_labels": [
-      "CarsAdapter.search_inventory (engine/adapters/cars.py) only applies 'price_max' as an actual Odoo domain filter. The 'make' and 'model' arguments are part of the tool schema and SHOULD be extracted correctly by the LLM (that is what expected_tool/expected_args test), but the adapter does not currently filter on them server-side. This mirrors the already-documented real_estate property_type/bedrooms limitation from Task 2.2's review, just not previously written down for cars. Where this matters for a case's real-world outcome, expected_outcome says so explicitly.",
+      "FIXED (post-Task-5.1): CarsAdapter.search_inventory (engine/adapters/cars.py) now applies 'make' and 'model' as real Odoo domain filters, using (\"name\", \"ilike\", value) tuples against the catalog item's `name` field (seeded as \"{year} {make} {model}\", e.g. \"2020 Toyota Corolla\" -- see data/seed_odoo.py). This was verified against the live 350-car Odoo dataset: a make=\"Toyota\", price_max=40000 query correctly returns only the 35 Toyota records under that price (vs. 289 unfiltered), with zero non-Toyota leakage. expected_outcome strings below that previously described the make/model-not-filtered limitation have been updated to reflect this fix; they were written before the fix landed.",
       "price_max is falsy-checked in the adapter (`if args.get('price_max')`), so a price_max of 0 would be silently ignored. No case in this file uses price_max: 0 deliberately for that reason."
     ],
     "grading_note": "expected_tool/expected_args are graded against what a correctly-behaving LLM SHOULD call (tool selection + argument extraction). expected_outcome additionally describes the real downstream result given the adapter's current, known-limited filtering behavior, so Task 5.2's runner can distinguish 'the LLM chose right' from 'the system produced the right answer end-to-end'."
@@ -26,7 +26,7 @@
       "message": "Do you have any Mazda CX-5 under $30,000?",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "MAZDA", "model": "CX-5", "price_max": 30000},
-      "expected_outcome": "Correct tool call with make/model/price_max extracted. cars_raw.csv has two CX-5 rows (28510, 18615), both under 30000. Since price_max IS actually applied by the adapter, the real result will correctly include only cars <= 30000, but because make/model are not filtered server-side, other makes under 30000 will also appear in the returned matches."
+      "expected_outcome": "Correct tool call with make/model/price_max extracted. cars_raw.csv has two CX-5 rows (28510, 18615), both under 30000. The adapter now applies make/model as (name, ilike, value) filters in addition to price_max, so the real result correctly returns only Mazda CX-5 records priced <= 30000, with no other makes leaking in."
     },
     {
       "id": "c02",
@@ -34,7 +34,7 @@
       "message": "Looking for a Ford Mustang under 35000",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Ford", "model": "Mustang", "price_max": 35000},
-      "expected_outcome": "Ford Mustang rows in cars_raw.csv: 46160, 33440, 16960 -- two of three are under 35000. price_max filtering works; make/model filtering does not (known limitation), so results will include non-Mustangs priced under 35000 too."
+      "expected_outcome": "Ford Mustang rows in cars_raw.csv: 46160, 33440, 16960 -- two of three are under 35000. price_max, make, and model are all genuinely applied by the adapter, so the real result correctly returns only the Ford Mustang rows priced under 35000, with no other makes/models leaking in."
     },
     {
       "id": "c03",
@@ -42,7 +42,7 @@
       "message": "I want a Honda Odyssey, what have you got?",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Honda", "model": "Odyssey"},
-      "expected_outcome": "Honda Odyssey exists in cars_raw.csv (rows at 32900, 37330, 35570, 30640). No price_max given so no downstream filtering applies at all; the adapter will return the first 5 available cars of any make (make/model not filtered)."
+      "expected_outcome": "Honda Odyssey exists in cars_raw.csv (rows at 32900, 37330, 35570, 30640). No price_max given, but make and model are still applied as ilike filters against the record name, so the adapter correctly returns only Honda Odyssey matches."
     },
     {
       "id": "c04",
@@ -50,7 +50,7 @@
       "message": "Show me Toyota Camry options",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Toyota", "model": "Camry"},
-      "expected_outcome": "Toyota Camry is well represented in cars_raw.csv (multiple rows from 16405 to 34750). No price_max given; make/model extraction should still be correct even though the adapter won't filter by them."
+      "expected_outcome": "Toyota Camry is well represented in cars_raw.csv (multiple rows from 16405 to 34750). No price_max given; make/model extraction should be correct, and the adapter now genuinely filters on both, so returned matches are actually Toyota Camrys."
     },
     {
       "id": "c05",
@@ -58,7 +58,7 @@
       "message": "Do you have a Tesla Model 3 in stock?",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Tesla", "model": "Model 3"},
-      "expected_outcome": "One Tesla Model 3 row exists (36460). Correct extraction expected; downstream filtering limitation applies as noted in dataset_info."
+      "expected_outcome": "One Tesla Model 3 row exists (36460). Correct extraction expected; the adapter now genuinely filters by make/model, so the real result correctly returns just that one matching record."
     },
     {
       "id": "c06",
@@ -66,7 +66,7 @@
       "message": "I'm interested in a Jeep Wrangler under 30000",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Jeep", "model": "Wrangler", "price_max": 30000},
-      "expected_outcome": "Jeep Wrangler appears many times in cars_raw.csv; several rows are under 30000 (e.g. 25250, 27470, 26224, 29900, 26217, 24327). price_max filtering is real; make/model is not."
+      "expected_outcome": "Jeep Wrangler appears many times in cars_raw.csv; several rows are under 30000 (e.g. 25250, 27470, 26224, 29900, 26217, 24327). price_max, make, and model are all genuinely applied by the adapter, so results correctly narrow to Jeep Wranglers under 30000."
     },
     {
       "id": "c07",
@@ -82,7 +82,7 @@
       "message": "Kia Telluride under 50000",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Kia", "model": "Telluride", "price_max": 50000},
-      "expected_outcome": "Kia Telluride rows exist from 22984 up to 52750; several are under 50000 (22984, 47550, 30260). price_max filter is real and will correctly exclude the ones above 50000, but non-Telluride cars under 50000 will also show due to the make/model limitation."
+      "expected_outcome": "Kia Telluride rows exist from 22984 up to 52750; several are under 50000 (22984, 47550, 30260). price_max, make, and model are all genuinely applied by the adapter, so the real result correctly excludes both the over-50000 rows and any non-Telluride cars."
     },
     {
       "id": "c09",
@@ -210,7 +210,7 @@
       "message": "Do you have any Porsche 911s?",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Porsche", "model": "911"},
-      "expected_outcome": "Verified against cars_raw.csv: Porsche does not appear anywhere in the 350-row make list. A correct implementation would return zero matches. NOTE: because the adapter does not actually filter by make (known limitation), the real system will currently return other available cars instead of an honest empty result -- this case is useful for catching that specific regression/limitation, not just LLM tool-call correctness."
+      "expected_outcome": "Verified against cars_raw.csv: Porsche does not appear anywhere in the 350-row make list. The adapter now genuinely filters by make via (name, ilike, \"Porsche\"), so the real system correctly returns zero matches end-to-end."
     },
     {
       "id": "c25",
@@ -218,7 +218,7 @@
       "message": "I'm looking for a Ferrari, any in stock?",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Ferrari"},
-      "expected_outcome": "Ferrari is absent from cars_raw.csv's make list. Correct behavior is zero matches; current adapter will not actually enforce that due to the make-filtering limitation described in dataset_info."
+      "expected_outcome": "Ferrari is absent from cars_raw.csv's make list. Correct behavior is zero matches, and the adapter now genuinely enforces that via the make ilike filter."
     },
     {
       "id": "c26",
@@ -226,7 +226,7 @@
       "message": "Do you sell Lamborghinis?",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Lamborghini"},
-      "expected_outcome": "Lamborghini is absent from cars_raw.csv. Correct behavior is zero matches; adapter limitation as above applies."
+      "expected_outcome": "Lamborghini is absent from cars_raw.csv. Correct behavior is zero matches, and the adapter now genuinely enforces that via the make ilike filter."
     },
     {
       "id": "c27",
@@ -234,7 +234,7 @@
       "message": "Any Rivian trucks available?",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Rivian"},
-      "expected_outcome": "Rivian is absent from cars_raw.csv (the only EVs are Tesla Model 3/Model Y, Chevy Bolt/Blazer EV, Kia EV6, Hyundai Ioniq 5, Nissan Ariya). Correct behavior is zero matches; adapter limitation as above applies."
+      "expected_outcome": "Rivian is absent from cars_raw.csv (the only EVs are Tesla Model 3/Model Y, Chevy Bolt/Blazer EV, Kia EV6, Hyundai Ioniq 5, Nissan Ariya). Correct behavior is zero matches, and the adapter now genuinely enforces that via the make ilike filter."
     },
     {
       "id": "c28",
@@ -242,7 +242,7 @@
       "message": "I want an Alfa Romeo Giulia",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Alfa Romeo", "model": "Giulia"},
-      "expected_outcome": "Alfa Romeo is absent from cars_raw.csv. Correct behavior is zero matches; adapter limitation as above applies."
+      "expected_outcome": "Alfa Romeo is absent from cars_raw.csv. Correct behavior is zero matches, and the adapter now genuinely enforces that via the make ilike filter."
     },
     {
       "id": "c29",
@@ -266,7 +266,7 @@
       "message": "Do you have a Ford F150 for under $15,000?",
       "expected_tool": "search_inventory",
       "expected_args": {"make": "Ford", "model": "F150", "price_max": 15000},
-      "expected_outcome": "No Ford F150 row is anywhere near 15000 (the cheapest F150 in cars_raw.csv is 20022) -- a correct, fully-filtering implementation would return zero matches. HOWEVER the overall cheapest cars in cars_raw.csv (Jeep Grand Cherokee 13890, Volkswagen Jetta 14355, Acura MDX 14740, Lincoln MKZ 14865) ARE under 15000, so because the adapter only filters price_max and ignores make, the current system will incorrectly return those non-F150 cars as if they matched. This case is intentionally chosen to expose that exact limitation -- label the 'correct' expected result as zero, but expect the current implementation to fail this case honestly."
+      "expected_outcome": "No Ford F150 row is anywhere near 15000 (the cheapest F150 in cars_raw.csv is 20022). Although the overall cheapest cars in cars_raw.csv (Jeep Grand Cherokee 13890, Volkswagen Jetta 14355, Acura MDX 14740, Lincoln MKZ 14865) ARE under 15000, the adapter now genuinely filters on make and model in addition to price_max, so those non-F150 cars are correctly excluded and the real system returns zero matches end-to-end. This case previously exposed the make-filtering bug (fixed post-Task-5.1); it is retained here as a regression check."
     },
     {
       "id": "c32",
