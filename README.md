@@ -6,9 +6,11 @@ in Odoo, all without a single line of code that knows what it's selling.
 
 A customer messages the bot. The engine's agent loop decides, turn by turn, whether to
 search the catalog or create a lead, calls the right tool against Odoo, and replies in
-natural language grounded in whatever the tool actually returned. Every catalog and lead
-change in Odoo is pushed through n8n to a Supabase table (for a live dashboard) and a
-MongoDB collection (for an audit log). That's the whole system.
+natural language grounded in whatever the tool actually returned. Every catalog item
+status change in Odoo is pushed through n8n to a Supabase table (for a live dashboard)
+and a MongoDB collection (for an audit log); lead creation itself is a separate,
+one-way path (the agent calls `create_lead`, which writes a `crm.lead` record directly
+via XML-RPC) and is not part of that sync pipeline. That's the whole system.
 
 ## The generalization proof
 
@@ -76,25 +78,25 @@ Fill in `.env`. `.env.example` documents the baseline set:
 - `OPENROUTER_API_KEY` and/or `MISTRAL_API_KEY`: at least one is required
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`: the second is a secret you generate
   yourself (e.g. `python -c "import secrets; print(secrets.token_urlsafe(32))"`) and
-  register with Telegram in Step 7 below
+  register with Telegram in Step 8 below
 - `ACTIVE_DOMAIN`: `cars` or `real_estate`, picks which adapter the engine loads
 - `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`: from your Supabase project's API settings
 - `SUPABASE_ANON_KEY`: the dashboard's public anon key, also from your Supabase
-  project's API settings (used in Step 8, never the service key)
+  project's API settings (used in Step 9, never the service key)
 - `SUPABASE_DB_PASSWORD` or `SUPABASE_ACCESS_TOKEN`: fill in one of these two (leave the
-  other as the placeholder). Needed once, to create the Supabase table in Step 5, since
+  other as the placeholder). Needed once, to create the Supabase table in Step 6, since
   the service key alone can't run DDL (see that step for where to get either one)
 - `MONGODB_URI`: your MongoDB connection string
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`: the Odoo Postgres container's
   credentials (defaults are fine for local dev)
 - `KAGGLE_USERNAME`, `KAGGLE_KEY`: from your Kaggle account settings, needed only for
-  Step 3's dataset download
+  Step 5's dataset download
 - `GENERIC_TIMEZONE`, `N8N_OWNER_EMAIL`, `N8N_OWNER_PASSWORD`: n8n's timezone and the
-  owner account you'll create in Step 5
+  owner account you'll create in Step 6
 - `N8N_API_KEY`: `.env.example` carries this as a placeholder like everything else, but
   it can't actually be filled in until n8n is already running. Generate it from the n8n
-  UI (Settings > n8n API) after Step 4, then add the real value to `.env` before running
-  the n8n scripts in Step 5
+  UI (Settings > n8n API) after Step 2 (n8n's container is up by then), then add the real
+  value to `.env` before running the n8n scripts in Step 6
 
 ### 2. Start the core services
 
@@ -141,7 +143,19 @@ env.cr.commit()
 Confirm Odoo is reachable at `http://localhost:8069` and you can log in with
 `admin`/`admin` (or whatever you set).
 
-### 4. Load the catalog data
+### 4. Install Python dependencies
+
+The next two steps (loading the catalog data and wiring up the n8n sync pipeline) run
+scripts that need `pandas`, `kaggle`, and `psycopg2-binary`, so the Python environment has
+to exist before those steps, not after them:
+
+```bash
+python -m venv .venv
+.venv/Scripts/activate        # .venv/bin/activate on macOS/Linux
+pip install -r requirements.txt
+```
+
+### 5. Load the catalog data
 
 Two Kaggle datasets are downloaded, cleaned, and normalized, then loaded into Odoo:
 
@@ -155,7 +169,7 @@ python data/seed_odoo.py              # bulk-creates leadgate.catalog.item recor
 creates one record per CSV row (`domain_type="cars"` or `"real_estate"`), with every
 column besides `price` packed into a JSON `attributes` field.
 
-### 5. Wire up the n8n sync pipeline
+### 6. Wire up the n8n sync pipeline
 
 n8n's own first-run setup requires an owner account before anything else works:
 
@@ -194,19 +208,18 @@ python n8n/scripts/setup_supabase_table.py
 This runs the DDL in `n8n/scripts/setup_supabase_table.sql`, creating
 `public.catalog_items`.
 
-### 6. Install and run the engine
+### 7. Run the engine
+
+The Python environment was already set up in Step 4, so this is just:
 
 ```bash
-python -m venv .venv
-.venv/Scripts/activate        # .venv/bin/activate on macOS/Linux
-pip install -r requirements.txt
 uvicorn engine.main:app
 ```
 
 The engine starts on `http://localhost:8000`. `GET /health` should return
 `{"status": "ok"}`.
 
-### 7. Expose the webhook and register it with Telegram
+### 8. Expose the webhook and register it with Telegram
 
 ```bash
 cloudflared tunnel --url http://localhost:8000
@@ -224,7 +237,7 @@ curl -F "url=<TUNNEL_URL>/webhook/telegram" \
 Message your bot on Telegram. You should see the request land in the FastAPI logs and
 get a reply back.
 
-### 8. Run the dashboard
+### 9. Run the dashboard
 
 ```bash
 cd dashboard
@@ -249,7 +262,7 @@ The dashboard opens on `http://localhost:5173` and subscribes to `catalog_items`
 Supabase Realtime, so changing a record's status in Odoo (or via the eval/seed scripts)
 should appear there within a second or two.
 
-### 9. Reproduce the evaluation
+### 10. Reproduce the evaluation
 
 ```bash
 .venv/Scripts/python.exe eval/run_eval.py --domain cars

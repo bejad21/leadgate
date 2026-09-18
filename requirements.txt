@@ -6,3 +6,6 @@ pytest
 respx
 pymongo
 matplotlib
+pandas
+kaggle
+psycopg2-binary
