@@ -14,6 +14,21 @@ Colour is never the only signal: pose and presence carry the status too.
 Change a status in Odoo and the board updates about a second later. The tag swings on its
 hook before it settles, the tallies move, and a stamped row lands on the sign-out sheet.
 
+## The Leads tab
+
+A second view shows every lead and the conversation behind it. A lead is a message slip on
+a pad. Pick one and the conversation prints on a paper roll: the customer's words in blue
+ink, the assistant's in black, and between them a stamped note for each thing the
+assistant did ("Searched the cars: Toyota, up to $25,000", "Created a lead"). Chats that
+never produced a lead are listed below the pad, including attempts the guardrails turned
+away.
+
+This is private data, so it is behind a sign-in. Anyone not signed in sees clearly labelled
+sample conversations bundled with the app, and the app never asks the database for real
+ones. New leads arrive live. The database only answers staff accounts (see
+`n8n/scripts/setup_supabase_leads.sql`), so a stranger who registers an account still sees
+nothing.
+
 ## Run it
 
 ```bash
@@ -21,6 +36,8 @@ npm install
 npm run dev      # http://localhost:5173
 npm run build    # type-check and production build
 npm run lint
+npm test         # unit tests (Vitest)
+python tests/leads_ui_test.py   # browser tests, needs the dev server and .env
 ```
 
 Create `dashboard/.env.local` with the public Supabase values (never the service key):

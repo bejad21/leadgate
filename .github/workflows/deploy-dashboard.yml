@@ -1,0 +1,60 @@
+name: Deploy dashboard
+
+# Publishes the dashboard to GitHub Pages. It is a static app: in the browser it talks
+# to Supabase with the public anon key, which row level security limits to read-only.
+# Set these under Settings > Secrets and variables > Actions before the first run:
+#   variable  SUPABASE_URL        your project URL
+#   variable  SUPABASE_ANON_KEY   the public anon key (not the service key)
+# And under Settings > Pages, set Source to "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dashboard/**"
+      - ".github/workflows/deploy-dashboard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
