@@ -47,6 +47,12 @@ Fill in `.env`. `.env.example` documents the baseline set:
   Step 5's dataset download
 - `GENERIC_TIMEZONE`, `N8N_OWNER_EMAIL`, `N8N_OWNER_PASSWORD`: n8n's timezone and the
   owner account you'll create in Step 6
+- `TELEGRAM_ALERTS_BOT_TOKEN`, `TELEGRAM_ALERTS_CHAT_ID` (optional): a second bot that
+  messages only you when a lead arrives (see "Alerts" under Step 6)
+- `DASHBOARD_LOGIN_EMAIL`, `DASHBOARD_LOGIN_PASSWORD`: the staff login for the dashboard's
+  Leads tab, created in Step 6
+- `CHAT_REF_SECRET`: any long random string. It keys the hash that stands in for a Telegram
+  chat id in Supabase. Without it, conversations are not mirrored to the dashboard
 - `N8N_API_KEY`: `.env.example` carries this as a placeholder like everything else, but
   it can't actually be filled in until n8n is already running. Generate it from the n8n
   UI (Settings > n8n API) after Step 2 (n8n's container is up by then), then add the real
@@ -173,6 +179,50 @@ catalog across once (safe to re-run; it upserts on `odoo_id`):
 python n8n/scripts/backfill_supabase.py
 ```
 
+Leads and conversations live in two more tables that are private. Only accounts marked
+as staff can read them, and being signed in is not enough on its own, because Supabase
+lets anyone register unless sign-ups are turned off. Set `DASHBOARD_LOGIN_EMAIL`,
+`DASHBOARD_LOGIN_PASSWORD` and `CHAT_REF_SECRET` in `.env` (see `.env.example`), then:
+
+```bash
+python n8n/scripts/setup_supabase_table.py setup_supabase_leads.sql   # the tables, RLS, realtime
+python n8n/scripts/create_dashboard_user.py                            # your staff login
+python n8n/scripts/verify_leads_rls.py                                 # who can read what
+```
+
+`verify_leads_rls.py` plants a probe row and checks that an anonymous visitor and a
+signed-in stranger see nothing while you see everything. All seven checks should pass.
+It is also worth turning off "Allow new users to sign up" in the Supabase dashboard
+(Authentication, Sign In / Providers), since nobody else needs an account.
+
+### Alerts (optional)
+
+To be told when a lead arrives, create a second bot so alerts never share a token with
+the customer bot: in Telegram open @BotFather, send `/newbot`, name it "LeadGate Alerts",
+and pick a username ending in `bot`. Open the new bot and send it `/start` (a bot can
+only message someone who has messaged it first). Then find your chat id:
+
+```bash
+curl "https://api.telegram.org/bot<ALERT_BOT_TOKEN>/getUpdates"
+```
+
+Copy the number after `"chat":{"id":` and put both values in `.env` as
+`TELEGRAM_ALERTS_BOT_TOKEN` and `TELEGRAM_ALERTS_CHAT_ID`. If either is missing the engine
+simply skips alerts.
+
+### The catalog inside Odoo
+
+The `leadgate_domain` module adds a **LeadGate > Catalog** menu to Odoo: a list with
+coloured status badges, filters, and a form with a clickable Available / Reserved / Sold
+bar. Change a status there and the dashboard updates. After pulling this change into an
+existing install, upgrade the module:
+
+```bash
+docker compose exec odoo odoo -d leadgate --db_host=postgres --db_user=odoo \
+  --db_password=odoo -u leadgate_domain --stop-after-init
+docker compose restart odoo
+```
+
 ## 7. Run the engine
 
 The Python environment was already set up in Step 4, so this is just:
@@ -227,8 +277,16 @@ The dashboard opens on `http://localhost:5173` and subscribes to `catalog_items`
 Supabase Realtime, so changing a record's status in Odoo (or via the eval/seed scripts)
 should appear there within a second or two: the tag swings on its hook, the tallies
 move, and a stamped row lands on the sign-out sheet. If the board is empty, run the
-backfill in step 6. See [dashboard/README.md](../dashboard/README.md) for how the board
-works.
+backfill in step 6. Open `#/leads` (the Leads tab) and sign in with your staff login to see
+leads and conversations. See [dashboard/README.md](../dashboard/README.md) for how it works.
+
+### Hosting the dashboard
+
+The dashboard is a static app, so GitHub Pages can host it for free. It talks to Supabase
+with the public anon key only. Under Settings > Secrets and variables > Actions add the
+variables `SUPABASE_URL` and `SUPABASE_ANON_KEY`, set Settings > Pages > Source to
+"GitHub Actions", and run the "Deploy dashboard" workflow. Visitors see the live key board
+and sample conversations; real leads stay behind the staff sign-in.
 
 ## 10. Reproduce the evaluation
 

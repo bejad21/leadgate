@@ -47,6 +47,38 @@ flowchart LR
     SUPABASE -- Realtime --> DASH
 ```
 
+## The lead path
+
+A lead goes through five steps. Only the Odoo step and the reply are on the request path;
+everything after the reply is best-effort, so a fault there cannot lose the lead or delay
+the customer.
+
+```mermaid
+flowchart LR
+    TG["Customer (Telegram)"] --> WH["Webhook"]
+    WH --> LOOP["Agent loop"]
+    LOOP -->|"create_lead"| ODOO[("Odoo: partner, crm.lead")]
+    LOOP -->|"reply first"| TG
+    WH -.->|"after the reply"| BG["Background task"]
+    BG -->|"alert"| ALERT["Alert bot"]
+    BG -->|"lead and turns, service key"| SUPA[("Supabase: leads, conversation_turns")]
+    BG -->|"audit log"| MONGO[("MongoDB")]
+    SUPA -->|"Realtime, staff only"| DASH["Dashboard: Leads tab"]
+```
+
+1. **Odoo.** The lead tool finds or creates the partner from the email or phone the customer
+   typed, tags the lead, and returns the same lead if this customer asked for the same item
+   a few minutes ago.
+2. **The reply.** The customer's answer goes out before anything else.
+3. **The background task.** After the reply, a background task alerts the owner, mirrors the
+   lead and the conversation turn to Supabase, and writes the MongoDB audit log. It runs
+   off the request path, so a slow Telegram or Supabase cannot hold up the next customer.
+4. **If the turn fails halfway.** Tool calls are reported as they finish. If the model fails
+   after a lead was created, the owner is still alerted, the customer is told to resend, and
+   the resend returns the same lead.
+5. **The dashboard.** The Leads tab reads the two Supabase tables. Row level security lets
+   only staff accounts read them, and new rows arrive over Realtime.
+
 ## What each piece actually does
 
 **Telegram to engine.** Telegram delivers updates to `POST /webhook/telegram`. The

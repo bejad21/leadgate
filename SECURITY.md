@@ -112,6 +112,34 @@ cache limited to 1000 chats (least recently used out) and rebuilt from the Mongo
 restart. Stored turns are screened again on the way back in, so blocked turns, injections logged before the guardrails existed, and links are never replayed. A turn that fails is rolled back so a retry
 does not stack duplicates, and Telegram redeliveries are ignored by `update_id`.
 
+**Leads and conversations are private, and the database enforces it.** The `leads` and
+`conversation_turns` tables (`n8n/scripts/setup_supabase_leads.sql`) have no policy for the
+public anon key. Being signed in is not enough either, because Supabase lets anyone register
+an account unless sign-ups are off, so `authenticated` is not a trusted group. Only users
+whose server-set `app_metadata` says `role = 'staff'` can read, and a user cannot change
+their own `app_metadata`. `n8n/scripts/verify_leads_rls.py` proves it from each visitor's
+side: an anonymous visitor and a signed-in stranger see nothing, the owner sees everything,
+and even the owner cannot write with the browser key. An independent code review found that
+the first version of this policy trusted every signed-in user, which is why the check exists.
+The engine writes with the service key, which never reaches the browser.
+
+**Chats are stored under a keyed hash.** Supabase holds an HMAC of the Telegram chat id
+(`CHAT_REF_SECRET`), not the id. Telegram ids are small numbers, so an unkeyed or
+default-salted hash could be reversed by trying every id; the mirror refuses to write at all
+if the secret is not set.
+
+**Customer text is treated as hostile on the CRM path.** Contacts are parsed with strict
+patterns (no wildcard characters, real top-level domains, dates are not phone numbers), a
+partner is matched on the exact normalised email, names are capped, and a partner reused
+under a different name is flagged for the human. Notes are HTML-escaped before Odoo renders
+them, the alert bot's text is escaped too, and the dashboard renders messages as text nodes,
+never as markup. The same customer asking again within ten minutes gets the same lead
+instead of a duplicate.
+
+**Alerts use a separate bot.** It has its own token, messages only the owner's chat, and
+cannot be reached by customers. A failure to send an alert, to mirror to Supabase, or to
+create a helper record in Odoo never costs the customer their reply or the lead.
+
 ## What a formal security review would still flag
 
 **No data-residency guarantee from the free-tier LLM provider.** Every customer message
@@ -120,6 +148,15 @@ as a fallback. Neither the free-tier terms nor this project's configuration make
 data-residency, retention, or no-training guarantee. A real deployment handling actual
 customer conversations would need a paid tier with an explicit data-processing agreement
 before this is acceptable.
+
+**Sign-ups stay open unless you switch them off.** The staff-only policy protects the data
+either way, but there is no reason for strangers to be able to register. Turn off "Allow new
+users to sign up" in the Supabase dashboard. This project cannot do it for you without an
+access token it does not hold.
+
+**Conversation text is stored in plaintext with no retention limit.** Messages sit in
+MongoDB and in Supabase for as long as you keep them. A real deployment would decide how long
+to keep customer messages and delete on request.
 
 **No authentication on the eval or seed scripts' outputs.** `eval/results/*.json` and
 the seeded catalog data are plain files with no access control beyond the filesystem;

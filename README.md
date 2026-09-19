@@ -10,6 +10,12 @@ An AI agent that talks to customers on Telegram, searches a real catalog, and ha
 
 *The dashboard is a cabinet of keys. Each catalog item hangs on a hook: a straight tag is on the board, a tag flipped up is on hold, and an empty hook means sold. Point at a key and the brass plate reads it out.*
 
+## See it work
+
+![Odoo on the left, the dashboard on the right: a status changed in Odoo flips a key on the board about a second later, then a customer chats with the bot and the new lead lands on the Leads tab and in Odoo with a real contact](docs/demo/leadgate-demo.gif)
+
+*61 seconds, real services throughout: a status changed in Odoo moves a key on the dashboard about a second later, then a customer's chat with the bot becomes a lead in both places. The wait for the model's replies is sped up. [Watch the full-quality video](docs/demo/leadgate-demo.mp4).*
+
 ## What it does
 
 A customer messages the bot. On each turn the agent decides whether to search the catalog or create a lead, calls the matching tool against Odoo, and answers in plain language using only what the tool returned. Every catalog status change in Odoo flows through n8n into Supabase (for the live dashboard) and MongoDB (as an audit log).
@@ -19,20 +25,24 @@ flowchart LR
     Customer["Customer (Telegram)"] --> Engine["Engine: FastAPI + agent loop"]
     Engine -->|"search, create lead"| Odoo[("Odoo CRM / ERP")]
     Engine -->|"conversation log"| Mongo[("MongoDB")]
+    Engine -->|"leads and conversations"| Supa
+    Engine -->|"new-lead alert"| Alerts["Alert bot (Telegram)"]
     Odoo -->|"status-change webhook"| N8N["n8n workflow"]
     N8N --> Supa[("Supabase")]
     N8N --> Mongo
     Supa -->|"Realtime"| Dash["React dashboard"]
 ```
 
-Lead creation and the sync pipeline are separate paths. The agent writes a `crm.lead` directly over XML-RPC; only catalog status changes travel through n8n. See [ARCHITECTURE.md](ARCHITECTURE.md) for the reasoning, including why there are two databases.
+Lead creation and the sync pipeline are separate paths. The agent writes a `crm.lead` directly over XML-RPC, copies the lead and the conversation to Supabase for the dashboard, and alerts the owner through a separate bot. Only catalog status changes travel through n8n. See [ARCHITECTURE.md](ARCHITECTURE.md) for the reasoning, including why there are two databases.
 
 ## Features
 
 | Feature | How it works |
 |---|---|
 | Domain-agnostic agent | `engine/core/` has no car or property vocabulary. Each vertical is one small adapter that declares its tools and turns them into an Odoo query. |
-| Real CRM integration | Tool calls hit a self-hosted Odoo 18 over XML-RPC. Leads are real `crm.lead` records. |
+| Real CRM integration | Tool calls hit a self-hosted Odoo 18 over XML-RPC. A lead is a real `crm.lead` with a linked contact (name, email, phone), a Telegram source and a catalog tag. A customer who asks again about the same item within minutes gets the same lead, not a second one. The catalog has its own screen in Odoo. |
+| Lead alerts | A separate Telegram bot tells the owner the moment a lead is created, with the customer, contact, price and a link to the lead in Odoo. |
+| Leads and conversations | A Leads tab shows each lead as a message slip and prints the conversation behind it, including what the assistant did. It is behind a staff sign-in; visitors see labelled samples. |
 | Live key board | Every catalog item is a key on a hook. An Odoo status change reaches an open browser tab in about a second: the tag swings, the tallies move, and a stamped row lands on the sign-out sheet. Works on a phone, and by keyboard. |
 | Two databases, two jobs | Supabase holds the structured mirror the dashboard reads. MongoDB holds the append-only event and conversation log. |
 | Search filters | Cars filter by make, model, price range, year, mileage, condition and location, and sort by price, mileage or year. Real estate filters by price range. |
@@ -125,11 +135,32 @@ The leads from those conversations show up in Odoo's CRM pipeline as regular opp
 
 ![Odoo CRM pipeline with new leads created by the agent](docs/screenshots/odoo-crm-pipeline.png)
 
-Opening one shows what the agent captured:
+Opening one shows what the agent captured. The customer is a real contact with an email and a phone number, the lead is tagged by catalog, and the revenue is a price the catalog really has:
 
-![Odoo lead form for the Guilford, Maine offer, with the customer's name, contact, and notes in Internal Notes](docs/screenshots/odoo-lead-detail.png)
+![Odoo lead form with the contact, email and phone filled in, the Cars tag, the expected revenue and the customer's note](docs/screenshots/odoo-lead-detail.png)
 
-The customer's name and contact details are recorded in the lead's Internal Notes, ready for whoever follows up.
+If a customer types a number and an email, both are kept, and a contact that is already in Odoo is reused. Contact text is treated as untrusted: emails are matched exactly, never with wildcards, and notes are escaped before they are written.
+
+The catalog itself is manageable in Odoo too, under **LeadGate > Catalog**. Changing a status there is what moves a key on the dashboard:
+
+![Odoo's Catalog list with coloured status badges](docs/screenshots/odoo-catalog.png)
+
+### The lead alert and the Leads tab
+
+When a lead is created the owner gets a message from a separate alert bot, so alerts never share a token or a chat with customers:
+
+> **New lead** #79
+> **2020 Toyota Camry**
+> Sarah Connor
+> sarah.connor@example.com · +971501234567
+> $21,834
+> Open in Odoo
+
+The dashboard's Leads tab shows the same lead as a message slip, and the conversation behind it prints on a paper roll. The customer's words are in blue, the assistant's in black, and between them is a stamped note for each thing the assistant did. A lead whose price the customer made up is flagged on its slip.
+
+![The Leads tab: a staff sign-in plate, three message slips, and a paper roll showing a conversation with the search the assistant ran](docs/screenshots/dashboard-leads.png)
+
+Leads and conversations hold customers' names, contact details and messages, so they are private. Only staff accounts can read them, and the database enforces that, not just the page. Anyone else, including a stranger who registers their own account, sees nothing. Signed-out visitors get the sample conversations above, labelled as samples.
 
 ### How catalog changes reach the dashboard
 
@@ -159,7 +190,8 @@ Anyone can message a public bot, so every message and every tool call passes che
 | Schema-checked tool calls | Each argument the model produces is validated against the tool's own schema. Unknown tools and arguments are dropped, numbers are range-checked, strings are trimmed and capped. |
 | Verified leads | A lead's price is only recorded if a catalog item really has it. Three leads per chat per hour, three tool calls per turn, and identical calls in one turn run once. |
 | Reply filter | Links are removed, replies that repeat the system prompt are replaced, and a blank reply is never sent. |
-| Retry safety | Telegram redeliveries are ignored, and a turn that fails is rolled back. |
+| Retry safety | Telegram redeliveries are ignored, and a turn that fails is rolled back. If the assistant fails after creating a lead, the owner is still alerted and a resend gets the same lead. |
+| Contact safety | Customer contact details are parsed and matched exactly, capped, and escaped before they reach Odoo, the alert or the dashboard. |
 
 Two real exchanges from the red-team run:
 
@@ -210,7 +242,7 @@ In order:
 3. Create the Odoo database and install the modules, including this repo's `leadgate_domain`.
 4. Create a virtualenv and `pip install -r requirements.txt`.
 5. Download, clean, and load the two Kaggle datasets into Odoo.
-6. Create the Supabase table, deploy the n8n sync workflow, and backfill the catalog into Supabase.
+6. Create the Supabase tables, deploy the n8n sync workflow, backfill the catalog, and create your staff login. Optionally create the alert bot.
 7. `uvicorn engine.main:app`, then tunnel it and register the Telegram webhook.
 8. `cd dashboard && npm install && npm run dev`.
 
@@ -239,6 +271,7 @@ LeadGate/
 ├── dashboard/                    # React, Vite, Tailwind, Supabase Realtime
 ├── eval/                         # Test datasets, eval and red-team runners, metrics, results, REPORT.md
 ├── docs/                         # Setup guide and screenshots
+├── .github/workflows/            # Deploys the dashboard to GitHub Pages
 └── docker-compose.yml            # Postgres, Odoo, n8n (all localhost-only)
 ```
 
