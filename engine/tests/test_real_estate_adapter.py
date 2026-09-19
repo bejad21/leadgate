@@ -87,3 +87,76 @@ def test_unknown_tool_raises_value_error():
         assert False, "expected ValueError"
     except ValueError:
         pass
+
+
+def test_price_min_becomes_an_odoo_domain_clause():
+    from unittest.mock import MagicMock
+    from engine.adapters.real_estate import RealEstateAdapter
+
+    odoo = MagicMock()
+    odoo.search_read.return_value = []
+    RealEstateAdapter(odoo).execute_tool("search_listings", {"price_min": 300000, "price_max": 500000})
+    domain = odoo.search_read.call_args[0][1]
+    assert ("price", ">=", 300000) in domain
+    assert ("price", "<=", 500000) in domain
+
+
+def test_schema_advertises_price_min():
+    from unittest.mock import MagicMock
+    from engine.adapters.real_estate import RealEstateAdapter
+
+    props = RealEstateAdapter(MagicMock()).tool_schemas()[0]["function"]["parameters"]["properties"]
+    assert "price_min" in props
+
+
+
+def test_lead_price_is_kept_when_it_matches_a_catalog_item():
+    from unittest.mock import MagicMock
+    from engine.adapters.real_estate import RealEstateAdapter
+
+    odoo = MagicMock()
+    odoo.search_read.return_value = [{"id": 1}]
+    odoo.create.return_value = 9
+    RealEstateAdapter(odoo).execute_tool("create_lead", {"name": "X", "customer_name": "Sam", "price": 21834})
+    verify_domain = odoo.search_read.call_args[0][1]
+    assert ("domain_type", "=", "real_estate") in verify_domain
+    values = odoo.create.call_args[0][1]
+    assert values["expected_revenue"] == 21834
+    assert "unverified" not in values["description"].lower()
+
+
+def test_lead_price_is_dropped_when_no_catalog_item_has_it():
+    from unittest.mock import MagicMock
+    from engine.adapters.real_estate import RealEstateAdapter
+
+    odoo = MagicMock()
+    odoo.search_read.return_value = []
+    odoo.create.return_value = 9
+    RealEstateAdapter(odoo).execute_tool("create_lead", {"name": "X", "customer_name": "Sam", "price": 1})
+    values = odoo.create.call_args[0][1]
+    assert "expected_revenue" not in values
+    assert "price unverified" in values["description"].lower()
+
+
+def test_lead_result_flags_an_unverified_price_so_the_model_can_say_so():
+    from unittest.mock import MagicMock
+    from engine.core.adapter_base import create_verified_lead
+
+    odoo = MagicMock()
+    odoo.search_read.return_value = []
+    odoo.create.return_value = 9
+    result = create_verified_lead(odoo, "cars", {"name": "X", "customer_name": "Sam", "price": 1})
+    assert result["lead_id"] == 9
+    assert result["price_verified"] is False
+    assert "do not" in result["note"].lower()
+
+
+def test_lead_result_marks_a_verified_price():
+    from unittest.mock import MagicMock
+    from engine.core.adapter_base import create_verified_lead
+
+    odoo = MagicMock()
+    odoo.search_read.return_value = [{"id": 1}]
+    odoo.create.return_value = 9
+    result = create_verified_lead(odoo, "cars", {"name": "X", "customer_name": "Sam", "price": 21834})
+    assert result == {"lead_id": 9}

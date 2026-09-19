@@ -43,6 +43,28 @@ def _get_client(mongodb_uri: str) -> MongoClient:
     return _client
 
 
+def load_history(mongodb_uri: str, chat_id: int, limit_turns: int = 20) -> list[dict]:
+    """Rebuild a chat's recent conversation from the turns already logged.
+
+    Returns user/assistant messages, oldest first. The tool-call messages of
+    earlier turns are not replayed: the assistant reply already states what the
+    tool returned, which is all the model needs to follow a conversation.
+    Turns the guardrails blocked are left out, so an injection attempt cannot
+    steer later turns through a restart.
+    """
+    collection = _get_client(mongodb_uri)["leadgate"]["conversations"]
+    newest_first = (
+        collection.find({"chat_id": chat_id, "blocked": {"$ne": True}})
+        .sort("timestamp", -1)
+        .limit(limit_turns)
+    )
+    history: list[dict] = []
+    for doc in reversed(list(newest_first)):
+        history.append({"role": "user", "content": doc["message"]})
+        history.append({"role": "assistant", "content": doc["reply"]})
+    return history
+
+
 def log_turn(
     mongodb_uri: str,
     chat_id: int,
@@ -50,6 +72,7 @@ def log_turn(
     message: str,
     reply: str,
     tool_calls: list[Any],
+    blocked: bool = False,
 ) -> None:
     """Write one conversation-turn document to MongoDB's `conversations`
     collection in the `leadgate` database.
@@ -75,6 +98,7 @@ def log_turn(
             "message": message,
             "reply": reply,
             "tool_calls": serialized_tool_calls,
+            "blocked": blocked,
             "timestamp": datetime.now(timezone.utc),
         }
     )

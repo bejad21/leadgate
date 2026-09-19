@@ -1,17 +1,19 @@
 import hmac
 import logging
 import os
+from collections import OrderedDict
 
 from fastapi import FastAPI, Request, Response
 
 from engine.adapters.cars import CarsAdapter
 from engine.adapters.real_estate import RealEstateAdapter
 from engine.config import get_llm_client, load_config
-from engine.core.agent_loop import run_turn
-from engine.mongo_client import log_turn
+from engine.core.agent_loop import SYSTEM_PROMPT, run_turn
+from engine.core.guardrails import INJECTION_REFUSAL, filter_reply, is_injection_attempt, sanitize_user_text
+from engine.mongo_client import load_history, log_turn
 from engine.odoo_client import OdooClient
 from engine.rate_limiter import FixedWindowRateLimiter
-from engine.telegram_client import extract_message, send_message
+from engine.telegram_client import extract_message, extract_update_id, send_message
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +21,19 @@ app = FastAPI(title="LeadGate Engine")
 
 config = load_config()
 
-# In-memory conversation history, keyed by chat_id. Acceptable for a
-# portfolio project; a production deployment would move this to a
-# persistent store such as Redis or Supabase so history survives restarts
-# and is shared across worker processes.
-conversation_history: dict[int, list[dict]] = {}
+# Hot cache of conversation history, keyed by chat_id. MongoDB's
+# `conversations` collection is the durable copy: after a restart (or once a
+# chat has been evicted from this cache) the history is rebuilt from it on the
+# chat's next message. The cache holds at most MAX_TRACKED_CHATS chats, least
+# recently used first out, so memory stays bounded however many chats show up.
+conversation_history: OrderedDict[int, list[dict]] = OrderedDict()
+MAX_TRACKED_CHATS = 1000
+
+# Recently seen Telegram update_ids. Telegram redelivers an update when it
+# does not get a 200 in time, and a redelivery must not run the agent (and its
+# lead-creating tool) a second time.
+_seen_updates: OrderedDict[int, None] = OrderedDict()
+SEEN_UPDATES_MAX = 2000
 
 # Cap on how many user turns of history are kept per chat_id. Without a
 # cap, conversation_history grows forever for any chat_id that keeps
@@ -43,6 +53,12 @@ CONVERSATION_HISTORY_MAX_TURNS = 20
 RATE_LIMIT_MAX_REQUESTS = 10
 RATE_LIMIT_WINDOW_SECONDS = 60
 _rate_limiter = FixedWindowRateLimiter(RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_SECONDS)
+
+# Lead creation is the only tool that writes to Odoo, so it gets its own,
+# much tighter limit: 3 leads per chat per hour. A real customer needs one.
+WRITE_LIMIT_MAX = 3
+WRITE_LIMIT_WINDOW_SECONDS = 3600
+_write_limiter = FixedWindowRateLimiter(WRITE_LIMIT_MAX, WRITE_LIMIT_WINDOW_SECONDS)
 
 # Maximum length (in characters) of incoming Telegram text accepted into the
 # LLM conversation history. Long enough for genuine user messages, short
@@ -77,6 +93,21 @@ def _get_llm_client():
     if _llm_client is None:
         _llm_client = get_llm_client(config)
     return _llm_client
+
+
+def _clean_restored(messages: list[dict]) -> list[dict]:
+    """Run stored turns through the same screening as live ones. Turns logged
+    before the guardrails existed were never sanitised, and an old injection
+    attempt must not steer the chat again just because it came back from
+    MongoDB."""
+    cleaned: list[dict] = []
+    for user, assistant in zip(messages[0::2], messages[1::2]):
+        text = sanitize_user_text(user["content"])
+        if not text or is_injection_attempt(text):
+            continue
+        cleaned.append({"role": "user", "content": text})
+        cleaned.append({"role": "assistant", "content": filter_reply(assistant["content"], SYSTEM_PROMPT)})
+    return cleaned
 
 
 def _trim_conversation_history(chat_id: int) -> None:
@@ -131,7 +162,53 @@ async def telegram_webhook(request: Request):
     if len(text) > MAX_MESSAGE_LENGTH:
         text = text[:MAX_MESSAGE_LENGTH]
 
-    history = conversation_history.setdefault(chat_id, [])
+    update_id = extract_update_id(body)
+    if update_id is not None:
+        if update_id in _seen_updates:
+            return {"ok": True}
+        _seen_updates[update_id] = None
+        while len(_seen_updates) > SEEN_UPDATES_MAX:
+            _seen_updates.popitem(last=False)
+
+    text = sanitize_user_text(text)
+    if not text:
+        return {"ok": True}
+
+    mongodb_uri = os.environ.get("MONGODB_URI")
+
+    if is_injection_attempt(text):
+        # Refuse without spending an LLM call, touching Odoo, or letting the
+        # message into the conversation history where it could keep steering
+        # later turns.
+        try:
+            send_message(chat_id, INJECTION_REFUSAL)
+        except Exception:
+            logger.exception("send_message failed for chat_id=%s", chat_id)
+        if mongodb_uri:
+            try:
+                log_turn(mongodb_uri, chat_id, config["ACTIVE_DOMAIN"], text, INJECTION_REFUSAL, [], blocked=True)
+            except Exception:
+                logger.exception("log_turn failed for chat_id=%s", chat_id)
+        return {"ok": True}
+
+    if chat_id in conversation_history:
+        conversation_history.move_to_end(chat_id)
+    else:
+        restored: list[dict] = []
+        if mongodb_uri:
+            try:
+                restored = _clean_restored(
+                    load_history(mongodb_uri, chat_id, CONVERSATION_HISTORY_MAX_TURNS)
+                )
+            except Exception:
+                logger.exception("load_history failed for chat_id=%s", chat_id)
+        conversation_history[chat_id] = restored
+        while len(conversation_history) > MAX_TRACKED_CHATS:
+            conversation_history.popitem(last=False)
+    history = conversation_history[chat_id]
+    # run_turn inserts the system prompt at index 0, so rolling back by index
+    # would be off by one. Restore a copy of the whole list instead.
+    history_before_turn = list(history)
     history.append({"role": "user", "content": text})
 
     # Everything below this point talks to Odoo, the LLM provider, Telegram,
@@ -142,15 +219,18 @@ async def telegram_webhook(request: Request):
     # (re-billing the LLM call and, worse, potentially re-executing a tool
     # call that already wrote a crm.lead, if the fault happened after tool
     # execution but before the reply was sent). Returning 200 here stops that
-    # retry storm. This is NOT full exactly-once delivery: it does not
-    # deduplicate by Telegram's `update_id`, so a retry that arrives despite
-    # a *successful* prior 200 (e.g. the 200 itself got lost in transit)
-    # could still double-process. That's a known, real follow-up, not
-    # something silently assumed solved here.
+    # retry storm. A redelivery that still arrives (the 200 got lost in
+    # transit) is recognised by its `update_id` above and ignored.
     try:
-        result = run_turn(history, _get_adapter(), _get_llm_client())
+        result = run_turn(
+            history, _get_adapter(), _get_llm_client(), chat_id=chat_id, write_limiter=_write_limiter
+        )
     except Exception:
         logger.exception("run_turn failed for chat_id=%s", chat_id)
+        # Drop the half-finished turn (the user message, the system prompt if
+        # run_turn just added it, and any tool messages) so the customer's
+        # retry doesn't stack a duplicate.
+        history[:] = history_before_turn
         return {"ok": True}
 
     _trim_conversation_history(chat_id)
@@ -165,7 +245,6 @@ async def telegram_webhook(request: Request):
     # (Task 3.4). This is best-effort audit logging: a Mongo fault must
     # never take down the webhook after a real reply has already been
     # computed and sent to the customer.
-    mongodb_uri = os.environ.get("MONGODB_URI")
     if mongodb_uri:
         try:
             log_turn(

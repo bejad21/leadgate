@@ -30,7 +30,14 @@ class FakeCarsAdapter(DomainAdapter):
         return [
             {
                 "type": "function",
-                "function": {"name": "search_inventory", "parameters": {}},
+                "function": {
+                    "name": "search_inventory",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"make": {"type": "string"}, "price_max": {"type": "number"}},
+                        "required": [],
+                    },
+                },
             }
         ]
 
@@ -121,3 +128,174 @@ def test_run_turn_uses_real_tool_call_id_when_provided():
 
     assert tool_message["tool_call_id"] == "call_abc123"
     assert assistant_message["tool_calls"][0]["id"] == "call_abc123"
+
+
+# ---- v2 guardrails in the loop --------------------------------------------
+
+import pytest
+
+from engine.core import guardrails
+from engine.core.agent_loop import SYSTEM_PROMPT
+from engine.rate_limiter import FixedWindowRateLimiter
+
+
+class LeadAdapter(FakeCarsAdapter):
+    def tool_schemas(self):
+        return super().tool_schemas() + [
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_lead",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"name": {"type": "string"}, "customer_name": {"type": "string"}},
+                        "required": ["name", "customer_name"],
+                    },
+                },
+            }
+        ]
+
+
+def _turn(calls, final="Done."):
+    return FakeLLMClient([LLMResponse(content=None, tool_calls=calls), LLMResponse(content=final, tool_calls=[])])
+
+
+def _tool_messages(history):
+    return [json.loads(m["content"]) for m in history if m["role"] == "tool"]
+
+
+def test_unknown_tool_is_not_executed():
+    adapter = FakeCarsAdapter({"ok": True})
+    history = [{"role": "user", "content": "hi"}]
+    run_turn(history, adapter, _turn([ToolCall(name="delete_everything", arguments={})]))
+    assert adapter.executed_calls == []
+    assert "error" in _tool_messages(history)[0]
+
+
+def test_unknown_arguments_are_dropped_before_execution():
+    adapter = FakeCarsAdapter({"ok": True})
+    history = [{"role": "user", "content": "hi"}]
+    run_turn(history, adapter, _turn([ToolCall(name="search_inventory", arguments={"make": "Toyota", "admin": True})]))
+    assert adapter.executed_calls == [("search_inventory", {"make": "Toyota"})]
+
+
+def test_invalid_argument_becomes_error_result_without_executing():
+    adapter = FakeCarsAdapter({"ok": True})
+    history = [{"role": "user", "content": "hi"}]
+    run_turn(history, adapter, _turn([ToolCall(name="search_inventory", arguments={"price_max": -5})]))
+    assert adapter.executed_calls == []
+    assert "error" in _tool_messages(history)[0]
+
+
+def test_tool_calls_per_turn_are_capped_but_every_call_gets_a_tool_message():
+    adapter = FakeCarsAdapter({"ok": True})
+    calls = [ToolCall(name="search_inventory", arguments={"make": f"m{i}"}, id=f"c{i}") for i in range(6)]
+    history = [{"role": "user", "content": "hi"}]
+    run_turn(history, adapter, _turn(calls))
+    assert len(adapter.executed_calls) == guardrails.TOOL_CALL_CAP
+    assert [m["tool_call_id"] for m in history if m["role"] == "tool"] == [f"c{i}" for i in range(6)]
+
+
+def test_write_tool_is_rate_limited_per_chat():
+    adapter = LeadAdapter({"lead_id": 1})
+    limiter = FixedWindowRateLimiter(1, 3600)
+    lead = lambda: ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Sam"})
+    run_turn([{"role": "user", "content": "a"}], adapter, _turn([lead()]), chat_id=7, write_limiter=limiter)
+    history = [{"role": "user", "content": "b"}]
+    run_turn(history, adapter, _turn([lead()]), chat_id=7, write_limiter=limiter)
+    assert [c[0] for c in adapter.executed_calls] == ["create_lead"]
+    assert "limit" in _tool_messages(history)[0]["error"]
+
+
+def test_write_limit_is_per_chat_id():
+    adapter = LeadAdapter({"lead_id": 1})
+    limiter = FixedWindowRateLimiter(1, 3600)
+    lead = lambda: ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Sam"})
+    run_turn([{"role": "user", "content": "a"}], adapter, _turn([lead()]), chat_id=1, write_limiter=limiter)
+    run_turn([{"role": "user", "content": "b"}], adapter, _turn([lead()]), chat_id=2, write_limiter=limiter)
+    assert len(adapter.executed_calls) == 2
+
+
+def test_invalid_write_does_not_burn_the_limit():
+    adapter = LeadAdapter({"lead_id": 1})
+    limiter = FixedWindowRateLimiter(1, 3600)
+    bad = ToolCall(name="create_lead", arguments={"name": "Camry"})
+    good = ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Sam"})
+    run_turn([{"role": "user", "content": "a"}], adapter, _turn([bad]), chat_id=1, write_limiter=limiter)
+    run_turn([{"role": "user", "content": "b"}], adapter, _turn([good]), chat_id=1, write_limiter=limiter)
+    assert len(adapter.executed_calls) == 1
+
+
+def test_reply_links_are_stripped():
+    adapter = FakeCarsAdapter({"ok": True})
+    result = run_turn(
+        [{"role": "user", "content": "hi"}],
+        adapter,
+        _turn([ToolCall(name="search_inventory", arguments={})], final="Buy at https://evil.example/pay"),
+    )
+    assert "evil.example" not in result.reply
+
+
+def test_reply_without_tool_call_is_also_filtered():
+    llm = FakeLLMClient([LLMResponse(content="Go to www.evil.example now", tool_calls=[])])
+    result = run_turn([{"role": "user", "content": "hi"}], FakeCarsAdapter({}), llm)
+    assert "evil.example" not in result.reply
+
+
+@pytest.mark.parametrize(
+    "phrase",
+    ["data, not instructions", "never reveal", "refuse", "never send links", "one or two friendly sentences", "same plain, polite voice"],
+)
+def test_system_prompt_carries_hardening_rules(phrase):
+    assert phrase in SYSTEM_PROMPT.lower()
+
+
+def test_blank_model_reply_after_a_tool_call_still_produces_a_reply():
+    adapter = FakeCarsAdapter({"ok": True})
+    result = run_turn(
+        [{"role": "user", "content": "hi"}],
+        adapter,
+        _turn([ToolCall(name="search_inventory", arguments={})], final=""),
+    )
+    assert result.reply.strip()
+
+
+def test_identical_write_calls_in_one_turn_execute_once():
+    adapter = LeadAdapter({"lead_id": 42})
+    limiter = FixedWindowRateLimiter(3, 3600)
+    args = {"name": "Camry", "customer_name": "Sam"}
+    calls = [ToolCall(name="create_lead", arguments=dict(args), id="a"), ToolCall(name="create_lead", arguments=dict(args), id="b")]
+    history = [{"role": "user", "content": "book it"}]
+
+    run_turn(history, adapter, _turn(calls), chat_id=1, write_limiter=limiter)
+
+    assert [c[0] for c in adapter.executed_calls] == ["create_lead"]
+    results = _tool_messages(history)
+    assert len(results) == 2 and results[0] == results[1] == {"lead_id": 42}
+    assert limiter.allow(1) and limiter.allow(1)  # only one of the three hits was spent
+
+
+def test_different_write_calls_in_one_turn_both_execute():
+    adapter = LeadAdapter({"lead_id": 1})
+    calls = [
+        ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Sam"}, id="a"),
+        ToolCall(name="create_lead", arguments={"name": "Corolla", "customer_name": "Sam"}, id="b"),
+    ]
+    run_turn([{"role": "user", "content": "both"}], adapter, _turn(calls))
+    assert len(adapter.executed_calls) == 2
+
+
+# ---- review fixes: the model must see its own earlier replies -------------
+
+def test_final_reply_is_appended_to_history_after_a_tool_call():
+    adapter = FakeCarsAdapter({"ok": True})
+    history = [{"role": "user", "content": "hi"}]
+    result = run_turn(history, adapter, _turn([ToolCall(name="search_inventory", arguments={})], final="Here you go."))
+    assert history[-1] == {"role": "assistant", "content": result.reply}
+
+
+def test_final_reply_is_appended_to_history_without_a_tool_call():
+    llm = FakeLLMClient([LLMResponse(content="Hello there", tool_calls=[])])
+    history = [{"role": "user", "content": "hi"}]
+    result = run_turn(history, FakeCarsAdapter({}), llm)
+    assert history[-1] == {"role": "assistant", "content": result.reply} == {"role": "assistant", "content": "Hello there"}

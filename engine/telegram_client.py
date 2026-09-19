@@ -32,3 +32,9 @@ def extract_message(update: dict) -> tuple[int, str] | None:
         return None
 
     return chat["id"], text
+
+
+def extract_update_id(update: dict) -> int | None:
+    """Telegram's per-bot update counter, used to recognise redelivered updates."""
+    update_id = update.get("update_id")
+    return update_id if isinstance(update_id, int) and not isinstance(update_id, bool) else None
