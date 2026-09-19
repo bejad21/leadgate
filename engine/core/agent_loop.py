@@ -136,6 +136,7 @@ def run_turn(
         history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
     response = llm.chat(history, tools=adapter.tool_schemas())
     tool_results = []
+    executed_calls = list(response.tool_calls)
 
     if response.tool_calls:
         # The OpenAI/OpenRouter tool-calling protocol requires the
@@ -177,6 +178,7 @@ def run_turn(
         )
         for position, call in enumerate(response.tool_calls):
             call = _with_customer_contact(call, schemas, adapter, customer_text)
+            executed_calls[position] = call
             result = _run_guarded_tool(call, schemas, adapter, position, chat_id, write_limiter, seen_writes)
             if tool_events is not None:
                 tool_events.append((call, result))
@@ -202,4 +204,4 @@ def run_turn(
     # it told the customer earlier in the same chat.
     history.append({"role": "assistant", "content": reply})
 
-    return AgentTurnResult(reply=reply, tool_calls_made=response.tool_calls, tool_results=tool_results)
+    return AgentTurnResult(reply=reply, tool_calls_made=executed_calls, tool_results=tool_results)

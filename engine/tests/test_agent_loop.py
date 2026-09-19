@@ -377,6 +377,17 @@ def test_the_reported_tool_event_shows_the_contact_that_was_actually_written():
     assert events[0][0].arguments["customer_contact"] == "al@x.com +971509998888"
 
 
+def test_the_turn_result_reports_the_contact_that_was_actually_written():
+    """The alert and the dashboard mirror read the returned result on the normal path."""
+    adapter = ContactAdapter({"lead_id": 1})
+    call = ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Al", "customer_contact": "al@x.com"})
+    history = [{"role": "user", "content": "I'm Al, al@x.com, call +971 50 999 8888"}]
+
+    result = run_turn(history, adapter, _turn([call]), chat_id=1)
+
+    assert result.tool_calls_made[0].arguments["customer_contact"] == "al@x.com +971509998888"
+
+
 def test_contact_details_come_only_from_what_the_customer_wrote():
     adapter = ContactAdapter({"lead_id": 1})
     call = ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Al"})
