@@ -1,14 +1,23 @@
 domain      | n_cases    | tool_selection_accuracy | slot_extraction_accuracy | slot_n_applicable | hallucination_rate | task_completion_rate | mean_latency_ms
 ------------+------------+-------------------------+--------------------------+-------------------+--------------------+----------------------+----------------
-cars        | 45         | 1.0000                  | 0.9868                   | 31                | 0.0000             | 0.9778               | 17558.6667     
-real_estate | 48         | 0.9792                  | 0.9833                   | 32                | 0.0000             | 0.9583               | 24430.3333     
+cars        | 45         | 1.0000                  | 0.9868                   | 31                | 0.0323             | 0.9556               | 12744.8000     
+real_estate | 48         | 1.0000                  | 0.9844                   | 33                | 0.0588             | 0.9583               | 17548.1875     
 
 --- Slot-extraction applicability breakdown ---
 cars: 0.9868 accuracy over 76 fields in 31/45 applicable cases (14 excluded: no tool/args expected; 0 excluded: expected tool never actually called)
-real_estate: 0.9833 accuracy over 60 fields in 32/48 applicable cases (15 excluded: no tool/args expected; 1 excluded: expected tool never actually called)
+real_estate: 0.9844 accuracy over 64 fields in 33/48 applicable cases (15 excluded: no tool/args expected; 0 excluded: expected tool never actually called)
 
 --- Hallucination audit (flagged cases) ---
 
-cars: 0 flagged case(s)
+cars: 1 flagged case(s)
+  message: I want an SUV, but nothing too expensive
+    ungrounded_prices: [25000.0]
+    false_zero_claim: False, total_matches: 5
 
-real_estate: 0 flagged case(s)
+real_estate: 2 flagged case(s)
+  message: What properties do you have for around $1,000,000?
+    ungrounded_prices: [1000000000000.0]
+    false_zero_claim: False, total_matches: 5
+  message: Any commercial properties for sale?
+    ungrounded_prices: []
+    false_zero_claim: True, total_matches: 5

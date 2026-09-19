@@ -57,8 +57,22 @@ RETRY_BACKOFF_SECONDS = 20
 RETRYABLE_NETWORK_EXCEPTIONS = (httpx.TimeoutException, httpx.ConnectError, httpx.ReadTimeout)
 
 
+class LeadRecordingOdoo(OdooClient):
+    """Real reads; crm.lead writes are answered with a fake id instead of being
+    executed, so re-running the eval does not fill the CRM with duplicate
+    leads. Enabled with EVAL_RECORD_LEADS=1."""
+
+    def create(self, model, values):
+        if model == "crm.lead":
+            return 900_000
+        return super().create(model, values)
+
+
 def build_adapter(domain: str, config: dict):
-    odoo = OdooClient(
+    import os
+
+    client_class = LeadRecordingOdoo if os.environ.get("EVAL_RECORD_LEADS") else OdooClient
+    odoo = client_class(
         config["ODOO_URL"], config["ODOO_DB"], config["ODOO_USER"], config["ODOO_PASSWORD"]
     )
     if domain == "real_estate":
