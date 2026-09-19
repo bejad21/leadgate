@@ -49,8 +49,9 @@ Lead creation and the sync pipeline are separate paths. The agent writes a `crm.
 | Memory across restarts | The last 20 turns of each chat are rebuilt from MongoDB after a restart, and Telegram retries are ignored. |
 | Abuse protection | Injection screening, schema-checked tool arguments, verified lead prices, per-chat lead limits, link-free replies. Tested with 26 red-team attacks. See [SECURITY.md](SECURITY.md). |
 | Measured behavior | 93 hand-labeled test cases run against the live system, scoring tool choice, argument extraction, grounding, and task completion. |
-| Webhook security | Constant-time secret check, per-chat rate limiting, Row Level Security on the dashboard table. |
+| Webhook security | Constant-time secret check and per-chat rate limiting on the webhook. Row Level Security on every Supabase table: the catalog is public to read, leads and conversations are staff only. |
 | Provider fallback | Uses a free OpenRouter model first and falls back to Mistral if only that key is set. |
+| Tests | 268 engine tests, including a scripted model that obeys every attack. 22 dashboard tests. 34 browser checks on the Leads tab. A script that proves who can read which Supabase table. |
 
 ## A conversation, end to end
 
@@ -156,6 +157,8 @@ When a lead is created the owner gets a message from a separate alert bot, so al
 > $21,834
 > Open in Odoo
 
+Telegram answers every send with a receipt that includes a message id, and the engine logs any send that fails. If the alert bot is not set up, or Telegram is down, the lead and the customer's reply are not affected. The "Open in Odoo" link is tappable once `ODOO_PUBLIC_URL` is an address your phone can reach. Telegram does not turn `localhost` into a link.
+
 The dashboard's Leads tab shows the same lead as a message slip, and the conversation behind it prints on a paper roll. The customer's words are in blue, the assistant's in black, and between them is a stamped note for each thing the assistant did. A lead whose price the customer made up is flagged on its slip.
 
 ![The Leads tab: a staff sign-in plate, three message slips, and a paper roll showing a conversation with the search the assistant ran](docs/screenshots/dashboard-leads.png)
@@ -253,6 +256,7 @@ The exact commands, required environment variables, and the reasons behind the l
 | Doc | What's in it |
 |---|---|
 | [docs/SETUP.md](docs/SETUP.md) | The complete, ordered setup with exact commands |
+| [docs/demo/](docs/demo/) | The 61-second demo as an MP4 and a GIF |
 | [dashboard/README.md](dashboard/README.md) | How the key board works, and how to run and use it |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Data-flow diagram and the two-database reasoning |
 | [SECURITY.md](SECURITY.md) | Protections, how they were tested, and what a formal review would check |
@@ -263,14 +267,16 @@ The exact commands, required environment variables, and the reasons behind the l
 ```text
 LeadGate/
 ├── engine/                       # FastAPI app: webhook, agent loop, LLM client, Odoo client
-│   ├── core/                     # Domain-agnostic agent loop, guardrails, adapter interface
-│   └── adapters/                 # cars.py, real_estate.py: the only domain-specific code
+│   ├── core/                     # Domain-agnostic agent loop, guardrails, contact handling, adapter interface
+│   ├── adapters/                 # cars.py, real_estate.py: the only domain-specific code
+│   ├── notifier.py               # Owner alert through the second Telegram bot
+│   └── supabase_sync.py          # Copies leads and conversations to Supabase
 ├── odoo/addons/leadgate_domain/  # Custom Odoo module: catalog model and sync webhook
 ├── data/                         # Dataset prep and seeding scripts
-├── n8n/                          # Sync workflow plus setup and deployment scripts
+├── n8n/                          # Sync workflow, setup and deployment scripts, and the access-control check
 ├── dashboard/                    # React, Vite, Tailwind, Supabase Realtime
 ├── eval/                         # Test datasets, eval and red-team runners, metrics, results, REPORT.md
-├── docs/                         # Setup guide and screenshots
+├── docs/                         # Setup guide, screenshots and the demo video
 ├── .github/workflows/            # Deploys the dashboard to GitHub Pages
 └── docker-compose.yml            # Postgres, Odoo, n8n (all localhost-only)
 ```
