@@ -55,8 +55,12 @@ export function useCatalogItems(domain?: DomainType) {
 
     fetchInitial()
 
+    // Every hook instance needs its own channel name. supabase-js dedupes
+    // channels by topic, so a fixed name makes the second consumer (and
+    // React's dev-mode double mount) get back an already-subscribed channel,
+    // and calling `.on()` on it throws and blanks the whole page.
     const channel = supabase
-      .channel('catalog_items-changes')
+      .channel(`catalog_items-changes-${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'catalog_items' },

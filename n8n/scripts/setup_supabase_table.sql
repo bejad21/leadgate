@@ -51,3 +51,25 @@ create policy catalog_items_anon_read
 -- roles. Only the service_role key (used exclusively by n8n's workflow,
 -- never shipped to the browser) can still write, since service_role
 -- bypasses RLS entirely.
+
+-- Realtime: Postgres Changes events are only broadcast for tables that are
+-- members of the `supabase_realtime` publication, and a new table is NOT
+-- added to it automatically. Without this, the dashboard's Realtime
+-- subscription connects fine but never receives an event, so it only shows
+-- rows on initial page load and silently never live-updates. (Found by
+-- actually driving the dashboard in a real browser and changing a record in
+-- Odoo while the page was open.) The guard keeps this script idempotent,
+-- since `alter publication ... add table` errors if the table is already in.
+-- RLS above still applies: Realtime only delivers rows the subscriber's role
+-- may SELECT, which the anon read policy allows.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'catalog_items'
+  ) then
+    alter publication supabase_realtime add table public.catalog_items;
+  end if;
+end $$;
