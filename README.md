@@ -38,7 +38,7 @@ Lead creation and the sync pipeline are separate paths. The agent writes a `crm.
 | Live dashboard | An Odoo status change reaches an open browser tab in about a second, with no reload (checked in a real browser). |
 | Two databases, two jobs | Supabase holds the structured mirror the dashboard reads. MongoDB holds the append-only event and conversation log. |
 | Measured behavior | 93 hand-labeled test cases run against the live system, scoring tool choice, argument extraction, grounding, and task completion. |
-| Security review | Row Level Security, constant-time webhook secret check, rate limiting. [SECURITY.md](SECURITY.md) lists what a formal review would still flag. |
+| Security basics | Row Level Security, constant-time webhook secret check, rate limiting. [SECURITY.md](SECURITY.md) lists what a formal review would still flag. |
 | Provider fallback | Uses a free OpenRouter model first and falls back to Mistral if only that key is set. |
 
 ## A conversation, end to end
@@ -136,11 +136,11 @@ The exact commands, required environment variables, and the reasons behind the l
 
 ## Known limitations
 
-- **Real estate filters are partly decorative.** The tool schema accepts `property_type` and `bedrooms`, but only `price_max` reaches the Odoo query. 11 of the 48 real estate test cases (23%) are labeled around this. Fixing it needs structured columns on the catalog model.
-- **No minimum-price filter.** "Anything over $X?" can't be expressed, so the agent approximates it.
-- **Odoo access is admin-scoped.** The engine authenticates as the `admin` user instead of a least-privilege service account, and the prompt-injection surface hasn't been red-teamed.
-- **Conversation history lives in memory.** Turns are capped per chat, but nothing persists across restarts and Telegram retries aren't deduplicated.
-- **It runs on free tiers, locally.** The free LLM catalog rotates, and there's no data-residency guarantee. It has never been deployed or served real customers, so treat it as a portfolio project, not a production system.
+- Real estate filters are partly decorative. The tool schema accepts `property_type` and `bedrooms`, but only `price_max` reaches the Odoo query. 11 of the 48 real estate test cases (23%) are labeled around this. Fixing it needs structured columns on the catalog model.
+- There is no minimum-price filter. "Anything over $X?" can't be expressed, so the agent approximates it.
+- Odoo access is admin-scoped. The engine authenticates as the `admin` user instead of a least-privilege service account, and the prompt-injection surface hasn't been red-teamed.
+- Conversation history lives in memory. Turns are capped per chat, but nothing persists across restarts and Telegram retries aren't deduplicated.
+- It runs on free tiers, locally. The free LLM catalog rotates, and there's no data-residency guarantee. It has never been deployed or served real customers, so treat it as a portfolio project, not a production system.
 
 The full list, with reasoning, is in [SECURITY.md](SECURITY.md) and [eval/REPORT.md](eval/REPORT.md).
 
