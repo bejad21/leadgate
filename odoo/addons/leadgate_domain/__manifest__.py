@@ -13,6 +13,7 @@ catalog inventory regardless of vertical.
     "depends": ["base", "crm", "base_automation"],
     "data": [
         "security/ir.model.access.csv",
+        "views/catalog_item_views.xml",
         "data/automated_action.xml",
     ],
     "installable": True,

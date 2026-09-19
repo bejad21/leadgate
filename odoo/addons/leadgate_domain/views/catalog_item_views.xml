@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Screens for the catalog. Without these the model exists but nobody can
+         see or edit an item in Odoo. Changing a status here fires the automated
+         action that tells n8n, which is what the dashboard listens to. -->
+
+    <record id="view_catalog_item_list" model="ir.ui.view">
+        <field name="name">leadgate.catalog.item.list</field>
+        <field name="model">leadgate.catalog.item</field>
+        <field name="arch" type="xml">
+            <list string="Catalog" default_order="id">
+                <field name="id" string="No."/>
+                <field name="name"/>
+                <field name="domain_type" widget="badge"/>
+                <field name="price"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'available'"
+                       decoration-warning="status == 'reserved'"
+                       decoration-danger="status == 'sold'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_catalog_item_form" model="ir.ui.view">
+        <field name="name">leadgate.catalog.item.form</field>
+        <field name="model">leadgate.catalog.item</field>
+        <field name="arch" type="xml">
+            <form string="Catalog item">
+                <header>
+                    <field name="status" widget="statusbar" options="{'clickable': '1'}"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. 2020 Toyota Camry"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="domain_type"/>
+                            <field name="price"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Details" name="details">
+                            <field name="attributes" placeholder="Domain-specific fields as JSON"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_catalog_item_search" model="ir.ui.view">
+        <field name="name">leadgate.catalog.item.search</field>
+        <field name="model">leadgate.catalog.item</field>
+        <field name="arch" type="xml">
+            <search string="Catalog">
+                <field name="name"/>
+                <filter name="filter_cars" string="Cars" domain="[('domain_type', '=', 'cars')]"/>
+                <filter name="filter_real_estate" string="Real estate" domain="[('domain_type', '=', 'real_estate')]"/>
+                <separator/>
+                <filter name="filter_available" string="Available" domain="[('status', '=', 'available')]"/>
+                <filter name="filter_reserved" string="Reserved" domain="[('status', '=', 'reserved')]"/>
+                <filter name="filter_sold" string="Sold" domain="[('status', '=', 'sold')]"/>
+                <group expand="0" string="Group by">
+                    <filter name="group_domain" string="Catalog" context="{'group_by': 'domain_type'}"/>
+                    <filter name="group_status" string="Status" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_catalog_item" model="ir.actions.act_window">
+        <field name="name">Catalog</field>
+        <field name="res_model">leadgate.catalog.item</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_catalog_item_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No catalog items yet</p>
+            <p>Seed the catalog with data/seed_odoo.py, then manage items here.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_leadgate_root" name="LeadGate" sequence="40"/>
+    <menuitem id="menu_leadgate_catalog" name="Catalog" parent="menu_leadgate_root"
+              action="action_catalog_item" sequence="10"/>
+</odoo>
