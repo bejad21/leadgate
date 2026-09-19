@@ -14,7 +14,7 @@ An AI agent that talks to customers on Telegram, searches a real catalog, and ha
 
 ![Odoo on the left, the dashboard on the right: a status changed in Odoo flips a key on the board about a second later, then a customer chats with the bot and the new lead lands on the Leads tab and in Odoo with a real contact](docs/demo/leadgate-demo.gif)
 
-*61 seconds, real services throughout: a status changed in Odoo moves a key on the dashboard about a second later, then a customer's chat with the bot becomes a lead in both places. The wait for the model's replies is sped up. [Watch the full-quality video](docs/demo/leadgate-demo.mp4).*
+*61 seconds, real services throughout: a status changed in Odoo moves a key on the dashboard about a second later, then a customer's chat with the bot becomes a lead in both places. Near the end, Odoo's side shows the receipts Telegram returned: the customer's messages arriving at the webhook, and the owner alert going out through the separate bot with its message id. The wait for the model's replies is sped up. [Watch the full-quality video](docs/demo/leadgate-demo.mp4).*
 
 ## What it does
 

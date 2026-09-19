@@ -210,6 +210,11 @@ Copy the number after `"chat":{"id":` and put both values in `.env` as
 `TELEGRAM_ALERTS_BOT_TOKEN` and `TELEGRAM_ALERTS_CHAT_ID`. If either is missing the engine
 simply skips alerts.
 
+The alert ends with an "Open in Odoo" link built from `ODOO_PUBLIC_URL`. Telegram does not
+turn `localhost` addresses into links, so while Odoo runs only on your machine the text
+shows but is not tappable. Set `ODOO_PUBLIC_URL` to an address your phone can reach and the
+link works.
+
 ### The catalog inside Odoo
 
 The `leadgate_domain` module adds a **LeadGate > Catalog** menu to Odoo: a list with
