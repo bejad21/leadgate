@@ -299,3 +299,93 @@ def test_final_reply_is_appended_to_history_without_a_tool_call():
     history = [{"role": "user", "content": "hi"}]
     result = run_turn(history, FakeCarsAdapter({}), llm)
     assert history[-1] == {"role": "assistant", "content": result.reply} == {"role": "assistant", "content": "Hello there"}
+
+
+# ---- report tool calls as they happen ---------------------------------------------
+
+class _FailsOnTheReply:
+    """First call asks for a lead; the follow-up call that writes the reply blows up."""
+
+    def __init__(self, calls):
+        self.calls = calls
+        self.n = 0
+
+    def chat(self, messages, tools):
+        self.n += 1
+        if self.n == 1:
+            return LLMResponse(content=None, tool_calls=self.calls)
+        raise RuntimeError("provider returned garbage")
+
+
+def test_executed_tool_calls_are_reported_even_if_the_reply_step_then_fails():
+    adapter = LeadAdapter({"lead_id": 42})
+    events = []
+    call = ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Sam"}, id="a")
+
+    with pytest.raises(RuntimeError):
+        run_turn([{"role": "user", "content": "book it"}], adapter, _FailsOnTheReply([call]), tool_events=events)
+
+    assert [(c.name, r) for c, r in events] == [("create_lead", {"lead_id": 42})]
+
+
+def test_rejected_calls_are_reported_too_with_their_error():
+    adapter = FakeCarsAdapter({"ok": True})
+    events = []
+    run_turn([{"role": "user", "content": "hi"}], adapter, _turn([ToolCall(name="mystery", arguments={})]), tool_events=events)
+    assert len(events) == 1 and "error" in events[0][1]
+
+
+# ---- the customer's own contact details are not lost --------------------------------
+
+class ContactAdapter(FakeCarsAdapter):
+    def tool_schemas(self):
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_lead",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"name": {"type": "string"}, "customer_name": {"type": "string"}, "customer_contact": {"type": "string"}},
+                        "required": ["name", "customer_name"],
+                    },
+                },
+            }
+        ]
+
+
+def test_a_phone_the_customer_gave_but_the_model_dropped_is_added_to_the_lead():
+    adapter = ContactAdapter({"lead_id": 1})
+    call = ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Al", "customer_contact": "al@x.com"})
+    history = [{"role": "user", "content": "I'll take it. I'm Al, al@x.com, call +971 50 999 8888"}]
+
+    run_turn(history, adapter, _turn([call]), chat_id=1)
+
+    executed = adapter.executed_calls[0][1]
+    assert executed["customer_contact"] == "al@x.com +971509998888"
+
+
+def test_the_reported_tool_event_shows_the_contact_that_was_actually_written():
+    """The alert and the dashboard mirror read the event, so it must match what Odoo got."""
+    adapter = ContactAdapter({"lead_id": 1})
+    call = ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Al", "customer_contact": "al@x.com"})
+    history = [{"role": "user", "content": "I'm Al, al@x.com, call +971 50 999 8888"}]
+    events = []
+
+    run_turn(history, adapter, _turn([call]), chat_id=1, tool_events=events)
+
+    assert events[0][0].arguments["customer_contact"] == "al@x.com +971509998888"
+
+
+def test_contact_details_come_only_from_what_the_customer_wrote():
+    adapter = ContactAdapter({"lead_id": 1})
+    call = ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Al"})
+    history = [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "Reach us on sales@dealer.example or +971 4 123 4567"},
+        {"role": "user", "content": "ok"},
+    ]
+
+    run_turn(history, adapter, _turn([call]), chat_id=1)
+
+    assert "customer_contact" not in adapter.executed_calls[0][1]

@@ -70,6 +70,8 @@ class RecordingOdoo(OdooClient):
         self.leads: list[dict] = []
 
     def create(self, model, values):
+        if model == "res.partner":
+            return 800_000 + len(self.leads)  # keep test contacts out of the real CRM
         if model == "crm.lead":
             self.leads.append(values)
             return 900_000 + len(self.leads)
@@ -82,7 +84,7 @@ def _disable_guardrails() -> None:
 
     m.is_injection_attempt = lambda text: False
     m._write_limiter = FixedWindowRateLimiter(10**6, 60)
-    def raw_tool(call, schemas, adapter, position, chat_id, write_limiter, seen_writes):
+    def raw_tool(call, schemas, adapter, position, chat_id, write_limiter, seen_writes, customer_text=""):
         try:
             return adapter.execute_tool(call.name, call.arguments)
         except Exception as exc:

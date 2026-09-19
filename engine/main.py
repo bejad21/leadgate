@@ -3,14 +3,17 @@ import logging
 import os
 from collections import OrderedDict
 
-from fastapi import FastAPI, Request, Response
+from fastapi import BackgroundTasks, FastAPI, Request, Response
 
 from engine.adapters.cars import CarsAdapter
 from engine.adapters.real_estate import RealEstateAdapter
 from engine.config import get_llm_client, load_config
-from engine.core.agent_loop import SYSTEM_PROMPT, run_turn
+from engine.core.agent_loop import SYSTEM_PROMPT, AgentTurnResult, run_turn
 from engine.core.guardrails import INJECTION_REFUSAL, filter_reply, is_injection_attempt, sanitize_user_text
+from engine import supabase_sync
+from engine.leads import extract_leads
 from engine.mongo_client import load_history, log_turn
+from engine.notifier import send_lead_alert
 from engine.odoo_client import OdooClient
 from engine.rate_limiter import FixedWindowRateLimiter
 from engine.telegram_client import extract_message, extract_update_id, send_message
@@ -67,6 +70,10 @@ _write_limiter = FixedWindowRateLimiter(WRITE_LIMIT_MAX, WRITE_LIMIT_WINDOW_SECO
 # conversation still proceeds with whatever the user actually meant to say.
 MAX_MESSAGE_LENGTH = 2000
 
+# What a customer sees if the assistant fails to produce an answer (the model
+# provider erred, Odoo was unreachable). Silence would read as "the bot is dead".
+ERROR_REPLY = "Sorry, I couldn't answer that just now. Please send it again in a moment."
+
 # Lazily-constructed singletons. Built on first use (not at import time) so
 # importing this module - e.g. under pytest - doesn't require a live Odoo
 # connection or LLM API key just to collect tests. Tests patch these two
@@ -110,6 +117,64 @@ def _clean_restored(messages: list[dict]) -> list[dict]:
     return cleaned
 
 
+def _handle_new_leads(chat_id: int, result) -> None:
+    """Alert the owner and mirror each lead created this turn to the dashboard.
+
+    The lead already exists in Odoo, so nothing here may fail the request: each
+    step is isolated and only logged if it goes wrong.
+    """
+    try:
+        leads = extract_leads(result, config["ACTIVE_DOMAIN"])
+    except Exception:
+        logger.exception("could not read leads from the turn for chat_id=%s", chat_id)
+        return
+    for lead in leads:
+        try:
+            send_lead_alert(lead)
+        except Exception:
+            logger.exception("lead alert failed for lead %s", lead.lead_id)
+        try:
+            supabase_sync.record_lead(chat_id, lead)
+        except Exception:
+            logger.exception("could not mirror lead %s to Supabase", lead.lead_id)
+
+
+def _mirror_turn(chat_id: int, message: str, reply: str, tool_calls: list, blocked: bool = False) -> None:
+    try:
+        supabase_sync.record_turn(chat_id, config["ACTIVE_DOMAIN"], message, reply, tool_calls, blocked=blocked)
+    except Exception:
+        logger.exception("could not mirror the turn to Supabase for chat_id=%s", chat_id)
+
+
+def _after_reply(chat_id: int, text: str, result, mongodb_uri: str | None, delivered: bool) -> None:
+    """Everything that happens after the customer has their reply: tell the owner
+    about any lead, then log the turn. Runs as a background task, so a slow Supabase
+    or Telegram cannot hold up the next customer's message."""
+    # The lead exists in Odoo whether or not the customer saw the reply, so the
+    # owner is told either way.
+    _handle_new_leads(chat_id, result)
+    if not delivered:
+        return  # a turn the customer never saw is not logged
+
+    # MongoDB's `conversations` collection is the audit log. A Mongo fault must
+    # never matter to the customer, so it is only logged.
+    if mongodb_uri:
+        try:
+            log_turn(mongodb_uri, chat_id, config["ACTIVE_DOMAIN"], text, result.reply, result.tool_calls_made)
+        except Exception:
+            logger.exception("log_turn failed for chat_id=%s", chat_id)
+    _mirror_turn(chat_id, text, result.reply, result.tool_calls_made)
+
+
+def _after_blocked(chat_id: int, text: str, mongodb_uri: str | None) -> None:
+    if mongodb_uri:
+        try:
+            log_turn(mongodb_uri, chat_id, config["ACTIVE_DOMAIN"], text, INJECTION_REFUSAL, [], blocked=True)
+        except Exception:
+            logger.exception("log_turn failed for chat_id=%s", chat_id)
+    _mirror_turn(chat_id, text, INJECTION_REFUSAL, [], blocked=True)
+
+
 def _trim_conversation_history(chat_id: int) -> None:
     """Keep only the last CONVERSATION_HISTORY_MAX_TURNS user turns (and
     their associated assistant/tool messages) for a given chat_id, always
@@ -136,7 +201,7 @@ def health() -> dict:
 
 
 @app.post("/webhook/telegram")
-async def telegram_webhook(request: Request):
+async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     # Verify the secret token before doing anything else, including
     # parsing the request body, so a malformed/malicious body can't cause
     # a crash before the auth check runs. Comparison is constant-time
@@ -184,11 +249,7 @@ async def telegram_webhook(request: Request):
             send_message(chat_id, INJECTION_REFUSAL)
         except Exception:
             logger.exception("send_message failed for chat_id=%s", chat_id)
-        if mongodb_uri:
-            try:
-                log_turn(mongodb_uri, chat_id, config["ACTIVE_DOMAIN"], text, INJECTION_REFUSAL, [], blocked=True)
-            except Exception:
-                logger.exception("log_turn failed for chat_id=%s", chat_id)
+        background_tasks.add_task(_after_blocked, chat_id, text, mongodb_uri)
         return {"ok": True}
 
     if chat_id in conversation_history:
@@ -221,9 +282,15 @@ async def telegram_webhook(request: Request):
     # execution but before the reply was sent). Returning 200 here stops that
     # retry storm. A redelivery that still arrives (the 200 got lost in
     # transit) is recognised by its `update_id` above and ignored.
+    tool_events: list = []
     try:
         result = run_turn(
-            history, _get_adapter(), _get_llm_client(), chat_id=chat_id, write_limiter=_write_limiter
+            history,
+            _get_adapter(),
+            _get_llm_client(),
+            chat_id=chat_id,
+            write_limiter=_write_limiter,
+            tool_events=tool_events,
         )
     except Exception:
         logger.exception("run_turn failed for chat_id=%s", chat_id)
@@ -231,31 +298,32 @@ async def telegram_webhook(request: Request):
         # run_turn just added it, and any tool messages) so the customer's
         # retry doesn't stack a duplicate.
         history[:] = history_before_turn
+        try:
+            send_message(chat_id, ERROR_REPLY)
+        except Exception:
+            logger.exception("could not send the error reply to chat_id=%s", chat_id)
+        # A lead may already exist in Odoo even though the reply step failed. The owner
+        # still needs to hear about it; a resend by the customer gets the same lead back.
+        if tool_events:
+            background_tasks.add_task(
+                _handle_new_leads,
+                chat_id,
+                AgentTurnResult(
+                    reply="",
+                    tool_calls_made=[call for call, _ in tool_events],
+                    tool_results=[outcome for _, outcome in tool_events],
+                ),
+            )
         return {"ok": True}
 
     _trim_conversation_history(chat_id)
 
+    delivered = True
     try:
         send_message(chat_id, result.reply)
     except Exception:
         logger.exception("send_message failed for chat_id=%s", chat_id)
-        return {"ok": True}
+        delivered = False
 
-    # Log the completed turn to MongoDB's `conversations` collection
-    # (Task 3.4). This is best-effort audit logging: a Mongo fault must
-    # never take down the webhook after a real reply has already been
-    # computed and sent to the customer.
-    if mongodb_uri:
-        try:
-            log_turn(
-                mongodb_uri,
-                chat_id,
-                config["ACTIVE_DOMAIN"],
-                text,
-                result.reply,
-                result.tool_calls_made,
-            )
-        except Exception:
-            logger.exception("log_turn failed for chat_id=%s", chat_id)
-
+    background_tasks.add_task(_after_reply, chat_id, text, result, mongodb_uri, delivered)
     return {"ok": True}

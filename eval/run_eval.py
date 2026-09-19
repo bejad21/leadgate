@@ -63,7 +63,7 @@ class LeadRecordingOdoo(OdooClient):
     leads. Enabled with EVAL_RECORD_LEADS=1."""
 
     def create(self, model, values):
-        if model == "crm.lead":
+        if model in ("crm.lead", "res.partner"):
             return 900_000
         return super().create(model, values)
 

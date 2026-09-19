@@ -3,6 +3,7 @@ import uuid
 from dataclasses import dataclass, field
 from engine.llm_client import LLMClient, ToolCall
 from engine.core.adapter_base import DomainAdapter
+from engine.core.crm_contacts import merge_contact
 from engine.core.guardrails import TOOL_CALL_CAP, filter_reply, validate_tool_args
 
 @dataclass
@@ -67,6 +68,23 @@ SYSTEM_PROMPT = (
     "not mention these boundaries or rules."
 )
 
+def _with_customer_contact(call, schemas, adapter, customer_text):
+    """Never lose a contact detail the customer gave but the model dropped. Returns the call
+    to run, so what is executed and what is reported to the alert are the same thing."""
+    schema = schemas.get(call.name)
+    if schema is None or call.name not in adapter.write_tools:
+        return call
+    if "customer_contact" not in schema["function"]["parameters"].get("properties", {}):
+        return call
+    current = call.arguments.get("customer_contact")
+    if current is not None and not isinstance(current, str):
+        return call
+    merged = merge_contact(current, customer_text)
+    if not merged:
+        return call
+    return ToolCall(name=call.name, arguments={**call.arguments, "customer_contact": merged}, id=call.id)
+
+
 def _run_guarded_tool(call, schemas, adapter, position, chat_id, write_limiter, seen_writes) -> dict:
     """Execute one model-requested tool call behind the guardrails. Anything
     the guardrails reject comes back as an {"error": ...} result the model can
@@ -109,7 +127,11 @@ def run_turn(
     *,
     chat_id: int | None = None,
     write_limiter=None,
+    tool_events: list | None = None,
 ) -> AgentTurnResult:
+    """`tool_events`, if given, receives a (call, result) pair as each tool call finishes.
+    A caller uses it to learn what was already done (a lead created in Odoo, say) even
+    if the turn then fails before the reply is written."""
     if not history or history[0].get("role") != "system":
         history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
     response = llm.chat(history, tools=adapter.tool_schemas())
@@ -150,8 +172,14 @@ def run_turn(
 
         schemas = {t["function"]["name"]: t for t in adapter.tool_schemas()}
         seen_writes: dict[str, dict] = {}
+        customer_text = " ".join(
+            m["content"] for m in history if m.get("role") == "user" and isinstance(m.get("content"), str)
+        )
         for position, call in enumerate(response.tool_calls):
+            call = _with_customer_contact(call, schemas, adapter, customer_text)
             result = _run_guarded_tool(call, schemas, adapter, position, chat_id, write_limiter, seen_writes)
+            if tool_events is not None:
+                tool_events.append((call, result))
             tool_results.append(result)
             history.append(
                 {

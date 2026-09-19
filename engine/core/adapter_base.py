@@ -1,4 +1,7 @@
+import html
 from abc import ABC, abstractmethod
+
+from engine.core.crm_contacts import find_recent_duplicate, lead_contact_values
 
 PRICE_TOLERANCE = 0.5
 
@@ -24,15 +27,17 @@ def create_verified_lead(odoo, domain_type: str, args: dict) -> dict:
     the lead is marked, so a manipulated conversation cannot plant an
     arbitrary revenue figure in the CRM.
     """
-    description_parts = []
-    if args.get("customer_name"):
-        description_parts.append(f"Customer: {args['customer_name']}")
-    if args.get("customer_contact"):
-        description_parts.append(f"Contact: {args['customer_contact']}")
-    if args.get("notes"):
-        description_parts.append(f"Notes: {args['notes']}")
+    existing = find_recent_duplicate(odoo, args)
+    if existing is not None:
+        # The same customer already opened this lead moments ago (a resend after an
+        # error, or the model calling the tool twice). Hand back that lead.
+        return {"lead_id": existing, "duplicate": True}
 
-    values = {"name": args["name"]}
+    contact_values, description_parts = lead_contact_values(odoo, domain_type, args)
+    if args.get("notes"):
+        description_parts.insert(0, f"Notes: {args['notes']}")
+
+    values = {"name": args["name"], **contact_values}
     price_verified = True
     price = args.get("price")
     if price:
@@ -50,7 +55,9 @@ def create_verified_lead(odoo, domain_type: str, args: dict) -> dict:
         else:
             price_verified = False
             description_parts.append("Price unverified: no catalog item has this price")
-    values["description"] = "\n".join(description_parts)
+    # Odoo renders the description as HTML, and customer text goes into it, so each
+    # line is escaped and becomes its own paragraph.
+    values["description"] = "".join(f"<p>{html.escape(line, quote=False)}</p>" for line in description_parts)
 
     result = {"lead_id": odoo.create("crm.lead", values)}
     if not price_verified:

@@ -111,7 +111,9 @@ def test_search_inventory_without_price_max_omits_price_filter():
 
 def test_create_lead_calls_odoo_create_with_crm_lead():
     mock_odoo = MagicMock()
-    mock_odoo.create.return_value = 55
+    # Only the catalog check finds anything; contact, source and tag lookups come back empty.
+    mock_odoo.search_read.side_effect = lambda model, domain, fields: [{"id": 1}] if model == "leadgate.catalog.item" else []
+    mock_odoo.create.side_effect = [10, 11, 12, 55]  # partner, source, tag, lead
 
     adapter = CarsAdapter(mock_odoo)
     result = adapter.execute_tool(
@@ -125,16 +127,18 @@ def test_create_lead_calls_odoo_create_with_crm_lead():
         },
     )
 
-    mock_odoo.create.assert_called_once_with(
-        "crm.lead",
-        {
-            "name": "Toyota Corolla",
-            "description": (
-                "Customer: Jane Doe\nContact: jane@example.com\nNotes: Interested in test drive"
-            ),
-            "expected_revenue": 18000.0,
-        },
-    )
+    created = [(c.args[0], c.args[1]) for c in mock_odoo.create.call_args_list]
+    assert created[0] == ("res.partner", {"name": "Jane Doe", "email": "jane@example.com"})
+    assert created[1] == ("utm.source", {"name": "Telegram"})
+    assert created[2] == ("crm.tag", {"name": "Cars"})
+    model, lead = created[3]
+    assert model == "crm.lead"
+    assert lead["name"] == "Toyota Corolla"
+    assert lead["contact_name"] == "Jane Doe"
+    assert lead["email_from"] == "jane@example.com"
+    assert lead["partner_id"] == 10 and lead["source_id"] == 11 and lead["tag_ids"] == [(6, 0, [12])]
+    assert lead["description"] == "<p>Notes: Interested in test drive</p>"
+    assert lead["expected_revenue"] == 18000.0
     assert result == {"lead_id": 55}
 
 
