@@ -77,6 +77,41 @@ single `catalog_items_anon_read` policy, a real anon-key `GET` still returns row
 (`200`), and a real anon-key `POST` attempting to insert a row is rejected (`401`,
 Postgres error `42501`, "new row violates row-level security policy").
 
+**Prompt injection and tool abuse are screened in layers.** `engine/core/guardrails.py`
+wraps the agent loop, and none of it depends on the model behaving.
+1. Customer text is stripped of control and zero-width characters, Unicode look-alikes
+   (NFKC) and chat-template tokens (`<|im_start|>`, `[INST]`, `<<SYS>>`) before anything
+   else sees it. Messages that match known injection phrasings get a fixed refusal with
+   no LLM call, no Odoo call, and no place in the conversation history.
+2. The system prompt tells the model that customer text and tool results are data, not
+   instructions, and forbids revealing itself, changing role, or sending links.
+3. Every tool call the model makes is validated against that tool's own JSON schema:
+   unknown tools and unknown arguments are dropped, numbers are range-checked, strings
+   are trimmed to one line and length-capped, enums are enforced. A failed check becomes
+   an error result and the adapter is never called. At most three tool calls run per turn.
+4. `create_lead` is limited to three per chat per hour, and identical writes within one
+   turn run once. The price on a lead is only recorded if a catalog item of that domain
+   has it (`create_verified_lead` in `engine/core/adapter_base.py`); otherwise the lead
+   is flagged and the model is told not to repeat the price. This proves the price
+   exists in the catalog, not that it belongs to the item named on the lead, so a
+   customer can still attach a real price from a different item.
+5. The final reply has links removed (schemes, `mailto:`, `t.me`, and bare domains such as
+   `evil.com/pay`, while email addresses are kept), is replaced if it repeats a chunk of
+   the system prompt, and is never blank.
+
+This is tested two ways. `engine/tests/test_compromised_model.py` scripts a model that
+does everything an attacker wants in one turn (six leads at $1, an unknown tool, a
+negative number, a link, a prompt leak) and checks the guardrails hold, then runs the
+same attack with them off to show it succeeds. `eval/run_redteam.py` sends 26 adversarial
+messages through the real webhook, LLM and Odoo reads, with pass criteria that are string
+and structure checks instead of an LLM judge. Results are in `eval/REPORT.md`.
+
+**Conversation history survives restarts.** The last 20 turns of a chat are kept in a
+cache limited to 1000 chats (least recently used out) and rebuilt from the MongoDB
+`conversations` collection whenever a chat is not in the cache, for example after a
+restart. Stored turns are screened again on the way back in, so blocked turns, injections logged before the guardrails existed, and links are never replayed. A turn that fails is rolled back so a retry
+does not stack duplicates, and Telegram redeliveries are ignored by `update_id`.
+
 ## What a formal security review would still flag
 
 **No data-residency guarantee from the free-tier LLM provider.** Every customer message
@@ -85,19 +120,6 @@ as a fallback. Neither the free-tier terms nor this project's configuration make
 data-residency, retention, or no-training guarantee. A real deployment handling actual
 customer conversations would need a paid tier with an explicit data-processing agreement
 before this is acceptable.
-
-**Conversation history is in-memory and unencrypted, with no per-chat expiry.**
-`conversation_history: dict[int, list[dict]]` in `engine/main.py` lives entirely in
-process memory: it doesn't survive a restart, isn't shared across worker processes, and
-is never encrypted at rest because it's never at rest, it's just a live dict. Each
-chat's own turn history is capped at `CONVERSATION_HISTORY_MAX_TURNS` (20) to bound
-per-request token cost and memory growth for any single conversation, but the
-`chat_id` keys themselves are never evicted, so a process that talks to enough distinct
-chats over a long enough uptime still grows unbounded, and there's no time-based expiry
-for an idle chat's history. This is an explicit, commented trade-off in the code (a
-production deployment would move this to Redis or Supabase with real TTLs), but as
-shipped, every customer conversation this process has ever handled sits in plaintext
-memory for as long as the process runs.
 
 **No authentication on the eval or seed scripts' outputs.** `eval/results/*.json` and
 the seeded catalog data are plain files with no access control beyond the filesystem;
@@ -123,23 +145,14 @@ radius of an Odoo admin session, not a narrowly scoped one. A production deploym
 should create a dedicated Odoo user with access rules restricted to exactly the models
 and operations the two adapters use, and authenticate as that user instead.
 
-**Untrusted customer text drives a tool-calling loop with a real write path.**
-Every Telegram message reaching `run_turn()` (`engine/core/agent_loop.py`) is
-attacker-controllable free text that gets sent to the LLM alongside the system prompt
-and tool schemas, and the LLM's response can trigger `create_lead`, a real write that
-creates a `crm.lead` record in Odoo. This is a prompt-injection surface: a customer
-could try to craft a message designed to make the model call `create_lead` with
-misleading arguments, or to make it ignore the system prompt's instructions. The
-practical blast radius is narrower than a general-purpose agent, though: there are only
-two hardcoded domains, each with exactly two fixed tool names and a fixed, small
-argument schema (`search_inventory`/`search_listings` and `create_lead`); there is no
-dynamic model name, table name, or arbitrary-code-execution path the model could steer
-into, and the worst a successful injection could do through the exposed tools is create
-a spurious `crm.lead` or shape a search's filter arguments. That said, this has not been
-formally red-teamed with adversarial prompts, and "the tool surface is narrow" is a
-mitigating factor, not proof the path is safe. A production deployment handling real
-leads should add explicit adversarial testing of the prompt-injection surface before
-trusting `create_lead`'s output unreviewed.
+**Prompt-injection defenses are layered, not proven.** The controls under "What's
+covered" make the worst outcomes structurally impossible whatever the model says: a
+bad argument never reaches Odoo, a lead's price is only kept if the catalog has it, and
+leads are capped per chat. They do not stop the model from being steered into a valid
+but unwanted action, such as a search with odd filters or a lead carrying false customer
+details, and the phrase screen in front of the model is easy to word around. The
+red-team set is 26 hand-written attacks against one free-tier model, so a pass rate
+there says little about other models or attacks it does not contain.
 
 **Negation-blind free-text matching in the eval harness.** Not a production security
 issue, but worth naming here since it was found during an adversarial review of this

@@ -9,7 +9,7 @@ flowchart LR
     end
 
     subgraph Engine["engine/ (FastAPI, uvicorn)"]
-        WH["/webhook/telegram<br/>secret-token check,<br/>rate limit, length cap"]
+        WH["/webhook/telegram<br/>secret-token check, rate limit,<br/>retry dedupe, input screening"]
         LOOP["agent_loop.run_turn()<br/>domain-agnostic tool-calling loop"]
         LLM["LLMClient<br/>OpenRouter / Mistral"]
         ADAPT["DomainAdapter<br/>cars.py or real_estate.py<br/>(the only domain-specific code)"]
@@ -51,8 +51,11 @@ flowchart LR
 
 **Telegram to engine.** Telegram delivers updates to `POST /webhook/telegram`. The
 handler checks `X-Telegram-Bot-Api-Secret-Token` with a constant-time comparison before
-touching the request body, applies a per-`chat_id` rate limit (10 requests / 60s) and a
-message-length cap (2000 characters), then hands the message to the agent loop.
+touching the request body, applies a per-`chat_id` rate limit (10 requests / 60s),
+ignores an `update_id` it has already processed (Telegram redelivers unacknowledged
+updates), strips control characters and chat-template tokens from the text, caps its
+length (2000 characters), and turns away messages that match known injection phrasings
+before any LLM call is made. Everything else goes to the agent loop.
 
 **Agent loop, adapter, Odoo.** `engine/core/agent_loop.py` is the entire decision
 engine, and it has never seen the word "car" or "bedroom." It injects a domain-agnostic
@@ -65,6 +68,23 @@ about 40 lines translating a tool call into an Odoo `search_read` domain filter 
 `crm.lead` create. Both read and write through `leadgate.catalog.item`, a single
 domain-agnostic model (`odoo/addons/leadgate_domain/models/catalog_item.py`) with a
 `domain_type` selection field distinguishing `cars` from `real_estate` rows.
+
+**Guardrails.** `engine/core/guardrails.py` sits around the agent loop and, like the loop,
+knows nothing about cars or property. Each tool argument the model produces is checked
+against that tool's own JSON schema before an adapter sees it: unknown keys dropped,
+numbers coerced and range-checked, strings trimmed to one line and length-capped, enums
+enforced. A turn executes at most three tool calls, `create_lead` is limited to three per
+chat per hour, and a lead's price is only recorded when a catalog item really has it. The
+final reply has links removed and is replaced outright if it repeats a chunk of the system
+prompt. The system prompt itself tells the model to treat customer text and tool results
+as data. `eval/run_redteam.py` attacks all of this with 26 adversarial messages and checks
+the outcome deterministically.
+
+**Conversation memory.** The last 20 turns of each chat live in an in-memory cache limited
+to 1000 chats (least recently used out). The durable copy is the MongoDB `conversations`
+collection the engine already writes to: when a chat is not in the cache, for example
+after a restart, its recent turns are read back from MongoDB before the reply is
+generated. Turns that the injection screen blocked are never replayed.
 
 **Odoo to n8n.** Odoo doesn't push to Supabase or MongoDB directly. A `base.automation`
 rule watches `leadgate.catalog.item`'s `status` field for writes and calls
