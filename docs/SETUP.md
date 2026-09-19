@@ -165,6 +165,14 @@ table to Supabase's `supabase_realtime` publication. That last part matters: a n
 is not in the publication by default, and without it the dashboard connects but never
 receives live updates. The script is safe to re-run.
 
+The n8n workflow only mirrors an item when its status changes, so the new table starts
+empty and the dashboard would show only items that have already changed. Copy the whole
+catalog across once (safe to re-run; it upserts on `odoo_id`):
+
+```bash
+python n8n/scripts/backfill_supabase.py
+```
+
 ## 7. Run the engine
 
 The Python environment was already set up in Step 4, so this is just:
@@ -217,7 +225,10 @@ npm run dev
 
 The dashboard opens on `http://localhost:5173` and subscribes to `catalog_items` over
 Supabase Realtime, so changing a record's status in Odoo (or via the eval/seed scripts)
-should appear there within a second or two.
+should appear there within a second or two: the tag swings on its hook, the tallies
+move, and a stamped row lands on the sign-out sheet. If the board is empty, run the
+backfill in step 6. See [dashboard/README.md](../dashboard/README.md) for how the board
+works.
 
 ## 10. Reproduce the evaluation
 

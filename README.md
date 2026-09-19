@@ -6,11 +6,9 @@ An AI agent that talks to customers on Telegram, searches a real catalog, and ha
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Runs on Docker Compose](https://img.shields.io/badge/runs%20on-Docker%20Compose-2496ED)
 
-| Cars | Real estate |
-|---|---|
-| ![LeadGate dashboard showing car catalog status counts and a live list of recently changed cars](docs/screenshots/dashboard-cars.png) | ![The same dashboard switched to the real estate catalog](docs/screenshots/dashboard-real-estate.png) |
+![LeadGate dashboard: a cabinet of key tags, one per car, with tallies, a brass tag reader and a paper sign-out sheet](docs/screenshots/dashboard-cars.png)
 
-*The same dashboard on both catalogs. The tiles count catalog items by status, and the list below them updates live as statuses change in Odoo. Both views run against real seeded data.*
+*The dashboard is a cabinet of keys. Each catalog item hangs on a hook: a straight tag is on the board, a tag flipped up is on hold, and an empty hook means sold. Point at a key and the brass plate reads it out.*
 
 ## What it does
 
@@ -35,7 +33,7 @@ Lead creation and the sync pipeline are separate paths. The agent writes a `crm.
 |---|---|
 | Domain-agnostic agent | `engine/core/` has no car or property vocabulary. Each vertical is one small adapter that declares its tools and turns them into an Odoo query. |
 | Real CRM integration | Tool calls hit a self-hosted Odoo 18 over XML-RPC. Leads are real `crm.lead` records. |
-| Live dashboard | An Odoo status change reaches an open browser tab in about a second, with no reload (checked in a real browser). |
+| Live key board | Every catalog item is a key on a hook. An Odoo status change reaches an open browser tab in about a second: the tag swings, the tallies move, and a stamped row lands on the sign-out sheet. Works on a phone, and by keyboard. |
 | Two databases, two jobs | Supabase holds the structured mirror the dashboard reads. MongoDB holds the append-only event and conversation log. |
 | Search filters | Cars filter by make, model, price range, year, mileage, condition and location, and sort by price, mileage or year. Real estate filters by price range. |
 | Memory across restarts | The last 20 turns of each chat are rebuilt from MongoDB after a restart, and Telegram retries are ignored. |
@@ -139,7 +137,17 @@ Changing a catalog item's status in Odoo fires an automation rule that posts to 
 
 ![n8n canvas showing a webhook trigger feeding a Supabase upsert branch and a MongoDB insert branch](docs/screenshots/n8n-workflow.png)
 
-The dashboard screenshots at the top show the result. The status changes in them were made in Odoo to exercise this exact pipeline, so the counts reflect demo activity rather than sales.
+Here that pipeline is in action. Two statuses were changed in Odoo while the board was open: one car was put on hold and another was sold. Its tag left the hook, both tallies moved, and both changes were stamped onto the sheet.
+
+![The board after two changes made in Odoo: one key flipped to on hold, one gone from its hook, and two stamped rows at the top of the sign-out sheet](docs/screenshots/dashboard-live-change.png)
+
+The same board handles the second catalog, and it is built to be used on a phone. The sign-out sheet comes first, and the brass plate stays at the bottom of the screen while you scroll the wall.
+
+| Homes | Phone |
+|---|---|
+| ![The board switched to real estate, with a listing read out on the brass plate](docs/screenshots/dashboard-real-estate.png) | ![The phone layout: tallies and the sign-out sheet first](docs/screenshots/dashboard-mobile.png) ![A tapped key on the phone, with its tag pinned at the bottom of the screen](docs/screenshots/dashboard-mobile-wall.png) |
+
+The n8n workflow only mirrors an item when its status changes, so a new Supabase table starts empty. `n8n/scripts/backfill_supabase.py` copies the whole catalog across once.
 
 ## Abuse protection
 
@@ -202,7 +210,7 @@ In order:
 3. Create the Odoo database and install the modules, including this repo's `leadgate_domain`.
 4. Create a virtualenv and `pip install -r requirements.txt`.
 5. Download, clean, and load the two Kaggle datasets into Odoo.
-6. Create the Supabase table and deploy the n8n sync workflow.
+6. Create the Supabase table, deploy the n8n sync workflow, and backfill the catalog into Supabase.
 7. `uvicorn engine.main:app`, then tunnel it and register the Telegram webhook.
 8. `cd dashboard && npm install && npm run dev`.
 
@@ -213,6 +221,7 @@ The exact commands, required environment variables, and the reasons behind the l
 | Doc | What's in it |
 |---|---|
 | [docs/SETUP.md](docs/SETUP.md) | The complete, ordered setup with exact commands |
+| [dashboard/README.md](dashboard/README.md) | How the key board works, and how to run and use it |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Data-flow diagram and the two-database reasoning |
 | [SECURITY.md](SECURITY.md) | Protections, how they were tested, and what a formal review would check |
 | [eval/REPORT.md](eval/REPORT.md) | Methodology, results, and the debugging history behind them |
