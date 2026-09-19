@@ -1,301 +1,181 @@
 # LeadGate
 
-LeadGate is an AI lead-intake engine that talks to customers over Telegram, searches a
-real catalog, and hands qualified conversations off to a human by creating a CRM lead
-in Odoo, all without a single line of code that knows what it's selling.
+An AI agent that talks to customers on Telegram, searches a real catalog, and hands serious buyers to a human by creating a lead in Odoo. The same engine runs unchanged on two unrelated catalogs: used cars and real estate.
 
-A customer messages the bot. The engine's agent loop decides, turn by turn, whether to
-search the catalog or create a lead, calls the right tool against Odoo, and replies in
-natural language grounded in whatever the tool actually returned. Every catalog item
-status change in Odoo is pushed through n8n to a Supabase table (for a live dashboard)
-and a MongoDB collection (for an audit log); lead creation itself is a separate,
-one-way path (the agent calls `create_lead`, which writes a `crm.lead` record directly
-via XML-RPC) and is not part of that sync pipeline. That's the whole system.
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+![Runs on Docker Compose](https://img.shields.io/badge/runs%20on-Docker%20Compose-2496ED)
 
-## The generalization proof
+| Cars | Real estate |
+|---|---|
+| ![LeadGate dashboard showing car catalog status counts and a live list of recently changed cars](docs/screenshots/dashboard-cars.png) | ![The same dashboard switched to the real estate catalog](docs/screenshots/dashboard-real-estate.png) |
 
-The interesting part isn't the bot. It's that `engine/core/` (the agent loop, the LLM
-client, the adapter interface) contains zero domain-specific code. No "car," no
-"bedroom," no vertical-specific vocabulary anywhere in that directory. Everything that
-differs between selling cars and selling houses lives in a roughly 40-line adapter
-(`engine/adapters/cars.py`, `engine/adapters/real_estate.py`) that declares its own tool
-schema and translates tool calls into an Odoo domain filter.
+*The same dashboard on both catalogs. The tiles count catalog items by status, and the list below them updates live as statuses change in Odoo. Both views run against real seeded data.*
 
-To prove that isn't just a design claim, the same engine was pointed at two unrelated,
-real datasets, 350 real used-car listings and 352 real property listings, both seeded
-into the same Odoo instance, and evaluated independently on each with a hand-labeled
-test suite. See [`eval/REPORT.md`](eval/REPORT.md) for the full methodology, the
-synthetic-data disclosure, and the honest story of the bugs found and fixed along the
-way. The headline numbers, re-verified live on 2026-09-18 against 93 real end-to-end
-test cases:
+## What it does
 
-| Domain | Cases | Tool selection | Slot extraction | Grounding | Task completion |
-|---|---|---|---|---|---|
-| Cars | 45 | 100.00% | 98.68% | 100.00% | 97.78% (44/45) |
-| Real estate | 48 | 97.92% | 98.33% | 100.00% | 95.83% (46/48) |
+A customer messages the bot. On each turn the agent decides whether to search the catalog or create a lead, calls the matching tool against Odoo, and answers in plain language using only what the tool returned. Every catalog status change in Odoo flows through n8n into Supabase (for the live dashboard) and MongoDB (as an audit log).
 
-100% grounding means zero hallucinated facts across both runs: every price, count, and
-feature the agent stated was traceable back to a real tool result. None of this is
-rounded up. `eval/REPORT.md` also documents the remaining known gaps -- no
-price-minimum filter, one residual non-deterministic case, and `RealEstateAdapter`
-declaring `property_type`/`bedrooms` in its tool schema but never actually filtering
-on them server-side (11 of real_estate's 48 eval cases, 23%, are labeled and graded
-around exactly this; fixing it needs new structured columns on the catalog model, not
-just an adapter change) -- and the round of fixes an independent adversarial review
-confirmed were genuine rather than metric-gaming.
-
-## Architecture
-
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full data-flow diagram and the
-reasoning behind running two separate databases downstream of Odoo.
-
-## Setup
-
-This setup was actually run, in this order, to build the working system. Every command
-below is taken from the real scripts in this repo, not idealized.
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Python 3.11+ and `pip`
-- Node.js and `npm` (for the dashboard)
-- A Kaggle account (for the two source datasets)
-- A Telegram bot token (from [@BotFather](https://t.me/BotFather))
-- An OpenRouter or Mistral API key (OpenRouter has a usable free tier; the engine tries
-  it first and falls back to Mistral if only that key is set)
-- A Supabase project
-- A MongoDB connection string (Atlas free tier works)
-- A way to expose `localhost:8000` publicly for Telegram's webhook. This project used
-  [`cloudflared`](https://github.com/cloudflare/cloudflared)'s free, account-less quick
-  tunnel, no sign-up needed
-
-### 1. Configure environment variables
-
-```bash
-cp .env.example .env
+```mermaid
+flowchart LR
+    Customer["Customer (Telegram)"] --> Engine["Engine: FastAPI + agent loop"]
+    Engine -->|"search, create lead"| Odoo[("Odoo CRM / ERP")]
+    Engine -->|"conversation log"| Mongo[("MongoDB")]
+    Odoo -->|"status-change webhook"| N8N["n8n workflow"]
+    N8N --> Supa[("Supabase")]
+    N8N --> Mongo
+    Supa -->|"Realtime"| Dash["React dashboard"]
 ```
 
-Fill in `.env`. `.env.example` documents the baseline set:
+Lead creation and the sync pipeline are separate paths. The agent writes a `crm.lead` directly over XML-RPC; only catalog status changes travel through n8n. See [ARCHITECTURE.md](ARCHITECTURE.md) for the reasoning, including why there are two databases.
 
-- `ODOO_URL`, `ODOO_DB`, `ODOO_USER`, `ODOO_PASSWORD`: Odoo connection (defaults work
-  for the local Docker setup below: `http://localhost:8069`, `leadgate`, `admin`/`admin`)
-- `OPENROUTER_API_KEY` and/or `MISTRAL_API_KEY`: at least one is required
-- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`: the second is a secret you generate
-  yourself (e.g. `python -c "import secrets; print(secrets.token_urlsafe(32))"`) and
-  register with Telegram in Step 8 below
-- `ACTIVE_DOMAIN`: `cars` or `real_estate`, picks which adapter the engine loads
-- `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`: from your Supabase project's API settings
-- `SUPABASE_ANON_KEY`: the dashboard's public anon key, also from your Supabase
-  project's API settings (used in Step 9, never the service key)
-- `SUPABASE_DB_PASSWORD` or `SUPABASE_ACCESS_TOKEN`: fill in one of these two (leave the
-  other as the placeholder). Needed once, to create the Supabase table in Step 6, since
-  the service key alone can't run DDL (see that step for where to get either one)
-- `MONGODB_URI`: your MongoDB connection string
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`: the Odoo Postgres container's
-  credentials (defaults are fine for local dev)
-- `KAGGLE_USERNAME`, `KAGGLE_KEY`: from your Kaggle account settings, needed only for
-  Step 5's dataset download
-- `GENERIC_TIMEZONE`, `N8N_OWNER_EMAIL`, `N8N_OWNER_PASSWORD`: n8n's timezone and the
-  owner account you'll create in Step 6
-- `N8N_API_KEY`: `.env.example` carries this as a placeholder like everything else, but
-  it can't actually be filled in until n8n is already running. Generate it from the n8n
-  UI (Settings > n8n API) after Step 2 (n8n's container is up by then), then add the real
-  value to `.env` before running the n8n scripts in Step 6
+## Features
 
-### 2. Start the core services
+| Feature | How it works |
+|---|---|
+| Domain-agnostic agent | `engine/core/` has no car or property vocabulary. Each vertical is one small adapter that declares its tools and turns them into an Odoo query. |
+| Real CRM integration | Tool calls hit a self-hosted Odoo 18 over XML-RPC. Leads are real `crm.lead` records. |
+| Live dashboard | An Odoo status change reaches an open browser tab in about a second, with no reload (checked in a real browser). |
+| Two databases, two jobs | Supabase holds the structured mirror the dashboard reads. MongoDB holds the append-only event and conversation log. |
+| Measured behavior | 93 hand-labeled test cases run against the live system, scoring tool choice, argument extraction, grounding, and task completion. |
+| Security review | Row Level Security, constant-time webhook secret check, rate limiting. [SECURITY.md](SECURITY.md) lists what a formal review would still flag. |
+| Provider fallback | Uses a free OpenRouter model first and falls back to Mistral if only that key is set. |
 
-```bash
-docker compose up -d
-```
+## A conversation, end to end
 
-This brings up Postgres, Odoo 18, and n8n, all three bound to `127.0.0.1` only (see the
-comments in `docker-compose.yml` for why each one is loopback-only rather than exposed).
+These are real runs of the agent loop against the live Odoo instance and the real LLM (not the Telegram app itself; the Telegram webhook is a thin wrapper around this same loop). The catalog is seeded from real listings, so every car below exists in it.
 
-### 3. Create the Odoo database and install modules
+**Customer:** Do you have any Toyota under 25000?
 
-Odoo's XML-RPC `db.create_database` call doesn't work cleanly against a single
-just-started Postgres container (it auto-routes to the wrong, uninitialized database),
-so this project created the database via the Odoo CLI directly:
+*Agent calls `search_inventory(make="Toyota", price_max=25000)`.*
 
-```bash
-docker compose exec -T odoo odoo -d leadgate --db_host=postgres --db_port=5432 \
-  --db_user=odoo --db_password=odoo -i base --stop-after-init --without-demo=all
+> Great news — I found several Toyotas under $25,000 that could be a great fit. Here’s what’s currently available:
+>
+> 1. **2020 Toyota Corolla** – $15,000
+> 2. **2020 Toyota Camry** – $21,834 (Used, 44,186 miles, Orlando, FL)
+> 3. **2018 Toyota RAV4** – $17,480 (Used, 107,190 miles, Cape Coral, FL)
+> 4. **2021 Toyota Camry** – $16,405 (Used, 115,714 miles, Clarksville, IN)
+> 5. **2024 Toyota Corolla** – $21,950 (Certified, 58,612 miles, Louisville, KY)
+>
+> Do any of these catch your eye?
 
-docker compose exec -T odoo odoo -d leadgate --db_host=postgres --db_port=5432 \
-  --db_user=odoo --db_password=odoo -i crm,sale_management,stock,base_automation \
-  --stop-after-init
-```
+**Customer:** I'll take the 2020 Toyota Camry at $21,834. I'm Sarah Connor, sarah.connor@example.com, please call me this week.
 
-Then install this project's own module, `leadgate_domain` (the domain-agnostic
-`leadgate.catalog.item` model that both adapters query), from `odoo/addons/`, which is
-already mounted into the container by `docker-compose.yml`:
+*Agent calls `create_lead(name="2020 Toyota Camry", customer_name="Sarah Connor", ...)`.*
 
-```bash
-docker compose exec odoo odoo -d leadgate --db_host=postgres --db_user=odoo \
-  --db_password=odoo -i leadgate_domain --stop-after-init
-```
+> Got it, Sarah — I've submitted your request for the **2020 Toyota Camry** at **$21,834**. A human sales specialist has your contact info (sarah.connor@example.com) and will reach out to you this week to move things forward.
 
-The CLI-created database has no usable admin password yet. Set one via `odoo shell`
-(open a Python shell against the running container and run):
+The second message names a specific car and gives contact details, so the agent goes straight to creating the lead instead of searching again. The agent originally had no system prompt and often searched again at this point. Adding one fixed that; the history is in [eval/REPORT.md](eval/REPORT.md).
 
-```python
-user = env['res.users'].browse(2)
-user.write({'login': 'admin', 'password': 'admin', 'email': 'admin@leadgate.local'})
-env.cr.commit()
-```
+<details>
+<summary>The same flow on real estate</summary>
 
-Confirm Odoo is reachable at `http://localhost:8069` and you can log in with
-`admin`/`admin` (or whatever you set).
+**Customer:** What homes do you have under $400,000?
 
-### 4. Install Python dependencies
+*Agent calls `search_listings(price_max=400000)` and lists five real listings with price, beds, baths, and size.*
 
-The next two steps (loading the catalog data and wiring up the n8n sync pipeline) run
-scripts that need `pandas`, `kaggle`, and `psycopg2-binary`, so the Python environment has
-to exist before those steps, not after them:
+**Customer:** I'd like to make an offer on the 3bd/2ba house in Guilford, Maine at $379,000. I'm Alex Rivera, alex.rivera@example.com.
 
-```bash
-python -m venv .venv
-.venv/Scripts/activate        # .venv/bin/activate on macOS/Linux
-pip install -r requirements.txt
-```
+*Agent calls `create_lead(name="3bd/2ba house in Guilford, Maine", customer_name="Alex Rivera", ...)`.*
 
-### 5. Load the catalog data
+> Perfect, Alex! I've registered your offer request for the **3bd/2ba house in Guilford, Maine** at **$379,000**. A member of our team will reach out to you at **alex.rivera@example.com** shortly to walk you through the next steps and confirm your offer.
 
-Two Kaggle datasets are downloaded, cleaned, and normalized, then loaded into Odoo:
+Note that the search reply offered to narrow results by bedrooms, which the search tool cannot actually do. See [Known limitations](#known-limitations).
 
-```bash
-python data/prepare_cars.py           # downloads rebrowser/autotrader-dataset, outputs data/cars_raw.csv
-python data/prepare_real_estate.py    # downloads ahmedshahriarsakib/usa-real-estate-dataset, outputs data/real_estate_raw.csv
-python data/seed_odoo.py              # bulk-creates leadgate.catalog.item records from both CSVs via XML-RPC
-```
+</details>
 
-`seed_odoo.py` reads `ODOO_URL`/`ODOO_DB`/`ODOO_USER`/`ODOO_PASSWORD` from `.env` and
-creates one record per CSV row (`domain_type="cars"` or `"real_estate"`), with every
-column besides `price` packed into a JSON `attributes` field.
+### What lands in Odoo
 
-### 6. Wire up the n8n sync pipeline
+The leads from those conversations show up in Odoo's CRM pipeline as regular opportunities, newest first:
 
-n8n's own first-run setup requires an owner account before anything else works:
+![Odoo CRM pipeline with new leads created by the agent](docs/screenshots/odoo-crm-pipeline.png)
 
-```bash
-curl -X POST http://localhost:5678/rest/owner/setup \
-  -H "Content-Type: application/json" \
-  -d '{"email":"<N8N_OWNER_EMAIL>","firstName":"LeadGate","lastName":"Admin","password":"<N8N_OWNER_PASSWORD>"}'
-```
+Opening one shows what the agent captured:
 
-Then, from the n8n UI (Settings > n8n API), generate an API key and replace the
-`N8N_API_KEY` placeholder in `.env` with the real value (it can't be filled in until n8n
-is already running, which is why it's a placeholder at this point rather than a real
-value from Step 1). With that in place:
+![Odoo lead form for the Guilford, Maine offer, with the customer's name, contact, and notes in Internal Notes](docs/screenshots/odoo-lead-detail.png)
 
-```bash
-python n8n/scripts/setup_n8n_credentials.py   # creates the Supabase + MongoDB credentials n8n needs
-python n8n/scripts/deploy_workflow.py         # deploys and activates n8n/workflows/odoo-sync.json
-python n8n/scripts/set_odoo_webhook_param.py  # points Odoo's sync webhook at the running n8n workflow
-```
+The customer's name and email are stored in the lead's Internal Notes rather than Odoo's structured Contact and Email fields. That works for handing a lead to a human, but it isn't proper CRM data modeling yet.
 
-Before the first script above will do anything useful, the Supabase destination table
-has to exist. `SUPABASE_URL` plus `SUPABASE_SERVICE_KEY` alone cannot create it:
-Supabase's REST API (PostgREST) has no DDL endpoint by design. Fill in one of the two
-placeholders already in `.env` (leave the other one as-is), then run the table-creation
-script:
+### How catalog changes reach the dashboard
 
-- `SUPABASE_DB_PASSWORD`: the project's direct Postgres password (Supabase dashboard >
-  Project Settings > Database > Connection string)
-- `SUPABASE_ACCESS_TOKEN`: a personal access token (starts with `sbp_`, from Account >
-  Access Tokens)
+Changing a catalog item's status in Odoo fires an automation rule that posts to n8n. One workflow fans that event out to both databases:
 
-```bash
-python n8n/scripts/setup_supabase_table.py
-```
+![n8n canvas showing a webhook trigger feeding a Supabase upsert branch and a MongoDB insert branch](docs/screenshots/n8n-workflow.png)
 
-This runs the DDL in `n8n/scripts/setup_supabase_table.sql`, creating
-`public.catalog_items`.
+The dashboard screenshots at the top show the result. The status changes in them were made in Odoo to exercise this exact pipeline, so the counts reflect demo activity rather than sales.
 
-### 7. Run the engine
+## Results
 
-The Python environment was already set up in Step 4, so this is just:
+Scored on 93 hand-labeled cases (45 cars, 48 real estate) run end to end against the live system with no mocking:
 
-```bash
-uvicorn engine.main:app
-```
+| Domain | Tool selection | Argument extraction | Grounding | Task completion |
+|---|---|---|---|---|
+| Cars | 100.00% | 98.68% | 100.00% | 97.78% (44/45) |
+| Real estate | 97.92% | 98.33% | 100.00% | 95.83% (46/48) |
 
-The engine starts on `http://localhost:8000`. `GET /health` should return
-`{"status": "ok"}`.
+![Bar chart of the four eval metrics for cars and real estate](eval/charts/final_metrics_by_domain.png)
 
-### 8. Expose the webhook and register it with Telegram
+Grounding of 100% means every price and count the agent stated traced back to a real tool result. The test cases are hand-written, not real customer data, and [eval/REPORT.md](eval/REPORT.md) says so up front. It also covers what each metric means, the bugs found in both the agent and the scoring code on the way to these numbers, and an independent review that checked the improvement wasn't just a loosened metric.
 
-```bash
-cloudflared tunnel --url http://localhost:8000
-```
+## Quick start
 
-This prints a public HTTPS URL (a free, no-account "quick tunnel":
-`https://<random-words>.trycloudflare.com`). Register it as your bot's webhook:
+Everything runs locally and every service has a free tier. You need Docker, Python 3.11+, Node.js, and free accounts for Kaggle, Telegram (a bot from [@BotFather](https://t.me/BotFather)), OpenRouter or Mistral, Supabase, and MongoDB Atlas. Exposing the Telegram webhook uses [`cloudflared`](https://github.com/cloudflare/cloudflared)'s no-signup quick tunnel.
 
-```bash
-curl -F "url=<TUNNEL_URL>/webhook/telegram" \
-     -F "secret_token=<TELEGRAM_WEBHOOK_SECRET>" \
-     https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook
-```
+In order:
 
-Message your bot on Telegram. You should see the request land in the FastAPI logs and
-get a reply back.
+1. Copy `.env.example` to `.env` and fill it in.
+2. `docker compose up -d` for Postgres, Odoo, and n8n (all bound to localhost only).
+3. Create the Odoo database and install the modules, including this repo's `leadgate_domain`.
+4. Create a virtualenv and `pip install -r requirements.txt`.
+5. Download, clean, and load the two Kaggle datasets into Odoo.
+6. Create the Supabase table and deploy the n8n sync workflow.
+7. `uvicorn engine.main:app`, then tunnel it and register the Telegram webhook.
+8. `cd dashboard && npm install && npm run dev`.
 
-### 9. Run the dashboard
+The exact commands, required environment variables, and the reasons behind the less obvious steps are in [docs/SETUP.md](docs/SETUP.md). Steps 3 and 6 have quirks worth reading first.
 
-```bash
-cd dashboard
-npm install
-```
+## Known limitations
 
-Create `dashboard/.env.local` (this is a separate, browser-facing env file: Vite only
-exposes variables prefixed `VITE_`, and only the public anon key belongs here, never the
-service key). Reuse the same `SUPABASE_URL` and `SUPABASE_ANON_KEY` values already in
-your root `.env`:
+- **Real estate filters are partly decorative.** The tool schema accepts `property_type` and `bedrooms`, but only `price_max` reaches the Odoo query. 11 of the 48 real estate test cases (23%) are labeled around this. Fixing it needs structured columns on the catalog model.
+- **No minimum-price filter.** "Anything over $X?" can't be expressed, so the agent approximates it.
+- **Odoo access is admin-scoped.** The engine authenticates as the `admin` user instead of a least-privilege service account, and the prompt-injection surface hasn't been red-teamed.
+- **Conversation history lives in memory.** Turns are capped per chat, but nothing persists across restarts and Telegram retries aren't deduplicated.
+- **It runs on free tiers, locally.** The free LLM catalog rotates, and there's no data-residency guarantee. It has never been deployed or served real customers, so treat it as a portfolio project, not a production system.
 
-```
-VITE_SUPABASE_URL=<your SUPABASE_URL>
-VITE_SUPABASE_ANON_KEY=<your SUPABASE_ANON_KEY>
-```
+The full list, with reasoning, is in [SECURITY.md](SECURITY.md) and [eval/REPORT.md](eval/REPORT.md).
 
-```bash
-npm run dev
-```
+## Documentation
 
-The dashboard opens on `http://localhost:5173` and subscribes to `catalog_items` over
-Supabase Realtime, so changing a record's status in Odoo (or via the eval/seed scripts)
-should appear there within a second or two.
-
-### 10. Reproduce the evaluation
-
-```bash
-.venv/Scripts/python.exe eval/run_eval.py --domain cars
-.venv/Scripts/python.exe eval/run_eval.py --domain real_estate
-.venv/Scripts/python.exe eval/metrics.py
-```
-
-`run_eval.py` sends every hand-labeled test case through the real engine, the real LLM,
-and the real Odoo adapters end to end (no mocking) and writes the transcripts to
-`eval/results/`. `metrics.py` scores those transcripts and prints the table above. See
-[`eval/REPORT.md`](eval/REPORT.md) for what each metric means and the full debugging
-history behind these numbers.
-
-## Security
-
-See [`SECURITY.md`](SECURITY.md) for what's covered and what a formal review would
-still flag before this went anywhere near real customer data.
+| Doc | What's in it |
+|---|---|
+| [docs/SETUP.md](docs/SETUP.md) | The complete, ordered setup with exact commands |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Data-flow diagram and the two-database reasoning |
+| [SECURITY.md](SECURITY.md) | What's covered and what a formal review would still flag |
+| [eval/REPORT.md](eval/REPORT.md) | Methodology, results, and the debugging history behind them |
 
 ## Project structure
 
-```
+```text
 LeadGate/
-├── engine/                  # FastAPI app: webhook, agent loop, LLM client, Odoo client
-│   ├── core/                # Domain-agnostic agent loop + adapter interface
-│   └── adapters/             # cars.py, real_estate.py: the only domain-specific code
-├── odoo/addons/leadgate_domain/  # Custom Odoo module: catalog model + sync webhook
-├── data/                    # Dataset prep scripts + seeding script
-├── n8n/                     # Sync workflow + deployment/setup scripts
-├── dashboard/               # React + Supabase Realtime dashboard
-├── eval/                    # Evaluation harness, datasets, results, REPORT.md
-└── docker-compose.yml       # Postgres, Odoo, n8n (all loopback-only)
+├── engine/                       # FastAPI app: webhook, agent loop, LLM client, Odoo client
+│   ├── core/                     # Domain-agnostic agent loop and adapter interface
+│   └── adapters/                 # cars.py, real_estate.py: the only domain-specific code
+├── odoo/addons/leadgate_domain/  # Custom Odoo module: catalog model and sync webhook
+├── data/                         # Dataset prep and seeding scripts
+├── n8n/                          # Sync workflow plus setup and deployment scripts
+├── dashboard/                    # React, Vite, Tailwind, Supabase Realtime
+├── eval/                         # Test datasets, runner, metrics, results, REPORT.md
+├── docs/                         # Setup guide and screenshots
+└── docker-compose.yml            # Postgres, Odoo, n8n (all localhost-only)
 ```
+
+## Data and attribution
+
+`data/cars_raw.csv` and `data/real_estate_raw.csv` are small samples derived from two Kaggle datasets and keep their upstream terms:
+
+- [AutoTrader Vehicle Listings](https://www.kaggle.com/datasets/rebrowser/autotrader-dataset) by rebrowser, free for research and non-commercial use with attribution. Its asking prices are masked, so the `price` column here is the midpoint of the listing's Kelley Blue Book fair-value range, not an asking price.
+- [USA Real Estate Dataset](https://www.kaggle.com/datasets/ahmedshahriarsakib/usa-real-estate-dataset) by ahmedshahriarsakib. It has no property-type field, so every row is labeled `residential`.
+
+## License
+
+The code is released under the [MIT License](LICENSE). The MIT license covers the code only, not the sample data above.
