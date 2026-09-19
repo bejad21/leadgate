@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from './supabaseClient'
 
@@ -15,24 +15,58 @@ export interface CatalogItem {
   updated_at: string
 }
 
+/** One status change seen live, with what it changed from. */
+export interface CatalogChange {
+  key: string
+  item: CatalogItem
+  from: string | null
+  to: string | null
+  at: string
+}
+
+const MAX_CHANGES = 30
+
 /**
  * Shared data hook for `catalog_items`: does an initial full fetch (the
  * Realtime channel only delivers *future* changes, not existing rows) and
  * then keeps the in-memory list in sync via a Postgres Changes subscription.
  *
- * Both LiveLeadsFeed and CatalogStatus consume this hook so the subscription
- * logic lives in exactly one place. Pass `domain` to get back an
- * already-filtered `items` list, so the `item.domain_type === domain`
- * check itself also lives in one place instead of being repeated in every
- * consumer.
+ * It also reports whether the Realtime channel is connected, and records each
+ * live status change together with the previous status, so a UI can show what
+ * moved from where.
+ *
+ * The page calls this once and filters by domain itself. Pass `domain` to get
+ * an already-filtered `items` list.
  */
 export function useCatalogItems(domain?: DomainType) {
   const [items, setItems] = useState<CatalogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [connected, setConnected] = useState(false)
+  const [changes, setChanges] = useState<CatalogChange[]>([])
+
+  // The latest list, readable from the Realtime callback without a stale
+  // closure. Updated together with the state below.
+  const itemsRef = useRef<CatalogItem[]>([])
 
   useEffect(() => {
     let isMounted = true
+
+    function commit(next: CatalogItem[]) {
+      itemsRef.current = next
+      setItems(next)
+    }
+
+    function record(item: CatalogItem, from: string | null) {
+      const change: CatalogChange = {
+        key: `${item.id}-${item.updated_at}-${Math.random().toString(36).slice(2, 7)}`,
+        item,
+        from,
+        to: item.status,
+        at: item.updated_at,
+      }
+      setChanges((current) => [change, ...current].slice(0, MAX_CHANGES))
+    }
 
     async function fetchInitial() {
       const { data, error: fetchError } = await supabase
@@ -42,13 +76,10 @@ export function useCatalogItems(domain?: DomainType) {
       if (!isMounted) return
 
       if (fetchError) {
-        // Expected right now: the catalog_items table doesn't exist yet and
-        // the anon key is a placeholder. Fail gracefully into an empty list
-        // rather than throwing, so the UI still renders.
         setError(fetchError.message)
-        setItems([])
+        commit([])
       } else {
-        setItems((data ?? []) as CatalogItem[])
+        commit((data ?? []) as CatalogItem[])
       }
       setLoading(false)
     }
@@ -56,7 +87,7 @@ export function useCatalogItems(domain?: DomainType) {
     fetchInitial()
 
     // Every hook instance needs its own channel name. supabase-js dedupes
-    // channels by topic, so a fixed name makes the second consumer (and
+    // channels by topic, so a fixed name makes a second subscriber (and
     // React's dev-mode double mount) get back an already-subscribed channel,
     // and calling `.on()` on it throws and blanks the whole page.
     const channel = supabase
@@ -65,27 +96,25 @@ export function useCatalogItems(domain?: DomainType) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'catalog_items' },
         (payload: RealtimePostgresChangesPayload<CatalogItem>) => {
-          setItems((current) => {
-            if (payload.eventType === 'INSERT') {
-              const newRow = payload.new as CatalogItem
-              const withoutDup = current.filter((item) => item.id !== newRow.id)
-              return [...withoutDup, newRow]
-            }
-            if (payload.eventType === 'UPDATE') {
-              const updatedRow = payload.new as CatalogItem
-              return current.map((item) =>
-                item.id === updatedRow.id ? updatedRow : item,
-              )
-            }
-            if (payload.eventType === 'DELETE') {
-              const oldRow = payload.old as Partial<CatalogItem>
-              return current.filter((item) => item.id !== oldRow.id)
-            }
-            return current
-          })
+          const current = itemsRef.current
+          if (payload.eventType === 'INSERT') {
+            const row = payload.new as CatalogItem
+            commit([...current.filter((item) => item.id !== row.id), row])
+            record(row, null)
+          } else if (payload.eventType === 'UPDATE') {
+            const row = payload.new as CatalogItem
+            const previous = current.find((item) => item.id === row.id)
+            commit(current.map((item) => (item.id === row.id ? row : item)))
+            if (previous && previous.status !== row.status) record(row, previous.status)
+          } else if (payload.eventType === 'DELETE') {
+            const old = payload.old as Partial<CatalogItem>
+            commit(current.filter((item) => item.id !== old.id))
+          }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (isMounted) setConnected(status === 'SUBSCRIBED')
+      })
 
     return () => {
       isMounted = false
@@ -98,5 +127,5 @@ export function useCatalogItems(domain?: DomainType) {
     return items.filter((item) => item.domain_type === domain)
   }, [items, domain])
 
-  return { items: filteredItems, loading, error }
+  return { items: filteredItems, loading, error, connected, changes }
 }

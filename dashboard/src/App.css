@@ -1,8 +1,0 @@
-/* Vite/React scaffold styles removed (Task final-review-fixes finding 5):
- * the counter, hero image, docs/social footer, and their supporting
- * classes (.counter, .hero, #center, #next-steps, #docs, #spacer, .ticks)
- * were left over from `npm create vite` and never used by the real
- * dashboard UI (DomainSwitcher / CatalogStatus / LiveLeadsFeed), which is
- * styled entirely with Tailwind utility classes instead. Nothing in
- * App.tsx references any class from this file anymore.
- */
