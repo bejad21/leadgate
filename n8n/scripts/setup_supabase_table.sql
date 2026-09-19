@@ -39,11 +39,14 @@ create index if not exists catalog_items_domain_type_idx
 -- read-only policy for the anon role is both sufficient and correct here.
 alter table public.catalog_items enable row level security;
 
+-- The catalog is public. `authenticated` is included because a signed-in
+-- staff user is no longer `anon` to Postgres; without it the Keys board would
+-- go empty the moment someone signs in to the Leads tab.
 drop policy if exists catalog_items_anon_read on public.catalog_items;
 create policy catalog_items_anon_read
   on public.catalog_items
   for select
-  to anon
+  to anon, authenticated
   using (true);
 
 -- No insert/update/delete policy is created for `anon` or `authenticated`,

@@ -25,7 +25,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SQL_PATH = os.path.join(os.path.dirname(__file__), "setup_supabase_table.sql")
+# Defaults to the catalog table; pass another file name to apply a different script,
+# e.g. `python n8n/scripts/setup_supabase_table.py setup_supabase_leads.sql`.
+SQL_PATH = os.path.join(
+    os.path.dirname(__file__), sys.argv[1] if len(sys.argv) > 1 else "setup_supabase_table.sql"
+)
 
 
 def read_sql() -> str:
@@ -54,7 +58,7 @@ def try_direct_postgres(supabase_url: str) -> bool:
         conn.commit()
     finally:
         conn.close()
-    print(f"Created/verified public.catalog_items via direct Postgres connection to {host}.")
+    print(f"Applied {os.path.basename(SQL_PATH)} via direct Postgres connection to {host}.")
     return True
 
 
