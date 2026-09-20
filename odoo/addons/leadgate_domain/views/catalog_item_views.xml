@@ -38,6 +38,11 @@
                             <field name="domain_type"/>
                             <field name="price"/>
                         </group>
+                        <group string="Hold" invisible="status != 'reserved'">
+                            <field name="reserved_until"/>
+                            <field name="reserved_for"/>
+                            <field name="reservation_lead_id"/>
+                        </group>
                     </group>
                     <notebook>
                         <page string="Details" name="details">

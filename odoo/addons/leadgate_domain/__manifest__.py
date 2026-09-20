@@ -15,6 +15,7 @@ catalog inventory regardless of vertical.
         "security/ir.model.access.csv",
         "views/catalog_item_views.xml",
         "data/automated_action.xml",
+        "data/cron.xml",
     ],
     "installable": True,
     "application": False,

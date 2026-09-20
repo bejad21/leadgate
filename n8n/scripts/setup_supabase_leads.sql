@@ -26,6 +26,23 @@ create table if not exists public.leads (
   created_at timestamptz not null default now()
 );
 
+-- What the lead is (a plain lead, a reservation hold, a viewing request) and where it
+-- stands. Added with "if not exists" so an existing table is upgraded in place.
+alter table public.leads add column if not exists kind text not null default 'lead';
+alter table public.leads add column if not exists status text not null default 'new';
+alter table public.leads add column if not exists detail text;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'leads_kind_check') then
+    alter table public.leads add constraint leads_kind_check check (kind in ('lead', 'reservation', 'viewing'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'leads_status_check') then
+    alter table public.leads add constraint leads_status_check
+      check (status in ('new', 'taken', 'contacted', 'confirmed', 'won', 'lost', 'released'));
+  end if;
+end $$;
+
 create index if not exists leads_created_at_idx on public.leads (created_at desc);
 create index if not exists leads_chat_ref_idx on public.leads (chat_ref);
 
