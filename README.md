@@ -43,7 +43,7 @@ Everything runs locally and every service has a free tier. You need Docker, Pyth
 4. Create a virtualenv and run `pip install -r requirements.txt`.
 5. Download, clean, and load the two Kaggle datasets into Odoo.
 6. Create the Supabase tables, deploy the n8n sync workflow, backfill the catalog, and create your staff login. Optionally create the alert bot and register its webhook.
-7. Run `uvicorn engine.main:app`, then tunnel it and register the Telegram webhook.
+7. Run `uvicorn engine.main:app`, then tunnel it and register the Telegram webhook. Then open your bot in Telegram and [try it](#using-it-on-telegram).
 8. Run `cd dashboard && npm install && npm run dev`.
 
 [docs/SETUP.md](docs/SETUP.md) has the exact commands and the environment variables. Read its notes on steps 3 and 6 first.
@@ -60,6 +60,29 @@ Everything runs locally and every service has a free tier. You need Docker, Pyth
 | Live dashboard | An Odoo status change reaches an open browser tab in about a second. A staff-only Leads tab shows each lead with the conversation behind it. It works on a phone and by keyboard. |
 | Two databases | Supabase holds the structured mirror the dashboard reads. MongoDB holds the append-only event log and the chat history, so a restart keeps the last 20 turns of each chat. |
 | Model fallback | An ordered list of free OpenRouter models, then Mistral. A model that fails is skipped for ten minutes. `OPENROUTER_MODELS` in `.env` sets your own list. |
+
+## Using it on Telegram
+
+There are two bots. The customer bot is the one people talk to. The alert bot is private and only the owner uses it.
+
+**As a customer.** Open the customer bot (the username you picked in BotFather), press Start, and write in plain language. There are no commands to learn. You can:
+
+- Browse and narrow down the catalog, for example "certified Toyotas under 30000 with under 60000 miles, cheapest first".
+- Ask for a hold on an item for 24 hours, or for a viewing on a day you choose. The assistant asks for a day and a time of day if you leave them out.
+- Give your name and an email or phone number and say you want an item. That creates a lead for a person to follow up.
+
+The assistant only handles the catalog. It declines anything else, never sends links, and never promises a hold or a viewing, because the owner confirms those. If you have no public Telegram username, it asks once for a phone number. You can tap the share button or type the number. When the owner replies, the assistant stays quiet in your chat until the owner hands it back.
+
+**As the owner.** Create a second bot in BotFather, send it `/start` (a bot can only message someone who has messaged it first), and put its token and your chat id in `.env`. [docs/SETUP.md](docs/SETUP.md) has the steps. Each new lead then arrives as a message with buttons:
+
+| Control | What it does |
+|---|---|
+| Take it, Contacted, Lost | Assign the lead to you, close the call task and move it to Qualified, or archive it |
+| Mark sold, Release hold | On a hold alert: win the lead and take the key off the board, or put the item back |
+| Confirm viewing | On a viewing alert: tells the customer the day and time of day |
+| Reply, Talk here | Write to the customer, or start a chat where everything you type goes to them |
+| Open chat | If the customer has a public username, opens their profile |
+| `/talk 71`, `/back`, `/open`, `/help` | Start a chat with lead 71, hand the chat back to the assistant, list leads still waiting, show this list |
 
 ## A short example
 
