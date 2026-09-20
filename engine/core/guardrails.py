@@ -10,6 +10,10 @@ order a message meets them:
 3. validate_tool_args: every tool argument the model produces is checked
    against that tool's own schema before anything touches Odoo.
 4. filter_reply: the final reply cannot carry links or leak the system prompt.
+
+Text that comes back from a tool (catalog names, descriptions) is untrusted too, so
+sanitize_tool_result cleans it before the model reads it. None of this depends on the
+model behaving: the limits are enforced here, in code.
 """
 import math
 import re
@@ -20,6 +24,10 @@ MAX_STR = 500
 NOTES_MAX = 1000
 NUM_MAX = 1_000_000_000
 TOOL_CALL_CAP = 3
+# One message can change one thing. A hijacked model, or a customer who slips several
+# requests into one message, cannot then chain a lead, a hold and a viewing in a single turn.
+WRITES_PER_TURN = 1
+TOOL_TEXT_MAX = 400
 REPLY_MAX = 1500
 
 INJECTION_REFUSAL = (
@@ -160,3 +168,27 @@ def filter_reply(reply: str, system_prompt: str) -> str:
     if len(reply) > REPLY_MAX:
         reply = reply[:REPLY_MAX - 3].rstrip() + "..."
     return reply
+
+
+def _defuse(text: str) -> str:
+    text = _TEMPLATE_TOKENS.sub(" ", unicodedata.normalize("NFKC", text))
+    text = _URL_RE.sub("[link removed]", _clean(text))
+    for pattern in _INJECTION_RE:
+        text = pattern.sub("[removed]", text)
+    return text[:TOOL_TEXT_MAX]
+
+
+def sanitize_tool_result(value):
+    """A copy of a tool result that is safe to show the model.
+
+    A catalog entry is data someone typed, so it gets the same treatment as a customer's
+    message: control characters, chat-template tokens, links and known injection phrasings
+    are removed and long text is cut. Numbers, flags and keys are left alone, so the result
+    still means what it meant."""
+    if isinstance(value, str):
+        return _defuse(value)
+    if isinstance(value, dict):
+        return {key: sanitize_tool_result(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [sanitize_tool_result(item) for item in value]
+    return value

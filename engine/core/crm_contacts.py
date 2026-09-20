@@ -12,6 +12,7 @@ stranger's record), only well-formed contacts become partners, names are capped,
 and a partner reused under a different name is flagged for the human.
 """
 import logging
+import os
 import re
 from datetime import datetime, timedelta, timezone
 
@@ -170,3 +171,54 @@ def lead_contact_values(odoo, domain_type: str, args: dict) -> tuple[dict, list[
             values["tag_ids"] = [(6, 0, [tag_id])]
 
     return values, notes
+
+
+def _digits(text: str) -> str:
+    return re.sub(r"\D", "", text).lstrip("0")
+
+
+def _phone_was_typed(phone: str, customer_text: str) -> bool:
+    """A number counts as the customer's own only if it is one they wrote, or that number with
+    the shop's country code put in front of a local number (DEFAULT_PHONE_COUNTRY_CODE, 971 by
+    default) or a leading zero dropped. Any other prefix, or a shortened tail, is a different
+    subscriber."""
+    wanted = _digits(phone)
+    if len(wanted) < 7:
+        return False
+    country_code = os.environ.get("DEFAULT_PHONE_COUNTRY_CODE", "971")
+    for match in _PHONE.findall(customer_text):
+        typed = _digits(match)
+        if len(typed) < 7:
+            continue
+        if wanted == typed or (country_code and wanted == country_code + typed):
+            return True
+    return False
+
+
+def _email_was_typed(email: str, customer_text: str) -> bool:
+    """The whole address, not the end of a longer one: e@x.com is not joe@x.com."""
+    pattern = r"(?<![\w.+%-])" + re.escape(email.lower()) + r"(?![\w-])"
+    return re.search(pattern, customer_text.lower()) is not None
+
+
+def customer_contact(model_contact: str | None, customer_text: str | None) -> str | None:
+    """The contact to record: only details the customer actually wrote.
+
+    A model can be talked into (or fed, through poisoned catalog text) an email or number
+    that no customer gave, which would send follow-ups to an attacker. So anything the model
+    supplies is kept only if it appears in the customer's own messages, and anything the
+    customer wrote that the model left out is added back."""
+    text = customer_text or ""
+    email, phone = parse_contact(model_contact)
+    email_ok = bool(email) and _email_was_typed(email, text)
+    phone_ok = bool(phone) and _phone_was_typed(phone, text)
+    if (not email or email_ok) and (not phone or phone_ok):
+        # Nothing to reject: keep what the model wrote, exactly as written, and only add
+        # anything the customer typed that it left out.
+        return merge_contact(model_contact, text)
+    kept = []
+    if email_ok:
+        kept.append(email)
+    if phone_ok:
+        kept.append(phone)
+    return merge_contact(" ".join(kept) or None, text)

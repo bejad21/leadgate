@@ -75,6 +75,7 @@ def test_the_same_attack_succeeds_when_guardrails_are_off(monkeypatch):
     monkeypatch.setattr(loop, "validate_tool_args", lambda schema, args: args)
     monkeypatch.setattr(loop, "filter_reply", lambda reply, prompt: reply)
     monkeypatch.setattr(loop, "TOOL_CALL_CAP", 10**6)
+    monkeypatch.setattr(loop, "WRITES_PER_TURN", 10**6)
 
     def naive_lead(odoo, domain_type, args):
         values = {"name": args["name"], "description": args.get("notes", "")}

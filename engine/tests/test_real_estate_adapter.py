@@ -122,9 +122,9 @@ def test_lead_price_is_kept_when_it_matches_a_catalog_item():
     odoo.search_read.return_value = [{"id": 1}]
     odoo.create.return_value = 9
     RealEstateAdapter(odoo).execute_tool("create_lead", {"name": "X", "customer_name": "Sam", "price": 21834})
-    verify_domain = odoo.search_read.call_args[0][1]
+    verify_domain = [c[0][1] for c in odoo.search_read.call_args_list if c[0][0] == "leadgate.catalog.item"][0]
     assert ("domain_type", "=", "real_estate") in verify_domain
-    values = odoo.create.call_args[0][1]
+    values = [c[0][1] for c in odoo.create.call_args_list if c[0][0] == "crm.lead"][0]
     assert values["expected_revenue"] == 21834
     assert "unverified" not in values["description"].lower()
 
@@ -137,7 +137,7 @@ def test_lead_price_is_dropped_when_no_catalog_item_has_it():
     odoo.search_read.return_value = []
     odoo.create.return_value = 9
     RealEstateAdapter(odoo).execute_tool("create_lead", {"name": "X", "customer_name": "Sam", "price": 1})
-    values = odoo.create.call_args[0][1]
+    values = [c[0][1] for c in odoo.create.call_args_list if c[0][0] == "crm.lead"][0]
     assert "expected_revenue" not in values
     assert "price unverified" in values["description"].lower()
 

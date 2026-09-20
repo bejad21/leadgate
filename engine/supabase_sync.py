@@ -25,6 +25,9 @@ logger = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 5
 
+# Where a lead stands, as the dashboard shows it. A status outside this list is refused.
+STATUSES = frozenset({"new", "taken", "contacted", "confirmed", "won", "lost", "released"})
+
 
 class MissingSecret(RuntimeError):
     """CHAT_REF_SECRET is not set, so chats cannot be referenced safely."""
@@ -88,7 +91,10 @@ def record_lead(chat_id: int, lead: LeadInfo) -> bool:
             "phone": lead.phone,
             "price": lead.price,
             "price_verified": lead.price_verified,
+            "kind": lead.kind,
+            "detail": lead.detail,
             "chat_ref": ref,
+            # no "status": the upsert merges, and a re-sent lead must not become "new" again
         },
         upsert_on="odoo_lead_id",
     )
@@ -109,3 +115,26 @@ def record_turn(chat_id: int, domain_type: str, message: str, reply: str, tool_c
             "blocked": blocked,
         },
     )
+
+
+def update_lead(odoo_lead_id: int, fields: dict) -> bool:
+    """Change a lead's status on the dashboard. Best-effort, like every call here."""
+    status = fields.get("status")
+    if status is not None and status not in STATUSES:
+        logger.error("refusing to mirror an unknown status %r", status)
+        return False
+    base = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_KEY")
+    if not base or not key:
+        return False
+    url = f"{base.rstrip('/')}/rest/v1/leads"
+    headers = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Prefer": "return=minimal"}
+    try:
+        response = httpx.patch(url, headers=headers, params={"odoo_lead_id": f"eq.{int(odoo_lead_id)}"}, json=fields, timeout=TIMEOUT_SECONDS)
+    except httpx.HTTPError:
+        logger.exception("could not reach Supabase to update lead %s", odoo_lead_id)
+        return False
+    if response.status_code not in (200, 204):
+        logger.error("Supabase rejected the update of lead %s: HTTP %s", odoo_lead_id, response.status_code)
+        return False
+    return True

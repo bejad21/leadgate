@@ -1,3 +1,4 @@
+from engine.core.actions import ACTION_TOOLS, action_tool_schemas, execute_action_tool
 from engine.core.adapter_base import DomainAdapter, create_verified_lead
 
 
@@ -54,6 +55,7 @@ class RealEstateAdapter(DomainAdapter):
                     },
                 },
             },
+            *action_tool_schemas("listing"),
         ]
 
     def execute_tool(self, name: str, args: dict) -> dict:
@@ -67,4 +69,6 @@ class RealEstateAdapter(DomainAdapter):
             return {"matches": records[:5], "count": len(records)}
         if name == "create_lead":
             return create_verified_lead(self.odoo, "real_estate", args)
+        if name in ACTION_TOOLS:
+            return execute_action_tool(self.odoo, "real_estate", name, args)
         raise ValueError(f"Unknown tool: {name}")

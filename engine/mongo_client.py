@@ -54,7 +54,7 @@ def load_history(mongodb_uri: str, chat_id: int, limit_turns: int = 20) -> list[
     """
     collection = _get_client(mongodb_uri)["leadgate"]["conversations"]
     newest_first = (
-        collection.find({"chat_id": chat_id, "blocked": {"$ne": True}})
+        collection.find({"chat_id": chat_id, "blocked": {"$ne": True}, "handled_by": {"$ne": "human"}})
         .sort("timestamp", -1)
         .limit(limit_turns)
     )
@@ -73,6 +73,7 @@ def log_turn(
     reply: str,
     tool_calls: list[Any],
     blocked: bool = False,
+    handled_by: str | None = None,
 ) -> None:
     """Write one conversation-turn document to MongoDB's `conversations`
     collection in the `leadgate` database.
@@ -99,6 +100,7 @@ def log_turn(
             "reply": reply,
             "tool_calls": serialized_tool_calls,
             "blocked": blocked,
+            "handled_by": handled_by,
             "timestamp": datetime.now(timezone.utc),
         }
     )

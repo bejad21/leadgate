@@ -1,26 +1,71 @@
+import asyncio
 import hmac
 import logging
 import os
 from collections import OrderedDict
+from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Request, Response
+from starlette.concurrency import run_in_threadpool
 
 from engine.adapters.cars import CarsAdapter
 from engine.adapters.real_estate import RealEstateAdapter
 from engine.config import get_llm_client, load_config
 from engine.core.agent_loop import SYSTEM_PROMPT, AgentTurnResult, run_turn
 from engine.core.guardrails import INJECTION_REFUSAL, filter_reply, is_injection_attempt, sanitize_user_text
-from engine import supabase_sync
+from engine import notifier, owner_bot, supabase_sync, sweeper
+from engine import store as store_module
 from engine.leads import extract_leads
 from engine.mongo_client import load_history, log_turn
-from engine.notifier import send_lead_alert
+from engine.notifier import deliver_lead_alert
 from engine.odoo_client import OdooClient
 from engine.rate_limiter import FixedWindowRateLimiter
 from engine.telegram_client import extract_message, extract_update_id, send_message
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="LeadGate Engine")
+HANDOFF_NOTE = "(passed to the team)"
+HANDOFF_FAILED_REPLY = "Sorry, I couldn't pass that on just now. Please send it again in a moment."
+
+
+def _secret_matches(given: str, expected: str) -> bool:
+    """Constant-time, and safe for any header text: hmac.compare_digest raises on non-ASCII
+    strings, which would turn a hostile header into a 500 instead of a refusal."""
+    return hmac.compare_digest(given.encode("utf-8"), expected.encode("utf-8"))
+
+
+def owner_chat_id_problem(value) -> str | None:
+    """Why TELEGRAM_ALERTS_CHAT_ID cannot work, or None. Buttons and replies are accepted only from
+    the owner's private chat with the alert bot, whose id is a positive number."""
+    text = str(value).strip() if value is not None else ""
+    if not text.isdigit() or int(text) <= 0:
+        return (
+            "TELEGRAM_ALERTS_CHAT_ID must be the number of your private chat with the alert bot "
+            "(a positive whole number, from getUpdates). Alerts may still arrive, but buttons and replies will be ignored."
+        )
+    return None
+
+# How long an untouched lead waits before the owner is nudged. 0 turns the nudge off.
+LEAD_REMINDER_MINUTES = int(os.environ.get("LEAD_REMINDER_MINUTES", "30") or 0)
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    """Start the background nudge for untouched leads, if alerts are set up."""
+    if os.environ.get("TELEGRAM_ALERTS_BOT_TOKEN"):
+        problem = owner_chat_id_problem(os.environ.get("TELEGRAM_ALERTS_CHAT_ID"))
+        if problem:
+            logger.error(problem)
+    task = None
+    alerts_ready = os.environ.get("TELEGRAM_ALERTS_BOT_TOKEN") and os.environ.get("TELEGRAM_ALERTS_CHAT_ID")
+    if LEAD_REMINDER_MINUTES > 0 and alerts_ready:
+        task = asyncio.create_task(sweeper.run_forever(_sweep_deps, LEAD_REMINDER_MINUTES))
+    yield
+    if task is not None:
+        task.cancel()
+
+
+app = FastAPI(title="LeadGate Engine", lifespan=lifespan)
 
 config = load_config()
 
@@ -37,6 +82,7 @@ MAX_TRACKED_CHATS = 1000
 # lead-creating tool) a second time.
 _seen_updates: OrderedDict[int, None] = OrderedDict()
 SEEN_UPDATES_MAX = 2000
+_seen_owner_updates: OrderedDict[int, None] = OrderedDict()
 
 # Cap on how many user turns of history are kept per chat_id. Without a
 # cap, conversation_history grows forever for any chat_id that keeps
@@ -102,6 +148,35 @@ def _get_llm_client():
     return _llm_client
 
 
+def _mirror_status(lead_id: int, status: str) -> None:
+    try:
+        supabase_sync.update_lead(lead_id, {"status": status})
+    except Exception:
+        logger.exception("could not mirror the status of lead %s", lead_id)
+
+
+def _owner_deps() -> owner_bot.OwnerDeps:
+    return owner_bot.OwnerDeps(
+        odoo=_get_adapter().odoo,
+        store=store_module.get_store(),
+        owner=notifier,
+        tell_customer=lambda chat_id, text: send_message(chat_id, text),
+        mirror_status=_mirror_status,
+        owner_chat_id=int(os.environ["TELEGRAM_ALERTS_CHAT_ID"]),
+    )
+
+
+def _sweep_deps() -> sweeper.SweepDeps:
+    import datetime as dt
+
+    return sweeper.SweepDeps(
+        odoo=_get_adapter().odoo,
+        store=store_module.get_store(),
+        owner=notifier,
+        now=lambda: dt.datetime.now(dt.timezone.utc),
+    )
+
+
 def _clean_restored(messages: list[dict]) -> list[dict]:
     """Run stored turns through the same screening as live ones. Turns logged
     before the guardrails existed were never sanitised, and an old injection
@@ -129,8 +204,20 @@ def _handle_new_leads(chat_id: int, result) -> None:
         logger.exception("could not read leads from the turn for chat_id=%s", chat_id)
         return
     for lead in leads:
+        # Remember which chat the lead came from, so the owner can answer the customer.
+        can_reply = False
         try:
-            send_lead_alert(lead)
+            store_module.get_store().save_lead_chat(
+                lead.lead_id, chat_id=chat_id, kind=lead.kind, item_name=lead.item_name,
+                customer_name=lead.customer_name, detail=lead.detail,
+            )
+            can_reply = True
+        except Exception:
+            logger.exception("could not remember the chat for lead %s", lead.lead_id)
+        try:
+            delivery = deliver_lead_alert(lead, can_reply=can_reply)
+            if can_reply and delivery.message_id:
+                store_module.get_store().add_alert_message(lead.lead_id, delivery.message_id)
         except Exception:
             logger.exception("lead alert failed for lead %s", lead.lead_id)
         try:
@@ -175,6 +262,28 @@ def _after_blocked(chat_id: int, text: str, mongodb_uri: str | None) -> None:
     _mirror_turn(chat_id, text, INJECTION_REFUSAL, [], blocked=True)
 
 
+def _after_handoff(chat_id: int, text: str, handoff: dict, mongodb_uri: str | None) -> None:
+    """The chat is in human mode: pass the customer's message to the owner and keep a record."""
+    passed_on = False
+    try:
+        delivery = owner_bot.forward_customer_message(_owner_deps(), handoff, text)
+        passed_on = bool(getattr(delivery, "ok", False))
+    except Exception:
+        logger.exception("could not forward a customer message to the owner for chat_id=%s", chat_id)
+    if not passed_on:
+        # Silence would look like a dead bot for hours, so say the message did not get through.
+        try:
+            send_message(chat_id, HANDOFF_FAILED_REPLY)
+        except Exception:
+            logger.exception("could not tell chat_id=%s that their message was not passed on", chat_id)
+    if mongodb_uri:
+        try:
+            log_turn(mongodb_uri, chat_id, config["ACTIVE_DOMAIN"], text, HANDOFF_NOTE, [], handled_by="human")
+        except Exception:
+            logger.exception("log_turn failed for chat_id=%s", chat_id)
+    _mirror_turn(chat_id, text, HANDOFF_NOTE, [])
+
+
 def _trim_conversation_history(chat_id: int) -> None:
     """Keep only the last CONVERSATION_HISTORY_MAX_TURNS user turns (and
     their associated assistant/tool messages) for a given chat_id, always
@@ -209,7 +318,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     # responses can't use early-exit string comparison to guess the secret
     # one character at a time.
     secret_header = request.headers.get("X-Telegram-Bot-Api-Secret-Token") or ""
-    if not hmac.compare_digest(secret_header, config["TELEGRAM_WEBHOOK_SECRET"]):
+    if not _secret_matches(secret_header, config["TELEGRAM_WEBHOOK_SECRET"]):
         return Response(status_code=401)
 
     body = await request.json()
@@ -240,6 +349,16 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
         return {"ok": True}
 
     mongodb_uri = os.environ.get("MONGODB_URI")
+
+    # A person has taken over this chat: the assistant stays quiet and the owner reads it.
+    try:
+        handoff = await run_in_threadpool(store_module.get_store().get_handoff, chat_id)
+    except Exception:
+        logger.exception("could not check human mode for chat_id=%s", chat_id)
+        handoff = None
+    if handoff:
+        background_tasks.add_task(_after_handoff, chat_id, text, handoff, mongodb_uri)
+        return {"ok": True}
 
     if is_injection_attempt(text):
         # Refuse without spending an LLM call, touching Odoo, or letting the
@@ -326,4 +445,32 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
         delivered = False
 
     background_tasks.add_task(_after_reply, chat_id, text, result, mongodb_uri, delivered)
+    return {"ok": True}
+
+
+@app.post("/webhook/alerts")
+async def alerts_webhook(request: Request):
+    """Updates from the alert bot: the owner pressing a button or replying to an alert.
+
+    Fails closed: with no secret configured the route refuses everything, and the secret
+    is compared in constant time. Beyond that, owner_bot ignores any update that does not
+    come from the owner's own chat."""
+    expected = os.environ.get("TELEGRAM_ALERTS_WEBHOOK_SECRET")
+    if not expected:
+        return Response(status_code=503)
+    if not _secret_matches(request.headers.get("X-Telegram-Bot-Api-Secret-Token") or "", expected):
+        return Response(status_code=401)
+
+    body = await request.json()
+    update_id = extract_update_id(body) if isinstance(body, dict) else None
+    if update_id is not None:
+        if update_id in _seen_owner_updates:
+            return {"ok": True}
+        _seen_owner_updates[update_id] = None
+        while len(_seen_owner_updates) > SEEN_UPDATES_MAX:
+            _seen_owner_updates.popitem(last=False)
+    try:
+        await run_in_threadpool(owner_bot.handle_update, body, _owner_deps())
+    except Exception:
+        logger.exception("could not handle an alert-bot update")
     return {"ok": True}

@@ -1,14 +1,21 @@
 import html
+import logging
 from abc import ABC, abstractmethod
 
-from engine.core.crm_contacts import find_recent_duplicate, lead_contact_values
+from engine.core import followup
+from engine.core.crm_contacts import _find_or_create, find_recent_duplicate, lead_contact_values
+
+logger = logging.getLogger(__name__)
 
 PRICE_TOLERANCE = 0.5
+
+# What a lead is, beyond a plain expression of interest. Each kind gets its own tag in Odoo.
+KIND_TAGS = {"reservation": "Reservation", "viewing": "Viewing"}
 
 
 class DomainAdapter(ABC):
     # Tools that change state. The agent loop rate-limits these per chat.
-    write_tools = frozenset({"create_lead"})
+    write_tools = frozenset({"create_lead", "reserve_item", "book_viewing"})
 
     @abstractmethod
     def tool_schemas(self) -> list[dict]:
@@ -19,8 +26,27 @@ class DomainAdapter(ABC):
         """Execute a named tool call and return a JSON-serializable result."""
 
 
-def create_verified_lead(odoo, domain_type: str, args: dict) -> dict:
+def schedule_follow_up(odoo, lead_id: int, summary: str, **options) -> None:
+    """Best effort: the lead already exists, so a failed reminder is logged, never raised."""
+    try:
+        followup.schedule_activity(odoo, lead_id, summary=summary, **options)
+    except Exception:
+        logger.exception("could not schedule the follow-up for lead %s", lead_id)
+
+
+def create_verified_lead(
+    odoo,
+    domain_type: str,
+    args: dict,
+    *,
+    kind: str = "lead",
+    extra_notes: tuple[str, ...] = (),
+    follow_up: dict | None = None,
+) -> dict:
     """Create a crm.lead from tool arguments.
+
+    `kind` marks reservations and viewings (tagged in Odoo); `extra_notes` are added to the
+    description; `follow_up` overrides the default next-day call (summary, kind, days, due).
 
     The price the model passes is only trusted if a catalog item of this
     domain really has that price. Otherwise expected_revenue is left unset and
@@ -36,8 +62,21 @@ def create_verified_lead(odoo, domain_type: str, args: dict) -> dict:
     contact_values, description_parts = lead_contact_values(odoo, domain_type, args)
     if args.get("notes"):
         description_parts.insert(0, f"Notes: {args['notes']}")
+    description_parts = [*extra_notes, *description_parts]
+    if kind in KIND_TAGS:
+        kind_tag = _find_or_create(odoo, "crm.tag", [("name", "=", KIND_TAGS[kind])], {"name": KIND_TAGS[kind]})
+        if kind_tag:
+            tag_ids = contact_values.get("tag_ids") or [(6, 0, [])]
+            contact_values["tag_ids"] = [(6, 0, [*tag_ids[0][2], kind_tag])]
 
     values = {"name": args["name"], **contact_values}
+    try:
+        owner_id = followup.salesperson_id(odoo)
+    except Exception:
+        logger.exception("could not look up the salesperson; leaving the lead unassigned")
+        owner_id = None
+    if owner_id:
+        values["user_id"] = owner_id
     price_verified = True
     price = args.get("price")
     if price:
@@ -60,6 +99,8 @@ def create_verified_lead(odoo, domain_type: str, args: dict) -> dict:
     values["description"] = "".join(f"<p>{html.escape(line, quote=False)}</p>" for line in description_parts)
 
     result = {"lead_id": odoo.create("crm.lead", values)}
+    plan = follow_up or {"summary": f"Call {args.get('customer_name') or 'the customer'} about {args['name']}"}
+    schedule_follow_up(odoo, result["lead_id"], **plan)
     if not price_verified:
         result["price_verified"] = False
         result["note"] = (

@@ -76,7 +76,7 @@ def test_load_history_returns_oldest_first_user_assistant_pairs(monkeypatch):
         {"role": "user", "content": "second q"},
         {"role": "assistant", "content": "second a"},
     ]
-    collection.find.assert_called_once_with({"chat_id": 42, "blocked": {"$ne": True}})
+    collection.find.assert_called_once_with({"chat_id": 42, "blocked": {"$ne": True}, "handled_by": {"$ne": "human"}})
     collection.find.return_value.sort.assert_called_once_with("timestamp", -1)
     collection.find.return_value.sort.return_value.limit.assert_called_once_with(20)
 

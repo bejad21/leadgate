@@ -1,6 +1,7 @@
 import json
 import math
 
+from engine.core.actions import ACTION_TOOLS, action_tool_schemas, execute_action_tool
 from engine.core.adapter_base import DomainAdapter, create_verified_lead
 
 SORT_OPTIONS = ["price_asc", "price_desc", "mileage_asc", "year_desc"]
@@ -124,6 +125,7 @@ class CarsAdapter(DomainAdapter):
                     },
                 },
             },
+            *action_tool_schemas("car"),
         ]
 
     def execute_tool(self, name: str, args: dict) -> dict:
@@ -145,4 +147,6 @@ class CarsAdapter(DomainAdapter):
             return {"matches": records[:5], "count": len(records)}
         if name == "create_lead":
             return create_verified_lead(self.odoo, "cars", args)
+        if name in ACTION_TOOLS:
+            return execute_action_tool(self.odoo, "cars", name, args)
         raise ValueError(f"Unknown tool: {name}")

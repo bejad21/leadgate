@@ -252,11 +252,12 @@ def test_system_prompt_carries_hardening_rules(phrase):
 
 def test_blank_model_reply_after_a_tool_call_still_produces_a_reply():
     adapter = FakeCarsAdapter({"ok": True})
-    result = run_turn(
-        [{"role": "user", "content": "hi"}],
-        adapter,
-        _turn([ToolCall(name="search_inventory", arguments={})], final=""),
-    )
+    llm = FakeLLMClient([
+        LLMResponse(content=None, tool_calls=[ToolCall(name="search_inventory", arguments={})]),
+        LLMResponse(content="", tool_calls=[]),
+        LLMResponse(content="", tool_calls=[]),  # blank again after the one retry
+    ])
+    result = run_turn([{"role": "user", "content": "hi"}], adapter, llm)
     assert result.reply.strip()
 
 
@@ -275,14 +276,15 @@ def test_identical_write_calls_in_one_turn_execute_once():
     assert limiter.allow(1) and limiter.allow(1)  # only one of the three hits was spent
 
 
-def test_different_write_calls_in_one_turn_both_execute():
+def test_a_second_different_write_in_one_turn_is_refused_not_run():
     adapter = LeadAdapter({"lead_id": 1})
     calls = [
         ToolCall(name="create_lead", arguments={"name": "Camry", "customer_name": "Sam"}, id="a"),
         ToolCall(name="create_lead", arguments={"name": "Corolla", "customer_name": "Sam"}, id="b"),
     ]
-    run_turn([{"role": "user", "content": "both"}], adapter, _turn(calls))
-    assert len(adapter.executed_calls) == 2
+    result = run_turn([{"role": "user", "content": "both"}], adapter, _turn(calls))
+    assert len(adapter.executed_calls) == 1
+    assert "one action" in result.tool_results[1]["error"]
 
 
 # ---- review fixes: the model must see its own earlier replies -------------
