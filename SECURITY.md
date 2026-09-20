@@ -177,6 +177,19 @@ Nothing a customer sends is routed to it. Customer messages that look like owner
 (`/open`, button data) are ordinary text to the assistant, and the red-team set includes them.
 While a chat is in human mode the customer's text is forwarded to the owner escaped.
 
+**Talk mode and phone numbers.** Talk mode is only reachable from the owner's chat, like every
+other owner control, and a customer typing `/talk` is an ordinary customer. A customer's Telegram
+username becomes a link only if it matches Telegram's own pattern (5 to 32 letters, digits or
+underscores, starting with a letter), so a hostile name cannot turn "Open chat" into another
+address. A shared contact is used only if Telegram says it is the sender's own (the contact's
+user id equals the sender's), because anyone can forward someone else's contact card. A number the
+customer types is used only after the bot asked for one, only if it has at least nine digits and is
+written like a phone number (a plus, a leading zero or the country code), so a price such as
+"1 200 000" or a date is not taken for a phone. Numbers are asked for and accepted only in a
+private chat, never in a group where anyone could answer. Numbers are checked for length and shape and
+written in international form. Text the customer sends while in human mode reaches the owner
+escaped and cut to a length Telegram accepts.
+
 **Prompt injection is contained, not solved.** No prompt can make a model immune, and adaptive
 attacks are known to get past prompt-only defences, so the limits above sit outside the
 model. The red-team set (`eval/datasets/redteam_set.json`) covers the new abilities: holding
@@ -203,6 +216,12 @@ Hold limits are different: they are enforced inside Odoo and hold across any num
 private chat with the alert bot, so `TELEGRAM_ALERTS_CHAT_ID` must be that chat's positive
 number. A group or a username would leave the alerts arriving and the buttons ignored; the
 engine logs an error at startup if the value cannot work.
+
+**A username is not an identity.** Telegram usernames can be changed and given up, so "Open chat"
+opens whoever holds that name now, which may not be the person who wrote to the bot. The bot's own
+chat with the customer is the reliable channel, and the phone number the customer shared is the
+other. Numbers are personal data: they are stored in Odoo, on the dashboard's copy of the lead
+(staff only), and in the store's chat record, which expires after 180 days.
 
 **A hostile customer can still waste the owner's time.** Three leads an hour per chat is a
 limit per chat, and chats are free to create. Every lead is alerted, tagged and assigned.

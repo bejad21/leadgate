@@ -97,6 +97,8 @@ flowchart LR
     WH -->|"chat in human mode?"| STORE
     WH -->|"yes: forward"| OWNER
     WH -->|"no"| LOOP["Agent loop"]
+    CUST -->|"shares a phone number"| WH
+    WH -->|"phone number"| ODOO
     LOOP -->|"hold or viewing"| ODOO
     SWEEP["Sweeper"] -->|"untouched lead, once"| OWNER
     ODOO -->|"status change"| N8N["n8n"] --> SUPA
@@ -124,6 +126,15 @@ flowchart LR
    exists the customer webhook forwards the customer's messages to the owner instead of
    running the assistant. The record also holds which chat each lead came from, since the
    dashboard only has a one-way hash of it.
+
+6. **Talk mode.** The store also keeps one owner-wide record of who the owner is talking to. While
+   it exists, a plain message from the owner goes to that customer, and each message keeps the
+   session and the chat's human mode alive. An explicit reply to an alert wins over the session.
+7. **Phone numbers.** A customer with no public username is asked once, with Telegram's
+   share-my-number button. The answer is a contact message, which never reaches the assistant: it
+   is checked against the sender, written to the lead in Odoo and the dashboard, and the owner is
+   alerted with a WhatsApp link and a Talk button. A number typed in a message is used only after
+   the bot asked and only if it is long enough to be a phone.
 
 ## What each piece actually does
 

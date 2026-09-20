@@ -293,8 +293,9 @@ engine, and register the alert bot:
 python -m engine.register_alert_webhook https://<random-words>.trycloudflare.com
 ```
 
-Press a button under an alert, or reply to one, and the engine handles it. Only updates
-from your own chat are acted on. `python -m engine.register_alert_webhook --remove` takes
+Press a button under an alert, or reply to one, and the engine handles it. Send `/talk` and a
+lead number (or press Talk here) to chat with a customer without replying each time, and `/back`
+to stop. Only updates from your own chat are acted on. `python -m engine.register_alert_webhook --remove` takes
 the webhook off again. A quick tunnel gets a new address every time it restarts, so run
 the command again after restarting it.
 

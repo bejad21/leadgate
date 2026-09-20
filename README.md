@@ -41,7 +41,7 @@ Lead creation and the sync pipeline are separate paths. The agent writes a `crm.
 |---|---|
 | Domain-agnostic agent | `engine/core/` has no car or property vocabulary. Each vertical is one small adapter that declares its tools and turns them into an Odoo query. |
 | Real CRM integration | Tool calls hit a self-hosted Odoo 18 over XML-RPC. A lead is a real `crm.lead` with a linked contact (name, email, phone), a Telegram source and a catalog tag. A customer who asks again about the same item within minutes gets the same lead, not a second one. The catalog has its own screen in Odoo. Each lead is assigned to a salesperson with a call due the next day. |
-| Lead alerts | A separate Telegram bot tells the owner the moment a lead is created, with the customer, contact and price. Buttons under the alert take the lead, mark it contacted, win it or lose it. Replying to the alert writes to the customer through the customer bot. A lead nobody has touched gets one reminder. |
+| Lead alerts | A separate Telegram bot tells the owner the moment a lead is created, with the customer, contact and price. Buttons under the alert take the lead, mark it contacted, win it or lose it. Replying to the alert writes to the customer through the customer bot, and `/talk` starts a chat where everything you type goes to that customer. Customers with a public username get an Open chat link; the others are asked once to share a phone number. A lead nobody has touched gets one reminder. |
 | Holds and viewings | A customer can ask the assistant to hold a car for 24 hours or to arrange a viewing on a day they choose. Both are requests: the owner confirms or releases them from Telegram, and a hold moves the key on the dashboard. |
 | Leads and conversations | A Leads tab shows each lead as a message slip and prints the conversation behind it, including what the assistant did. It is behind a staff sign-in; visitors see labelled samples. |
 | Live key board | Every catalog item is a key on a hook. An Odoo status change reaches an open browser tab in about a second: the tag swings, the tallies move, and a stamped row lands on the sign-out sheet. Works on a phone, and by keyboard. |
@@ -52,7 +52,7 @@ Lead creation and the sync pipeline are separate paths. The agent writes a `crm.
 | Measured behavior | 93 hand-labeled test cases run against the live system, scoring tool choice, argument extraction, grounding, and task completion. |
 | Webhook security | Constant-time secret check and per-chat rate limiting on the webhook. Row Level Security on every Supabase table: the catalog is public to read, leads and conversations are staff only. |
 | Provider fallback | Tries an ordered list of free OpenRouter models, then Mistral, and remembers for ten minutes that a model is down, because free catalogs rotate and models get retired. `OPENROUTER_MODELS` in `.env` sets your own list. |
-| Tests | 488 engine tests, including a scripted model that obeys every attack. 32 dashboard tests. 44 browser checks on the Leads tab. Live scripts against real Odoo, Supabase and the model: who can read which table, six simultaneous holds against a cap of one, the follow-up, and a 42-step run of the whole owner loop. |
+| Tests | 713 engine tests, including a scripted model that obeys every attack. 32 dashboard tests. 44 browser checks on the Leads tab. Live scripts against real Odoo, Supabase and the model: who can read which table, six simultaneous holds against a cap of one, the follow-up, a 42-step run of the whole owner loop, and a talk-mode run of nine scenarios (usernames, two customers at once, phone numbers shared, typed, refused and forged). |
 
 ## A conversation, end to end
 
@@ -183,6 +183,10 @@ A hold alert has "Mark sold" and "Release hold" instead. Marking it sold takes t
 
 Replying to an alert sends your text to the customer through the customer bot, logs it on the lead in Odoo, and puts that chat in human mode. In human mode the assistant stays quiet and the customer's messages come to you with Reply and "Hand back to bot" buttons, so you can answer by replying to them. `/back 71` or the button gives the chat back to the assistant, and it goes back by itself after six hours. `/open` lists the leads still waiting.
 
+Replying to every message gets tedious, so there is a shorter way. Press "Talk here" under an alert, or send `/talk 71`, and from then on everything you type goes to that customer until you send `/back`. `/talk 72` switches to someone else. If you reply to a specific alert while talking to someone, that reply goes to the customer you replied to and the session stays where it was. `/talk` on its own says who you are talking to. A session ends after six hours, and every message you send keeps it going.
+
+A customer with a public Telegram username also gets an "Open chat" button on their alert, which opens their profile so you can message them from your own account. Not everyone has a username, so the bot asks those customers once for a phone number, using Telegram's share-my-number button (they can type it instead). The number is added to the lead in Odoo and on the dashboard, and you get an alert with the number, a WhatsApp button and "Talk here". Telegram only treats a shared contact as genuine when it is the sender's own number, so a forwarded contact card is refused, and a number typed in a message is only used after the bot has asked for one.
+
 The assistant can do two things beyond creating a lead. A customer can ask it to hold a car, or to arrange a viewing on a day they pick. A hold takes the key off the board for 24 hours, and a scheduled job in Odoo puts it back if nobody confirms it. A viewing becomes a meeting on the lead for that day. Both are requests that a person confirms, and the assistant is told not to promise either. Because a hold changes the catalog, it reaches the dashboard the same way an Odoo change does. The price on these leads always comes from the catalog, never from the model or the customer.
 
 ![Odoo lead form for a hold: the contact and phone, the Cars and Reservation tags, the salesperson, a call due today to confirm the hold, and the owner's Telegram reply in the chatter](docs/screenshots/odoo-hold-lead.png)
@@ -299,7 +303,8 @@ LeadGate/
 │   ├── core/                     # Domain-agnostic agent loop, guardrails, contact handling, adapter interface
 │   ├── adapters/                 # cars.py, real_estate.py: the only domain-specific code
 │   ├── notifier.py               # Owner alerts and buttons through the second Telegram bot
-│   ├── owner_bot.py              # What the owner's buttons and replies do; human mode
+│   ├── owner_bot.py              # What the owner's buttons and replies do; talk mode; human mode
+│   ├── contact_share.py          # Asks a customer with no username for a phone number and uses it
 │   ├── sweeper.py                # Reminds the owner about untouched leads
 │   ├── store.py                  # Which chat a lead came from; human-mode state
 │   └── supabase_sync.py          # Copies leads, statuses and conversations to Supabase
