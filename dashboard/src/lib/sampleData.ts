@@ -40,6 +40,14 @@ export function sampleData(now = Date.now()): { leads: Lead[]; turns: Turn[] } {
       "Perfect, Alex! I've registered your offer request for the **3bd/2ba house in Guilford, Maine** at **$379,000**. A member of our team will reach out to you at **alex.rivera@example.com** shortly to walk you through the next steps and confirm your offer.",
       [{ name: 'create_lead', arguments: { name: '3bd/2ba house in Guilford, Maine', customer_name: 'Alex Rivera', price: 379000 } }]),
 
+    turn('sample-lina', 'cars', 16, 'Can you hold the 2024 Toyota Corolla for me? I am Lina Park, +971 50 111 0000.',
+      "I've placed a 24 hour hold on the **2024 Toyota Corolla** and passed your details to our team. A person will confirm it with you shortly.",
+      [{ name: 'reserve_item', arguments: { item_id: 7, customer_name: 'Lina Park' } }]),
+
+    turn('sample-omar', 'cars', 50, 'I would like to see the 2024 Toyota Camry this Saturday afternoon. Omar Haddad, +971 50 222 3333.',
+      "I've requested a viewing of the **2024 Toyota Camry** for Saturday afternoon. A person will confirm the exact time with you.",
+      [{ name: 'book_viewing', arguments: { item_id: 12, customer_name: 'Omar Haddad', date: '2026-09-26', slot: 'afternoon' } }]),
+
     turn('sample-browse', 'cars', 185, 'Show me certified Toyotas under 30000 with under 60000 miles, cheapest first',
       "I found 3 certified Toyotas that match your criteria, sorted by price:\n\n1. **2024 Toyota Corolla** - $21,950 (58,612 miles, Louisville, KY)\n2. **2025 Toyota Corolla Cross** - $27,410 (20,850 miles, Louisville, KY)\n3. **2024 Toyota Camry** - $28,620 (16,512 miles, Florence, KY)\n\nWould you like more details on any of these?",
       [{ name: 'search_inventory', arguments: { make: 'Toyota', condition: 'Certified', price_max: 30000, mileage_max: 60000, sort_by: 'price_asc' } }]),
@@ -49,9 +57,11 @@ export function sampleData(now = Date.now()): { leads: Lead[]; turns: Turn[] } {
   ]
 
   const leads: Lead[] = [
-    { id: -1, odoo_lead_id: 9003, domain_type: 'cars', item_name: '2020 Toyota Camry', customer_name: 'Mallory', email: 'mallory@example.com', phone: null, price: 1, price_verified: false, chat_ref: 'sample-mallory', created_at: at(5) },
-    { id: -2, odoo_lead_id: 9002, domain_type: 'cars', item_name: '2020 Toyota Camry', customer_name: 'Sarah Connor', email: 'sarah.connor@example.com', phone: null, price: 21834, price_verified: true, chat_ref: 'sample-sarah', created_at: at(31) },
-    { id: -3, odoo_lead_id: 9001, domain_type: 'real_estate', item_name: '3bd/2ba house in Guilford, Maine', customer_name: 'Alex Rivera', email: 'alex.rivera@example.com', phone: null, price: 379000, price_verified: true, chat_ref: 'sample-alex', created_at: at(120) },
+    { id: -1, odoo_lead_id: 9003, domain_type: 'cars', item_name: '2020 Toyota Camry', customer_name: 'Mallory', email: 'mallory@example.com', phone: null, price: 1, price_verified: false, kind: 'lead', status: 'new', detail: null, chat_ref: 'sample-mallory', created_at: at(5) },
+    { id: -2, odoo_lead_id: 9002, domain_type: 'cars', item_name: '2020 Toyota Camry', customer_name: 'Sarah Connor', email: 'sarah.connor@example.com', phone: null, price: 21834, price_verified: true, kind: 'lead', status: 'contacted', detail: null, chat_ref: 'sample-sarah', created_at: at(31) },
+    { id: -4, odoo_lead_id: 9005, domain_type: 'cars', item_name: '2024 Toyota Corolla', customer_name: 'Lina Park', email: 'lina.park@example.com', phone: '+971501110000', price: 21950, price_verified: true, kind: 'reservation', status: 'new', detail: 'Held for 24 hours', chat_ref: 'sample-lina', created_at: at(14) },
+    { id: -5, odoo_lead_id: 9004, domain_type: 'cars', item_name: '2024 Toyota Camry', customer_name: 'Omar Haddad', email: null, phone: '+971502223333', price: 28620, price_verified: true, kind: 'viewing', status: 'confirmed', detail: 'Sat 26 Sep, afternoon', chat_ref: 'sample-omar', created_at: at(48) },
+    { id: -3, odoo_lead_id: 9001, domain_type: 'real_estate', item_name: '3bd/2ba house in Guilford, Maine', customer_name: 'Alex Rivera', email: 'alex.rivera@example.com', phone: null, price: 379000, price_verified: true, kind: 'lead', status: 'won', detail: null, chat_ref: 'sample-alex', created_at: at(120) },
   ]
 
   return { leads, turns }

@@ -19,9 +19,14 @@ hook before it settles, the tallies move, and a stamped row lands on the sign-ou
 A second view shows every lead and the conversation behind it. A lead is a message slip on
 a pad. Pick one and the conversation prints on a paper roll: the customer's words in blue
 ink, the assistant's in black, and between them a stamped note for each thing the
-assistant did ("Searched the cars: Toyota, up to $25,000", "Created a lead"). Chats that
-never produced a lead are listed below the pad, including attempts the guardrails turned
-away.
+assistant did ("Searched the cars: Toyota, up to $25,000", "Created a lead", "Held an item:
+No. 7"). Chats that never produced a lead are listed below the pad, including attempts the
+guardrails turned away.
+
+A hold or a viewing request has its own tag on its slip ("Hold, Held for 24 hours" or
+"Viewing, Sat 26 Sep, afternoon"). When the owner acts on a lead from Telegram, a stamp
+appears on the slip (Taken, Contacted, Confirmed, Won, Lost or Released) and changes live.
+An item's number in a note is the number on its key on the Keys board.
 
 This is private data, so it is behind a sign-in. Anyone not signed in sees clearly labelled
 sample conversations bundled with the app, and the app never asks the database for real

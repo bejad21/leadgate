@@ -38,6 +38,21 @@ const SEARCH_DETAILS: [string, (value: unknown) => string | null][] = [
   ['sort_by', (v) => SORT_WORDS[String(v)] ?? null],
 ]
 
+/** The item's number, which is the number on its key. */
+function itemNumber(value: unknown): string | null {
+  const id = num(value)
+  return id == null ? null : `No. ${id}`
+}
+
+/** "2026-09-26" as "Sat 26 Sep". Noon avoids the day shifting with the time zone. */
+function shortDay(value: unknown): string | null {
+  const raw = text(value)
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null
+  const date = new Date(`${raw}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
 /** What the assistant did, in words a person would use. */
 export function describeToolCall(call: ToolCallRecord): ToolNote {
   const args = call.arguments ?? {}
@@ -60,6 +75,22 @@ export function describeToolCall(call: ToolCallRecord): ToolNote {
     const price = num(args.price)
     if (price != null) details.push(usd.format(price))
     return { title: 'Created a lead', details }
+  }
+
+  if (call.name === 'reserve_item') {
+    const number = itemNumber(args.item_id)
+    return { title: 'Held an item', details: number ? [number] : [] }
+  }
+
+  if (call.name === 'book_viewing') {
+    const details: string[] = []
+    const number = itemNumber(args.item_id)
+    if (number) details.push(number)
+    const day = shortDay(args.date)
+    if (day) details.push(day)
+    const slot = text(args.slot)
+    if (slot) details.push(slot)
+    return { title: 'Requested a viewing', details }
   }
 
   return { title: call.name ?? 'Used a tool', details: [] }

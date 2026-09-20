@@ -4,6 +4,8 @@ import { splitBold } from './richText'
 import { buildConversations } from './conversations'
 import { mergeRows } from './mergeRows'
 import type { Lead, Turn } from './privateTypes'
+import { LEAD_KIND_LABEL, LEAD_STATUS_LABEL, normalizeLeadKind, normalizeLeadStatus } from './format'
+import { sampleData } from './sampleData'
 
 describe('describeToolCall', () => {
   it('reads a catalog search in plain words', () => {
@@ -70,7 +72,7 @@ describe('splitBold', () => {
 
 const lead = (over: Partial<Lead>): Lead => ({
   id: 1, odoo_lead_id: 71, domain_type: 'cars', item_name: 'Camry', customer_name: 'Sarah', email: 's@x.com', phone: null,
-  price: 100, price_verified: true, chat_ref: 'aaa', created_at: '2026-09-19T10:00:00Z', ...over,
+  price: 100, price_verified: true, kind: 'lead', status: 'new', detail: null, chat_ref: 'aaa', created_at: '2026-09-19T10:00:00Z', ...over,
 })
 const turn = (over: Partial<Turn>): Turn => ({
   id: 1, chat_ref: 'aaa', domain_type: 'cars', user_message: 'hi', reply: 'hello', tool_calls: [], blocked: false,
@@ -166,5 +168,69 @@ describe('mergeRows', () => {
   it('handles empty inputs', () => {
     expect(mergeRows([], [])).toEqual([])
     expect(mergeRows([], [{ id: 1 }])).toEqual([{ id: 1 }])
+  })
+})
+
+describe('the two new tool notes', () => {
+  it('describes a hold by the item number on the board', () => {
+    expect(describeToolCall({ name: 'reserve_item', arguments: { item_id: 7, customer_name: 'Sarah' } })).toEqual({
+      title: 'Held an item',
+      details: ['No. 7'],
+    })
+  })
+
+  it('describes a viewing with its day and time of day', () => {
+    const note = describeToolCall({ name: 'book_viewing', arguments: { item_id: 7, date: '2026-09-26', slot: 'afternoon' } })
+    expect(note.title).toBe('Requested a viewing')
+    expect(note.details[0]).toBe('No. 7')
+    expect(note.details).toContain('afternoon')
+    expect(note.details.some((d) => d.includes('26'))).toBe(true)
+  })
+
+  it('shows no item number when the model gave a bad one', () => {
+    expect(describeToolCall({ name: 'reserve_item', arguments: { item_id: 'x' } }).details).toEqual([])
+    expect(describeToolCall({ name: 'book_viewing', arguments: { date: 'not a date' } }).details).toEqual([])
+  })
+})
+
+describe('lead kind and status', () => {
+  it('knows every kind and status the engine can send', () => {
+    for (const kind of ['lead', 'reservation', 'viewing']) expect(normalizeLeadKind(kind)).toBe(kind)
+    for (const status of ['new', 'taken', 'contacted', 'confirmed', 'won', 'lost', 'released']) {
+      expect(normalizeLeadStatus(status)).toBe(status)
+    }
+  })
+
+  it('treats anything unknown, or missing, as an ordinary new lead', () => {
+    expect(normalizeLeadKind('nonsense')).toBe('lead')
+    expect(normalizeLeadKind(null)).toBe('lead')
+    expect(normalizeLeadStatus('<script>')).toBe('new')
+    expect(normalizeLeadStatus(undefined)).toBe('new')
+  })
+
+  it('has a label for each', () => {
+    expect(Object.keys(LEAD_KIND_LABEL)).toHaveLength(3)
+    expect(Object.keys(LEAD_STATUS_LABEL)).toHaveLength(7)
+  })
+})
+
+describe('the sample leads', () => {
+  const { leads, turns } = sampleData(Date.UTC(2026, 8, 20))
+
+  it('include a hold and a viewing, so a signed-out visitor sees what the assistant can do', () => {
+    expect(leads.map((l) => l.kind).sort()).toEqual(['lead', 'lead', 'lead', 'reservation', 'viewing'])
+  })
+
+  it('show leads at different points, not all new', () => {
+    expect(new Set(leads.map((l) => l.status)).size).toBeGreaterThanOrEqual(3)
+  })
+
+  it('have a conversation behind each lead', () => {
+    for (const lead of leads) expect(turns.some((t) => t.chat_ref === lead.chat_ref)).toBe(true)
+  })
+
+  it('give a viewing its day and a hold its duration', () => {
+    expect(leads.find((l) => l.kind === 'viewing')?.detail).toMatch(/\d/)
+    expect(leads.find((l) => l.kind === 'reservation')?.detail).toMatch(/24 hours/)
   })
 })

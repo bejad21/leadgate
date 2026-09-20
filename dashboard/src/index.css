@@ -1488,3 +1488,52 @@ button {
     transition: none !important;
   }
 }
+
+/* what kind of lead a slip is, and where the owner has taken it */
+.slip-tag {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin-top: 7px;
+  font-size: 13px;
+  color: #3f4a5a;
+}
+
+.slip-tag-kind {
+  padding: 0 7px;
+  border: 1.5px solid #2b5f8a;
+  border-radius: 3px;
+  font-weight: 650;
+  color: #2b5f8a;
+}
+
+.slip-tag[data-kind='reservation'] .slip-tag-kind {
+  border-color: #8a5a12;
+  color: #8a5a12;
+}
+
+.slip-status {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 1px 8px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  font-family: var(--stamped);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #2b5f8a;
+  transform: rotate(-2deg);
+}
+
+.slip-status[data-status='won'],
+.slip-status[data-status='confirmed'] {
+  color: #2f7a4b;
+}
+
+.slip-status[data-status='lost'],
+.slip-status[data-status='released'] {
+  color: #8a3b2f;
+}

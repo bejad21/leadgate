@@ -39,6 +39,11 @@ def insert(table, row):
     assert r.status_code in (200, 201, 204), r.text
 
 
+def patch(table, odoo_lead_id, fields):
+    r = httpx.patch(f"{SUPABASE}/rest/v1/{table}?odoo_lead_id=eq.{odoo_lead_id}", headers=SERVICE, json=fields, timeout=20)
+    assert r.status_code in (200, 204), r.text
+
+
 def cleanup():
     for table, col in (("conversation_turns", "chat_ref"), ("leads", "chat_ref")):
         httpx.delete(f"{SUPABASE}/rest/v1/{table}?{col}=like.uitest-*", headers=SERVICE, timeout=20)
@@ -63,8 +68,8 @@ with sync_playwright() as p:
 
     # ---------- signed out: samples ----------
     ctx, page, errors, private_requests = open_page(browser)
-    check("signed out: sample leads are shown", page.locator(".slip").count() == 3)
-    check("signed out: tallies match the samples", page.locator(".tape-count").all_inner_texts() == ["5", "3", "1"], str(page.locator(".tape-count").all_inner_texts()))
+    check("signed out: sample leads are shown", page.locator(".slip").count() == 5)
+    check("signed out: tallies match the samples", page.locator(".tape-count").all_inner_texts() == ["7", "5", "1"], str(page.locator(".tape-count").all_inner_texts()))
     check("signed out: the roll is labelled Sample", page.locator(".roll-sample").count() == 1)
     check("signed out: private tables are never requested", not private_requests, str(private_requests))
     check("signed out: no console errors", not errors, str(errors))
@@ -75,6 +80,19 @@ with sync_playwright() as p:
     check("roll shows what the assistant did", "Searched the cars" in roll and "Toyota · up to $25,000" in roll and "Created a lead" in roll, "")
     check("bold in the reply renders as <strong>, not asterisks", page.locator(".roll strong").count() >= 1 and "**" not in roll)
     check("the unverified price is flagged on its slip", page.locator(".slip", has_text="Mallory").locator(".slip-flag").count() == 1)
+
+    hold = page.locator(".slip", has_text="Lina Park")
+    check("a hold slip says Hold and for how long", "Hold" in hold.inner_text() and "Held for 24 hours" in hold.inner_text(), hold.inner_text().replace("\n", " "))
+    view = page.locator(".slip", has_text="Omar Haddad")
+    check("a viewing slip shows its day and time of day", "Viewing" in view.inner_text() and "Sat 26 Sep, afternoon" in view.inner_text())
+    check("a confirmed viewing carries a Confirmed stamp", view.locator(".slip-status").inner_text().strip().lower() == "confirmed")
+    check("an ordinary new lead has no status stamp", page.locator(".slip", has_text="Mallory").locator(".slip-status").count() == 0)
+    check("a lead that was acted on shows where it stands", page.locator(".slip", has_text="Sarah Connor").locator(".slip-status").inner_text().strip().lower() == "contacted")
+    check("a slip's spoken label names its kind and status", "Viewing" in (view.get_attribute("aria-label") or "") and "Confirmed" in (view.get_attribute("aria-label") or ""))
+    hold.click()
+    check("the roll shows the hold the assistant placed", "Held an item" in page.locator(".roll").inner_text() and "No. 7" in page.locator(".roll").inner_text())
+    view.click()
+    check("the roll shows the viewing the assistant requested", "Requested a viewing" in page.locator(".roll").inner_text() and "afternoon" in page.locator(".roll").inner_text())
 
     page.locator(".other", has_text="Ignore all previous instructions").click()
     check("a turned-away attempt is stamped in the roll", page.locator(".roll-blocked").count() == 1)
@@ -114,6 +132,13 @@ with sync_playwright() as p:
         check("a new lead appears live, with no reload", False, "timed out")
     slip = page.locator(".slip", has_text="UI Tester")
     check("slip shows the contact", "ui.tester@example.com" in slip.inner_text() and "+971501112222" in slip.inner_text())
+    check("a live lead starts with no status stamp", slip.locator(".slip-status").count() == 0)
+    patch("leads", 990001, {"status": "contacted"})
+    try:
+        page.wait_for_function("[...document.querySelectorAll('.slip')].some(s => s.textContent.includes('UI Tester') && s.querySelector('.slip-status'))", timeout=15000)
+        check("a status change made by the owner appears live", "contacted" in slip.locator(".slip-status").inner_text().lower())
+    except Exception:
+        check("a status change made by the owner appears live", False, "timed out")
     slip.click()
     roll = page.locator(".roll").inner_text()
     check("the live conversation is in the roll", "Any Honda under 20000?" in roll and "Searched the cars" in roll and "Honda · up to $20,000" in roll, roll[:120].replace("\n", " "))
@@ -141,7 +166,7 @@ with sync_playwright() as p:
     check("the session survives a reload and the leads load again", reloaded and page.locator(".roll-sample").count() == 0)
     page.click(".signout")
     page.wait_for_selector(".signin", timeout=10000)
-    check("sign-out returns to the samples", page.locator(".roll-sample").count() == 1 and page.locator(".slip").count() == 3)
+    check("sign-out returns to the samples", page.locator(".roll-sample").count() == 1 and page.locator(".slip").count() == 5)
     ctx.close()
 
     # ---------- other views still work ----------
@@ -165,8 +190,11 @@ with sync_playwright() as p:
     check("phone: no console errors", not errors, str(errors))
     page.locator(".slip").nth(1).click()
     page.wait_for_timeout(900)
-    top = page.locator(".roll").bounding_box()["y"]
-    check("phone: picking a slip brings the conversation into view", -5 <= top <= 300, f"roll top at {top:.0f}px")
+    box = page.locator(".roll").bounding_box()
+    # The page cannot scroll past its end, so a short conversation may sit low on the screen.
+    # What matters is that a useful part of it is on screen.
+    visible = min(box["y"] + box["height"], 844) - max(box["y"], 0)
+    check("phone: picking a slip brings the conversation into view", visible >= 300, f"{visible:.0f}px of the roll are on screen, top at {box['y']:.0f}px")
     check("phone: the back link is visible", page.locator(".roll-back").is_visible())
     ctx.close()
 

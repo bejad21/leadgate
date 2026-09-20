@@ -44,3 +44,32 @@ export const DOMAIN_LABEL: Record<DomainType, string> = {
   cars: 'Cars',
   real_estate: 'Homes',
 }
+
+export type LeadKind = 'lead' | 'reservation' | 'viewing'
+export type LeadStatus = 'new' | 'taken' | 'contacted' | 'confirmed' | 'won' | 'lost' | 'released'
+
+export const LEAD_KIND_LABEL: Record<LeadKind, string> = {
+  lead: 'Lead',
+  reservation: 'Hold',
+  viewing: 'Viewing',
+}
+
+export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
+  new: 'New',
+  taken: 'Taken',
+  contacted: 'Contacted',
+  confirmed: 'Confirmed',
+  won: 'Won',
+  lost: 'Lost',
+  released: 'Released',
+}
+
+/** Anything unrecognised, or missing, is an ordinary lead. */
+export function normalizeLeadKind(kind: string | null | undefined): LeadKind {
+  return kind === 'reservation' || kind === 'viewing' ? kind : 'lead'
+}
+
+/** Anything unrecognised, or missing, has not been acted on yet. */
+export function normalizeLeadStatus(status: string | null | undefined): LeadStatus {
+  return status && status in LEAD_STATUS_LABEL ? (status as LeadStatus) : 'new'
+}
