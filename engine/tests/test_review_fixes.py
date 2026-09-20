@@ -291,7 +291,7 @@ def test_the_store_creates_its_indexes_and_expiries():
     lead_indexes = [c.args[0] for c in leads.create_index.call_args_list]
     assert "lead_id" in lead_indexes and "alert_message_ids" in lead_indexes and "created" in lead_indexes
     assert any(c.kwargs.get("expireAfterSeconds") for c in leads.create_index.call_args_list)
-    assert handoffs.create_index.call_args_list[-1].kwargs["expireAfterSeconds"] == 0
+    assert any(c.kwargs.get("expireAfterSeconds") == 0 for c in handoffs.create_index.call_args_list)  # a handoff expires at its end time
 
 
 def test_a_lead_chat_lookup_ignores_records_that_only_trace_a_message():

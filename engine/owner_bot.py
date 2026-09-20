@@ -28,14 +28,15 @@ from engine.sweeper import tag_as_reminded
 logger = logging.getLogger(__name__)
 
 HANDOFF_HOURS = 6
-RELAY_MAX = 1000
+RELAY_MAX = 3500  # Telegram's limit is 4096 characters; leave room for nothing else to go wrong
 FORWARD_MAX = 600  # Telegram refuses messages over 4096 characters and escaping can make text five times longer
 
 HELP = (
     "Tap the buttons under an alert to act on a lead. Reply to an alert to write to that "
     "customer. The assistant then stays quiet in that chat.\n\n"
+    "/talk <lead number> starts a chat with that customer: whatever you type goes to them\n"
+    "/back hands the chat back to the assistant (or /back <lead number>)\n"
     "/open lists leads still waiting for you\n"
-    "/back <lead number> hands a chat back to the assistant\n"
     "/help shows this"
 )
 
@@ -234,10 +235,14 @@ def _confirm_viewing(deps: OwnerDeps, lead_id: int) -> str:
     if not chat:
         return "Confirmed in Odoo, but I cannot message the customer (chat not found)."
     when = chat.get("detail") or "the requested time"
-    deps.tell_customer(
-        chat["chat_id"],
-        f"Your viewing of {chat.get('item_name') or 'the item'} is confirmed for {when}. We look forward to seeing you.",
-    )
+    try:
+        deps.tell_customer(
+            chat["chat_id"],
+            f"Your viewing of {chat.get('item_name') or 'the item'} is confirmed for {when}. We look forward to seeing you.",
+        )
+    except Exception:
+        logger.exception("could not tell the customer about the confirmed viewing of lead %s", lead_id)
+        return "Confirmed in Odoo, but Telegram did not accept the message to the customer. Reply to the alert to tell them yourself."
     deps.store.set_flag(lead_id, "viewing_confirmed")  # only once the customer has been told
     return "Confirmed. The customer was told."
 
@@ -260,9 +265,33 @@ def _hand_back(deps: OwnerDeps, lead_id: int) -> str:
     chat = deps.store.get_lead_chat(lead_id)
     if chat:
         deps.store.clear_handoff(chat["chat_id"])
+    talking_to = deps.store.get_talk(now=deps.now())
+    if talking_to is not None:
+        talked_chat = deps.store.get_lead_chat(talking_to)
+        # Any lead of the chat you are talking to ends the session, not only the one it was started on.
+        if talking_to == lead_id or (chat and talked_chat and talked_chat["chat_id"] == chat["chat_id"]):
+            deps.store.clear_talk()
     who = (chat or {}).get("customer_name") or f"lead {lead_id}"
     deps.owner.send_owner_message(f"{who} is back with the assistant.")
     return "Handed back."
+
+
+def _start_talk(deps: OwnerDeps, lead_id: int) -> str:
+    """From now on, what the owner types goes to this customer, and the assistant stays quiet in
+    their chat, until /back or the time runs out."""
+    chat = deps.store.get_lead_chat(lead_id)
+    if not chat:
+        deps.owner.send_owner_message("I do not have that customer's chat, so I cannot start a conversation.")
+        return "No chat for that lead."
+    until = deps.now() + dt.timedelta(hours=HANDOFF_HOURS)
+    deps.store.set_talk(lead_id, until=until)
+    deps.store.set_handoff(chat["chat_id"], lead_id, until=until)
+    who = chat.get("customer_name") or "the customer"
+    deps.owner.send_owner_message(
+        f"Talking to {who} about {chat.get('item_name') or 'their request'} (lead {lead_id}). "
+        "Everything you type goes to them until you send /back."
+    )
+    return f"Talking to {who}."
 
 
 _ACTIONS = {
@@ -274,6 +303,7 @@ _ACTIONS = {
     "v": _confirm_viewing,
     "r": _open_reply_box,
     "b": _hand_back,
+    "k": _start_talk,
 }
 
 
@@ -290,10 +320,16 @@ def _handle_message(message: dict, deps: OwnerDeps) -> None:
         _handle_command(text, deps)
         return
     replied_to = (message.get("reply_to_message") or {}).get("message_id")
-    if replied_to is None:
-        deps.owner.send_owner_message("Reply to one of my alerts to write to that customer, or send /help.")
+    if replied_to is not None:
+        _relay(text, replied_to, deps)  # an explicit reply always wins over the session
         return
-    _relay(text, replied_to, deps)
+    talking_to = deps.store.get_talk(now=deps.now())
+    if talking_to is not None:
+        _relay_to(text, talking_to, deps, announce=False)
+        return
+    deps.owner.send_owner_message(
+        "Reply to one of my alerts to write to that customer, or start a chat with /talk and a lead number. /help lists everything."
+    )
 
 
 def _relay(text: str, replied_to: int, deps: OwnerDeps) -> None:
@@ -301,35 +337,48 @@ def _relay(text: str, replied_to: int, deps: OwnerDeps) -> None:
     if lead_id is None:
         deps.owner.send_owner_message("I cannot tell which customer that is for. Reply to one of the lead alerts.")
         return
+    _relay_to(text, lead_id, deps, announce=True)
+
+
+def _relay_to(text: str, lead_id: int, deps: OwnerDeps, *, announce: bool) -> None:
+    """Send the owner's text to the customer behind a lead. With `announce`, confirm it to the owner;
+    in a talk session it is silent unless something goes wrong."""
     chat = deps.store.get_lead_chat(lead_id)
     if not chat:
         deps.owner.send_owner_message("I do not have that customer's chat any more, so I cannot send this.")
         return
+    cut = len(text) > RELAY_MAX
     try:
         deps.tell_customer(chat["chat_id"], text[:RELAY_MAX])
     except Exception:
-        logger.exception("could not relay the owner's reply for lead %s", lead_id)
+        logger.exception("could not relay the owner's message for lead %s", lead_id)
         deps.owner.send_owner_message("Telegram did not accept the message. Nothing was sent.")
         return
 
     # The customer has the message, so the assistant must stop answering over the owner. That
     # comes first; the Odoo bookkeeping below can fail without leaving the chat in a mess.
-    deps.store.set_handoff(chat["chat_id"], lead_id, until=deps.now() + dt.timedelta(hours=HANDOFF_HOURS))
+    until = deps.now() + dt.timedelta(hours=HANDOFF_HOURS)
+    deps.store.set_handoff(chat["chat_id"], lead_id, until=until)
+    if not announce:
+        deps.store.set_talk(lead_id, until=until)  # each message keeps the session alive
     try:
         state = _lead_state(deps, lead_id)
-        followup.post_note(deps.odoo, lead_id, f"Owner replied via Telegram: {text}")
+        followup.post_note(deps.odoo, lead_id, f"Owner replied via Telegram: {text[:RELAY_MAX]}")
         if state is not None and state.get("active") and _stage_name(state) != "Won":
             followup.complete_activities(deps.odoo, lead_id, "Replied to the customer")
             _advance_from_new(deps, lead_id, state)
             deps.mirror_status(lead_id, "contacted")
     except Exception:
-        logger.exception("the reply was sent but Odoo could not be updated for lead %s", lead_id)
+        logger.exception("the message was sent but Odoo could not be updated for lead %s", lead_id)
 
     who = chat.get("customer_name") or "the customer"
-    deps.owner.send_owner_message(
-        f"Sent to {who}. The assistant stays quiet in that chat for {HANDOFF_HOURS} hours. "
-        f"Send /back {lead_id} to hand it back sooner."
-    )
+    if cut:
+        deps.owner.send_owner_message(f"That message was too long for Telegram, so it was cut to {RELAY_MAX} characters.")
+    if announce:
+        deps.owner.send_owner_message(
+            f"Sent to {who}. The assistant stays quiet in that chat for {HANDOFF_HOURS} hours. "
+            f"Send /back {lead_id} to hand it back sooner, or /talk {lead_id} to keep talking without replying each time."
+        )
 
 
 def _handle_command(text: str, deps: OwnerDeps) -> None:
@@ -339,13 +388,36 @@ def _handle_command(text: str, deps: OwnerDeps) -> None:
         deps.owner.send_owner_message(HELP)
     elif command == "/open":
         _list_open(deps)
+    elif command == "/talk":
+        _talk_command(argument.strip(), deps)
     elif command == "/back":
         if argument.strip().isdigit():
             _hand_back(deps, int(argument.strip()))
+            return
+        current = deps.store.get_talk(now=deps.now())
+        if current is not None and not argument.strip():
+            _hand_back(deps, current)
         else:
             deps.owner.send_owner_message("Send /back followed by the lead number, for example /back 71.")
     else:
         deps.owner.send_owner_message(HELP)
+
+
+def _talk_command(argument: str, deps: OwnerDeps) -> None:
+    if argument.isdigit():
+        _start_talk(deps, int(argument))
+        return
+    if argument:
+        deps.owner.send_owner_message("Send /talk followed by the lead number, for example /talk 71.")
+        return
+    current = deps.store.get_talk(now=deps.now())
+    if current is None:
+        deps.owner.send_owner_message("You are not talking to anyone. Send /talk followed by a lead number to start.")
+        return
+    chat = deps.store.get_lead_chat(current) or {}
+    deps.owner.send_owner_message(
+        f"You are talking to {chat.get('customer_name') or 'a customer'} (lead {current}). Send /back to stop."
+    )
 
 
 def _age(created: str | None, now: dt.datetime) -> str:
@@ -391,7 +463,8 @@ def forward_customer_message(deps: OwnerDeps, handoff: dict, text: str):
             [
                 {"text": ACTIONS["r"], "callback_data": f"r:{lead_id}"},
                 {"text": ACTIONS["b"], "callback_data": f"b:{lead_id}"},
-            ]
+            ],
+            [{"text": ACTIONS["k"], "callback_data": f"k:{lead_id}"}],
         ]
     }
     delivery = deps.owner.send_owner_html(body, buttons=buttons)

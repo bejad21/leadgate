@@ -29,7 +29,7 @@ def _labels(markup):
 
 
 def _data(markup):
-    return [button["callback_data"] for row in markup["inline_keyboard"] for button in row]
+    return [button["callback_data"] for row in markup["inline_keyboard"] for button in row if "callback_data" in button]
 
 
 # ---- wording per kind --------------------------------------------------------------
@@ -55,7 +55,7 @@ def test_the_detail_line_is_escaped():
 # ---- buttons -----------------------------------------------------------------------
 
 def test_a_lead_has_take_contacted_reply_and_lost():
-    assert _labels(notifier.alert_keyboard(lead())) == [["Take it", "Contacted"], ["Reply", "Lost"]]
+    assert _labels(notifier.alert_keyboard(lead()))[:2] == [["Take it", "Contacted"], ["Reply", "Lost"]]
 
 
 def test_a_reservation_can_be_marked_sold_or_released():

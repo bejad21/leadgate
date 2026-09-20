@@ -21,6 +21,7 @@ class LeadInfo:
     price_verified: bool
     kind: str = "lead"  # lead, reservation or viewing
     detail: str | None = None  # "Held for 24 hours", "Sat 26 Sep, afternoon"
+    username: str | None = None  # the customer's public Telegram username, if they have one
 
 
 def extract_leads(turn: AgentTurnResult, domain_type: str) -> list[LeadInfo]:

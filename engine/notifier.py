@@ -11,6 +11,7 @@ lose the lead, so every failure is logged and reported as a failed Delivery, nev
 import html
 import logging
 import os
+import re
 from typing import NamedTuple
 
 import httpx
@@ -23,6 +24,23 @@ TELEGRAM_API_BASE = "https://api.telegram.org"
 TIMEOUT_SECONDS = 5
 
 HEADINGS = {"lead": "New lead", "reservation": "New reservation", "viewing": "New viewing request"}
+
+
+# Telegram usernames are 5 to 32 letters, digits or underscores, starting with a letter. Anything
+# else is never turned into a link, so a hostile "username" cannot point the owner somewhere else.
+_USERNAME = re.compile(r"[A-Za-z][A-Za-z0-9_]{4,31}")
+
+
+def valid_username(name) -> bool:
+    return isinstance(name, str) and _USERNAME.fullmatch(name) is not None
+
+
+def chat_link(username: str) -> str:
+    return f"https://t.me/{username}"
+
+
+def whatsapp_link(phone: str) -> str:
+    return f"https://wa.me/{re.sub(r'[^0-9]', '', phone)}"
 
 
 class Delivery(NamedTuple):
@@ -48,6 +66,8 @@ def format_alert(lead: LeadInfo) -> str:
     contact = " · ".join(esc(part, quote=False) for part in (lead.email, lead.phone) if part)
     lines.append(f"{who}")
     lines.append(contact or "No contact given")
+    if valid_username(lead.username):
+        lines.append(f"Telegram: @{lead.username}")
 
     if lead.price is not None:
         if lead.price_verified:
@@ -71,6 +91,7 @@ ACTIONS = {
     "x": "Release hold",
     "v": "Confirm viewing",
     "b": "Hand back to bot",
+    "k": "Talk here",
 }
 
 
@@ -88,7 +109,34 @@ def alert_keyboard(lead: LeadInfo, can_reply: bool = True) -> dict:
         rows = [["t", "c"], ["l"]]
     if can_reply:
         rows[-1].insert(0, "r")
-    return {"inline_keyboard": [[_button(code, lead.lead_id) for code in row] for row in rows]}
+    keyboard = [[_button(code, lead.lead_id) for code in row] for row in rows]
+    extras = []
+    if can_reply:
+        extras.append(_button("k", lead.lead_id))  # talk to this customer without replying each time
+    if valid_username(lead.username):
+        extras.append({"text": "Open chat", "url": chat_link(lead.username)})
+    if extras:
+        keyboard.append(extras)
+    return {"inline_keyboard": keyboard}
+
+
+def format_number_alert(lead_id: int, name: str, phone: str, username: str | None) -> str:
+    esc = html.escape
+    lines = [f"<b>{esc(name, quote=False) or 'A customer'}</b> shared a phone number", f"Lead #{lead_id}", esc(phone, quote=False)]
+    if valid_username(username):
+        lines.append(f"Telegram: @{username}")
+    return "\n".join(lines)
+
+
+def number_keyboard(lead_id: int, phone: str, username: str | None, can_talk: bool) -> dict:
+    """Buttons for a customer who shared a number: talk here, open WhatsApp, open their Telegram profile."""
+    row = []
+    if can_talk:
+        row.append(_button("k", lead_id))
+    row.append({"text": "WhatsApp", "url": whatsapp_link(phone)})
+    if valid_username(username):
+        row.append({"text": "Open chat", "url": chat_link(username)})
+    return {"inline_keyboard": [row]}
 
 
 # ---- calls to the alert bot ----------------------------------------------------------
@@ -136,6 +184,11 @@ def _send(text: str, reply_markup: dict | None = None, reply_to: int | None = No
 def deliver_lead_alert(lead: LeadInfo, can_reply: bool = True) -> Delivery:
     """Send the alert with its buttons and report the message id, so a reply to it can be traced."""
     return _send(format_alert(lead), alert_keyboard(lead, can_reply))
+
+
+def deliver_number_alert(lead_id: int, name: str, phone: str, username: str | None, can_talk: bool = True) -> Delivery:
+    """Tell the owner that a customer shared a number, with a way to talk to them."""
+    return _send(format_number_alert(lead_id, name, phone, username), number_keyboard(lead_id, phone, username, can_talk))
 
 
 def send_lead_alert(lead: LeadInfo) -> bool:

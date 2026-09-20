@@ -16,6 +16,7 @@ class FakeOdoo:
         self.created = []
         self.written = []
         self.leads = leads if leads is not None else []  # what a search of crm.lead returns
+        self.partner_phones = {}  # partner id -> phone, for the partners a test cares about
         self.holds_refused_with = None  # set to a reason to make action_reserve refuse
 
     # ---- reads ---------------------------------------------------------------
@@ -34,6 +35,8 @@ class FakeOdoo:
             return [{"id": 99}]
         if model == "leadgate.catalog.item":
             return [dict(row) for row in self.items.values() if _matches(row, domain)]
+        if model == "res.partner":
+            return [{"id": domain[0][2], "phone": self.partner_phones.get(domain[0][2])}]
         if model == "crm.lead":
             rows = [dict(row) for row in self.leads]
             for clause in domain:

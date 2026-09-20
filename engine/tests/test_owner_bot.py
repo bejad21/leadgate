@@ -257,7 +257,7 @@ def test_a_customer_message_in_human_mode_is_forwarded_to_the_owner(world):
     owner_bot.forward_customer_message(world.deps, handoff, "Can we do 4pm instead?")
     sent = world.rec.owner_html[-1]
     assert "Sarah Connor" in sent["text"] and "Can we do 4pm instead?" in sent["text"]
-    assert [b["text"] for row in sent["buttons"]["inline_keyboard"] for b in row] == ["Reply", "Hand back to bot"]
+    assert [b["text"] for row in sent["buttons"]["inline_keyboard"] for b in row] == ["Reply", "Hand back to bot", "Talk here"]
 
 
 def test_forwarded_customer_text_cannot_inject_markup(world):
