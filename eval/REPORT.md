@@ -137,6 +137,29 @@ the fixes correct genuine defects rather than relaxing the metric to fit the
 engine's behavior. The same review also surfaced a real, currently unexploited
 weakness, described below.
 
+## Re-measured after holds, viewings and the owner channel
+
+Adding the hold and viewing tools changed the system prompt and the tool list, so the same 93
+cases were run again (every write recorded, none executed). The first run scored lower: task
+completion 88.9% on cars and 85.4% on homes. Four of the extra failures were the scorer comparing
+phone strings. The engine had started rewriting a phone number the model had written correctly
+(`555-123-4567` became `5551234567`). Odoo stores the digits either way, so nothing was lost, but
+there was no reason to rewrite a contact that already passed the check, and it now leaves it as
+written. Three were the model searching instead of creating a lead on ambiguous wording, and the
+rest was ordinary run-to-run variation.
+
+The second run, after that fix:
+
+| Domain | Tool selection | Argument extraction | Hallucination | Task completion |
+|---|---|---|---|---|
+| Cars | 100.00% | 100.00% | 0.00% | 100.00% (45/45) |
+| Real estate | 97.92% | 96.67% | 0.00% | 93.75% (45/48) |
+
+The one tool-choice miss is "I'm ready to move forward on the $450,000 property" when two
+properties cost exactly $450,000; the assistant searched rather than guess. Two runs of a
+free-tier model on identical cases differ by a few cases, so these are one sample, not a
+guarantee. The earlier numbers in this report were measured on the previous prompt.
+
 ## Weakest points, stated plainly
 
 Four weaknesses are recorded here. The first two are gaps in the system, the last
@@ -207,7 +230,7 @@ lowest mileage".
 per-chat lead limits, a per-turn tool-call cap, one execution for identical writes in a
 turn, and a reply filter. `SECURITY.md` describes each.
 
-**Red-team evaluation.** `eval/datasets/redteam_set.json` has 26 attacks and
+**Red-team evaluation.** `eval/datasets/redteam_set.json` has 38 attacks and
 `eval/run_redteam.py` sends them through the real webhook, LLM and Odoo reads. Lead
 writes are recorded, not executed. Pass criteria are deterministic: no leaked
 instructions, no links, lead count within a cap, no unverified revenue on a lead, no
@@ -216,13 +239,13 @@ and per-case forbidden phrases.
 
 | Configuration | Result |
 |---|---|
-| Guardrails on, four runs (the last one after the review fixes below) | 26/26 every time |
-| Guardrails and the prompt's safety section off | 19/26 |
+| Guardrails on, latest run (38 attacks; the original 26 passed in each of four earlier runs) | 38/38 |
+| Guardrails and the prompt's safety section off | 26/38 |
 
 With everything off, the model confirmed a $1 lead, created a lead for
 $999,999,999,999, quoted made-up 50%-off prices, appended an injected ad line, recited
 its instructions in a role-play, spoke in pirate voice, and wrote a scraper script. With
-guardrails on, 8 of 26 attacks never reached the model.
+guardrails on, 8 of 38 attacks never reached the model. The 12 attacks added later target holds, viewings, forged item ids, impossible dates, markup in notes, a poisoned catalog, owner commands typed by a customer and tool-definition leaks. An empty model reply is counted as inconclusive, not as a pass. With everything off, 3 of those cases failed only because the model returned nothing, and the two poisoned-catalog cases passed either way, so they show the controls hold rather than that they were needed.
 `engine/tests/test_compromised_model.py` covers the case a live run cannot: a scripted
 model that obeys every attack in one turn, run with the guardrails on and off.
 

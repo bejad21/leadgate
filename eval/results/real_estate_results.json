@@ -9,14 +9,14 @@
       "outcome": "price_max is a genuinely applied filter. real_estate_raw.csv has many rows under 300000 (e.g. 299900, 285000, 265000), so this should correctly return real matches end-to-end."
     },
     "actual": {
-      "reply": "I have several options available under $300,000. Here are a few from what came up:\n\n- **3bd/2ba residential in Philadelphia, PA** \u2013 $239,000\n- **3bd/1ba residential in Philadelphia, PA** \u2013 $299,900\n- **1bd/1ba residential in Little Egg Harbor, NJ** \u2013 $128,000\n- **3bd/1ba residential in Philadelphia, PA** \u2013 $99,000\n- **3bd/2ba residential in West Warwick, RI** \u2013 $299,900\n\nWould you like to narrow it down by location, number of bedrooms, or any other features? I'm happy to help you find the right fit.",
+      "reply": " Certainly! Here are a few listings under $300,000:\n\n1. **3bd/2ba residential** \u2013 Philadelphia, PA \u2013 $239,000  \n   - 1,152 sq ft, 0.04 acre lot\n\n2. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $299,900  \n   - 1,616 sq ft, 0.04 acre lot\n\n3. **1bd/1ba residential** \u2013 Little Egg Harbor, NJ \u2013 $128,000  \n   - 680 sq ft, 0.01 acre lot\n\n4. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $99,000  \n   - 1,320 sq ft, 0.02 acre lot\n\n5. **3bd/2ba residential** \u2013 West Warwick, RI \u2013 $299,900  \n   - 1,209 sq ft, 0.23 acre lot\n\nWould you like more details on any of these, or would you like to narrow things down by location, size, or other features? I'm happy to help!",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_max": 300000
           },
-          "id": "chatcmpl-tool-b28a13a0a8fb767e"
+          "id": "chatcmpl-tool-aaf492540c036f0e"
         }
       ],
       "tool_results": [
@@ -57,7 +57,7 @@
         }
       ]
     },
-    "latency_ms": 12172.00000000048
+    "latency_ms": 13734.000000004016
   },
   {
     "message": "Show me listings under $500,000",
@@ -69,14 +69,14 @@
       "outcome": "price_max filtering is real and reliable; plenty of rows in real_estate_raw.csv fall under 500000."
     },
     "actual": {
-      "reply": "Here are some listings under $500,000 that came up:\n\n1. **3bd/2ba residential** \u2013 Philadelphia, PA \u2013 $239,000\n   - 1,152 sq ft | 0.04 acre lot\n\n2. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $299,900\n   - 1,616 sq ft | 0.04 acre lot\n\n3. **1bd/1ba residential** \u2013 Little Egg Harbor, NJ \u2013 $128,000\n   - 680 sq ft | 0.01 acre lot\n\n4. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $99,000\n   - 1,320 sq ft | 0.02 acre lot\n\n5. **3bd/3ba residential** \u2013 Millinocket, ME \u2013 $350,000\n   - 2,268 sq ft | 0.72 acre lot\n\nThere are quite a few more in the catalog within this price range. Would you like to narrow things down by location, number of bedrooms, or property type?",
+      "reply": " I found several listings under $500,000. Here are a few options:\n\n1. **3bd/2ba residential** in Philadelphia, PA \u2013 $239,000\n2. **3bd/1ba residential** in Philadelphia, PA \u2013 $299,900\n3. **1bd/1ba residential** in Little Egg Harbor, NJ \u2013 $128,000\n4. **3bd/1ba residential** in Philadelphia, PA \u2013 $99,000\n5. **3bd/3ba residential** in Millinocket, ME \u2013 $350,000\n\nWould you like to narrow this down further \u2014 for example, by location, number of bedrooms, or property type?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_max": 500000
           },
-          "id": "chatcmpl-tool-9ca264dc43ccc50e"
+          "id": "chatcmpl-tool-983e68545722832a"
         }
       ],
       "tool_results": [
@@ -117,7 +117,7 @@
         }
       ]
     },
-    "latency_ms": 15202.99999999952
+    "latency_ms": 13859.000000004016
   },
   {
     "message": "What properties do you have for around $1,000,000?",
@@ -129,7 +129,7 @@
       "outcome": "Several rows are near or under 1,000,000 (e.g. 949900, 899000, 975000). price_max filtering is genuinely applied."
     },
     "actual": {
-      "reply": "I found a few properties around the $1,000,000 mark that might interest you:\n\n1. **1bd/2ba residential** \u2013 Boston, Massachusetts \u2013 **$1,099,000** (923 sq ft, 0.02 acre lot)\n2. **4bd/4ba residential** \u2013 Staten Island, New York \u2013 **$928,000** (3,000 sq ft, 0.19 acre lot)\n3. **5bd/3ba residential** \u2013 Quebradillas, Puerto Rico \u2013 **$1,100,000** (3,000 sq ft, 0.56 acre lot)\n4. **3bd/4ba residential** \u2013 Ossining, New York \u2013 **$949,900** (3,680 sq ft, 13.0 acre lot)\n5. **4bd/4ba residential** \u2013 Mullica Hill, New Jersey \u2013 **$929,000** (3,912 sq ft, 33.83 acre lot)\n\nWould you like to narrow this down further by location, number of bedrooms, or any other specific features? I'm happy to help you find the perfect fit.",
+      "reply": "I found several properties near your $1,000,000 price point. Here are a few options:\n\n1. **1bd/2ba residential** \u2013 Boston, Massachusetts \u2013 $1,099,000 (923 sq ft, 0.02 acre lot)\n2. **4bd/4ba residential** \u2013 Staten Island, New York \u2013 $928,000 (3,000 sq ft, 0.19 acre lot)\n3. **5bd/3ba residential** \u2013 Quebradillas, Puerto Rico \u2013 $1,100,000 (3,000 sq ft, 0.56 acre lot)\n4. **3bd/4ba residential** \u2013 Ossining, New York \u2013 $949,900 (3,680 sq ft, 13.0 acre lot)\n5. **4bd/4ba residential** \u2013 Mullica Hill, New Jersey \u2013 $929,000 (3,912 sq ft, 33.83 acre lot)\n\nWould you like more details on any of these, or would you like to narrow the search by location or other features?",
       "tool_calls_made": [
         {
           "name": "search_listings",
@@ -137,7 +137,7 @@
             "price_min": 900000,
             "price_max": 1100000
           },
-          "id": "chatcmpl-tool-8e0b46220b163404"
+          "id": "chatcmpl-tool-b5adfb8a087d7f05"
         }
       ],
       "tool_results": [
@@ -178,7 +178,7 @@
         }
       ]
     },
-    "latency_ms": 16077.99999999952
+    "latency_ms": 21046.99999999866
   },
   {
     "message": "I have a budget of $650,000, what's available?",
@@ -190,14 +190,14 @@
       "outcome": "Multiple rows are at or under 650000 (e.g. 637000, 649900, 649000). Reliable end-to-end since only price_max is genuinely filtered."
     },
     "actual": {
-      "reply": " Here are a few options I found within your $650,000 budget:\n\n1. **6bd/3ba residential** in Paterson, New Jersey \u2013 **$515,000**  \n   (3,267 sq ft, 0.09-acre lot)\n\n2. **4bd/2ba residential** in Trumbull, Connecticut \u2013 **$549,900**  \n   (2,004 sq ft, 0.35-acre lot)\n\n3. **3bd/2ba residential** in Philadelphia, Pennsylvania \u2013 **$239,000**  \n   (1,152 sq ft, 0.04-acre lot)\n\n4. **3bd/1ba residential** in Philadelphia, Pennsylvania \u2013 **$299,900**  \n   (1,616 sq ft, 0.04-acre lot)\n\n5. **1bd/1ba residential** in Little Egg Harbor, New Jersey \u2013 **$128,000**  \n   (680 sq ft, 0.01-acre lot)\n\nWould you like to narrow these down by location, number of bedrooms, or any other preferences?",
+      "reply": " Here are some homes that fit within your $650,000 budget:\n\n1. **4bd/2ba residential \u2013 Trumbull, Connecticut** \u2013 $549,900  \n   - 2,004 sq ft, 0.35 acre lot\n\n2. **6bd/3ba residential \u2013 Paterson, New Jersey** \u2013 $515,000  \n   - 3,267 sq ft, 0.09 acre lot\n\n3. **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $299,900  \n   - 1,616 sq ft, 0.04 acre lot\n\n4. **3bd/2ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $239,000  \n   - 1,152 sq ft, 0.04 acre lot\n\n5. **1bd/1ba residential \u2013 Little Egg Harbor, New Jersey** \u2013 $128,000  \n   - 680 sq ft, 0.01 acre lot\n\nWould you like to narrow these down by location, number of bedrooms, or another feature? I'd be happy to help you find the right fit.",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_max": 650000
           },
-          "id": "chatcmpl-tool-b77defa7a92608be"
+          "id": "chatcmpl-tool-a39d422e0febbf09"
         }
       ],
       "tool_results": [
@@ -238,7 +238,7 @@
         }
       ]
     },
-    "latency_ms": 13422.00000000048
+    "latency_ms": 16358.99999999674
   },
   {
     "message": "Anything below $150,000?",
@@ -250,14 +250,14 @@
       "outcome": "Several inexpensive rows exist under 150000 (e.g. 128000, 134567, 135000, 122000). price_max filtering is genuine and reliable."
     },
     "actual": {
-      "reply": " Here are a few options I found under $150,000:\n\n1. **1bd/1ba residential \u2013 Little Egg Harbor, New Jersey** \u2013 $128,000  \n2. **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $99,000  \n3. **3bd/1ba residential \u2013 Smyrna Mills, Maine** \u2013 $85,500  \n4. **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $115,900  \n5. **3bd/1ba residential \u2013 Saint Johnsbury, Vermont** \u2013 $124,600  \n\nWould you like more details on any of these, or would you like to refine your search further (e.g., by state, number of bedrooms, or lot size)?",
+      "reply": "Here are a few properties I found under $150,000:\n\n1. **1bd/1ba residential** \u2013 Little Egg Harbor, NJ \u2013 $128,000\n2. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $99,000\n3. **3bd/1ba residential** \u2013 Smyrna Mills, ME \u2013 $85,500\n4. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $115,900\n5. **3bd/1ba residential** \u2013 Saint Johnsbury, VT \u2013 $124,600\n\nWould you like more details on any of these, or is there a particular location or feature you're looking for?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_max": 150000
           },
-          "id": "chatcmpl-tool-ad688d2c535ff5ee"
+          "id": "chatcmpl-tool-89460b255cc2f5c0"
         }
       ],
       "tool_results": [
@@ -298,7 +298,7 @@
         }
       ]
     },
-    "latency_ms": 12640.999999999622
+    "latency_ms": 12563.00000000192
   },
   {
     "message": "What's the cheapest thing you have around $100,000?",
@@ -310,20 +310,25 @@
       "outcome": "Rows exist near/under 100000 (e.g. 99000, 85500, 94900, 84900, 80000). price_max filtering is reliable."
     },
     "actual": {
-      "reply": " The least expensive option I found in that range is a 1-bed/1-bath residential property in Bridgeton, New Jersey, listed at **$61,000**. It sits on 0.2 acres with 696 square feet of living space.\n\nWould you like more details on that one, or would you prefer to see other options closer to the $100,000 mark?",
+      "reply": "The least expensive option I currently have around that range is a **3bd/1ba residential property in Smyrna Mills, Maine for $85,500**, with 858 sq ft on 0.8 acres. There's also a **3bd/1ba in Philadelphia, PA for $99,000** if you'd prefer something closer to a city.\n\nWould you like more details on either of these, or should I search with different parameters?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
-            "price_min": 0,
-            "price_max": 100000
+            "price_max": 150000
           },
-          "id": "chatcmpl-tool-9bf2d9bb44b329c9"
+          "id": "chatcmpl-tool-80ed1359a4efd70f"
         }
       ],
       "tool_results": [
         {
           "matches": [
+            {
+              "id": 369,
+              "name": "1bd/1ba residential - Little Egg Harbor, New Jersey",
+              "price": 128000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.01\", \"city\": \"Little Egg Harbor\", \"state\": \"New Jersey\", \"zip_code\": \"8087\", \"house_size\": \"680\"}"
+            },
             {
               "id": 370,
               "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
@@ -337,29 +342,23 @@
               "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.8\", \"city\": \"Smyrna Mills\", \"state\": \"Maine\", \"zip_code\": \"4780\", \"house_size\": \"858\"}"
             },
             {
-              "id": 469,
-              "name": "1bd/1ba residential - Bridgeton, New Jersey",
-              "price": 61000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.2\", \"city\": \"Bridgeton\", \"state\": \"New Jersey\", \"zip_code\": \"8302\", \"house_size\": \"696\"}"
-            },
-            {
-              "id": 516,
-              "name": "3bd/2ba residential - Trenton, New Jersey",
-              "price": 80000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Trenton\", \"state\": \"New Jersey\", \"zip_code\": \"8611\", \"house_size\": \"1288\"}"
-            },
-            {
-              "id": 530,
+              "id": 427,
               "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
-              "price": 80000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19131\", \"house_size\": \"972\"}"
+              "price": 115900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19138\", \"house_size\": \"960\"}"
+            },
+            {
+              "id": 431,
+              "name": "3bd/1ba residential - Saint Johnsbury, Vermont",
+              "price": 124600.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"5.01\", \"city\": \"Saint Johnsbury\", \"state\": \"Vermont\", \"zip_code\": \"5819\", \"house_size\": \"1152\"}"
             }
           ],
-          "count": 9
+          "count": 25
         }
       ]
     },
-    "latency_ms": 15578.000000001339
+    "latency_ms": 15983.99999999674
   },
   {
     "message": "Do you have anything for under $2,000,000?",
@@ -371,14 +370,14 @@
       "outcome": "Many rows fall under 2,000,000. price_max filtering is genuine."
     },
     "actual": {
-      "reply": " I found several properties under $2,000,000. Here are a few options:\n\n- **6bd/3ba residential** \u2013 Paterson, New Jersey \u2013 $515,000  \n- **3bd/4ba residential** \u2013 Westport, Connecticut \u2013 $1,299,000  \n- **3bd/2ba residential** \u2013 Philadelphia, Pennsylvania \u2013 $239,000  \n- **3bd/1ba residential** \u2013 Philadelphia, Pennsylvania \u2013 $299,900  \n- **4bd/3ba residential** \u2013 Dover, Massachusetts \u2013 $1,599,000  \n\nWould you like to narrow it down further \u2014 for example, by location, number of bedrooms, or another feature?",
+      "reply": "Thanks for your patience! We have quite a few homes under $2,000,000. Here are a few options from the top of the list:\n\n1. **6bd/3ba residential** in Paterson, New Jersey \u2013 $515,000  \n2. **3bd/4ba residential** in Westport, Connecticut \u2013 $1,299,000  \n3. **3bd/2ba residential** in Philadelphia, Pennsylvania \u2013 $239,000  \n4. **3bd/1ba residential** in Philadelphia, Pennsylvania \u2013 $299,900  \n5. **4bd/3ba residential** in Dover, Massachusetts \u2013 $1,599,000  \n\nThere are many more available in our catalog. Would you like to narrow it down by location, number of bedrooms, or another feature? I'm happy to help you find the perfect match!",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_max": 2000000
           },
-          "id": "chatcmpl-tool-93e8caa7165cb439"
+          "id": "chatcmpl-tool-a174ba275b9bd712"
         }
       ],
       "tool_results": [
@@ -419,7 +418,7 @@
         }
       ]
     },
-    "latency_ms": 11686.999999999898
+    "latency_ms": 13453.000000001339
   },
   {
     "message": "I'm looking to spend no more than $450,000",
@@ -431,14 +430,14 @@
       "outcome": "Many rows are at/under 450000. price_max filtering is genuine and reliable."
     },
     "actual": {
-      "reply": "Here are a few options currently available at or under $450,000:\n\n1. **3bd/2ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $239,000  \n   - 3 beds, 2 baths, 1,152 sq ft home on a 0.04-acre lot\n\n2. **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $299,900  \n   - 3 beds, 1 bath, 1,616 sq ft home on a 0.04-acre lot\n\n3. **1bd/1ba residential \u2013 Little Egg Harbor, New Jersey** \u2013 $128,000  \n   - 1 bed, 1 bath, 680 sq ft home on a 0.01-acre lot\n\n4. **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $99,000  \n   - 3 beds, 1 bath, 1,320 sq ft home on a 0.02-acre lot\n\n5. **3bd/3ba residential \u2013 Millinocket, Maine** \u2013 $350,000  \n   - 3 beds, 3 baths, 2,268 sq ft home on a 0.72-acre lot\n\nWould you like to narrow things down further? For example, do you have a preferred location, number of bedrooms, or home type in mind?",
+      "reply": "Thanks for your patience! I found several homes within your $450,000 budget. Here are a few to start with:\n\n1. **3bd/2ba residential** \u2013 Philadelphia, PA \u2013 $239,000 (1,152 sq ft)\n2. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $299,900 (1,616 sq ft)\n3. **1bd/1ba residential** \u2013 Little Egg Harbor, NJ \u2013 $128,000 (680 sq ft)\n4. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $99,000 (1,320 sq ft)\n5. **3bd/3ba residential** \u2013 Millinocket, ME \u2013 $350,000 (2,268 sq ft)\n\nThere are also plenty more listings in the catalog. To help narrow it down, could you tell me a bit more about what you're looking for? For example:\n- Any preferred city, state, or neighborhood?\n- How many bedrooms or bathrooms do you need?\n- Any must-have features (yard, garage, etc.)?\n\nI'm happy to refine the search from there!",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_max": 450000
           },
-          "id": "chatcmpl-tool-936796fe466b976e"
+          "id": "chatcmpl-tool-9e8a6352889f85ba"
         }
       ],
       "tool_results": [
@@ -479,7 +478,7 @@
         }
       ]
     },
-    "latency_ms": 18250.0
+    "latency_ms": 13921.999999998661
   },
   {
     "message": "I need a 3-bedroom house under $400,000",
@@ -492,7 +491,7 @@
       "outcome": "LLM should extract bedrooms=3 and price_max=400000. real_estate_raw.csv does have 3-bed rows under 400000, so a correct implementation could satisfy this. HOWEVER the adapter does not actually filter on bedrooms (known limitation) -- the real returned matches will only respect price_max and may include listings with a different bed count. Grade the tool call/args extraction as correct; do not require the actual matches to all have 3 bedrooms."
     },
     "actual": {
-      "reply": " I found several 3-bedroom houses under $400,000 that might work for you:\n\n- **$239,000** \u2013 3 bed / 2 bath, 1,152 sq ft, Philadelphia, PA\n- **$299,900** \u2013 3 bed / 1 bath, 1,616 sq ft, Philadelphia, PA\n- **$99,000** \u2013 3 bed / 1 bath, 1,320 sq ft, Philadelphia, PA\n- **$350,000** \u2013 3 bed / 3 bath, 2,268 sq ft, Millinocket, ME\n\nA few of these are in Philadelphia, and one is in Maine. Would you like more details on any of them, or would you like to narrow things down further (e.g., by location or other features)?",
+      "reply": "I found several 3-bedroom houses under $400,000. Here are a few options for you:\n\n1. **3bd/2ba residential** \u2013 Philadelphia, PA \u2013 $239,000\n2. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $299,900\n3. **3bd/1ba residential** \u2013 Philadelphia, PA \u2013 $99,000\n4. **3bd/3ba residential** \u2013 Millinocket, ME \u2013 $350,000\n\nWould you like more details on any of these, or do you have a specific area in mind?",
       "tool_calls_made": [
         {
           "name": "search_listings",
@@ -501,7 +500,7 @@
             "bedrooms": 3,
             "price_max": 400000
           },
-          "id": "chatcmpl-tool-8e970e2ac9f9c28d"
+          "id": "chatcmpl-tool-8237aec16bc37ed6"
         }
       ],
       "tool_results": [
@@ -542,7 +541,7 @@
         }
       ]
     },
-    "latency_ms": 21563.000000000102
+    "latency_ms": 13469.000000004598
   },
   {
     "message": "Looking for a 5-bedroom home, budget up to $700,000",
@@ -555,15 +554,16 @@
       "outcome": "bedrooms=5 and price_max=700000 should be extracted. 5-bed rows exist under 700000 in the data, but since bedrooms isn't actually filtered server-side, the returned matches may include non-5-bed listings. This is expected and not a failure of tool-call correctness."
     },
     "actual": {
-      "reply": "I found one listing that could be a great fit for you:\n\n- **6bd/3ba residential \u2013 Paterson, New Jersey** \u2014 **$515,000**  \n  3,267 sq ft, lot size 0.09 acre\n\nIt has 6 bedrooms, which exceeds your 5-bedroom requirement, and it's well under your $700,000 budget. Would you like more details on this property, or should I broaden the search to include other options?",
+      "reply": "I found a property that could be a good fit, though it's actually a 6-bedroom home rather than 5:\n\n- **6bd/3ba residential** in Paterson, New Jersey \u2014 $515,000 (3,267 sq ft)\n\nIt's within your $700,000 budget, so if you're open to an extra bedroom, it might be worth a look. Would you like me to keep searching for a true 5-bedroom, or would you like more details on this one?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
+            "property_type": "house",
             "bedrooms": 5,
             "price_max": 700000
           },
-          "id": "chatcmpl-tool-af347c129f9a156e"
+          "id": "chatcmpl-tool-adf62ecb1820b291"
         }
       ],
       "tool_results": [
@@ -604,7 +604,7 @@
         }
       ]
     },
-    "latency_ms": 28264.999999999418
+    "latency_ms": 17343.999999997322
   },
   {
     "message": "Do you have any condos available?",
@@ -616,14 +616,14 @@
       "outcome": "Every row in real_estate_raw.csv has property_type == 'residential' -- there are no condos labeled as such in the seeded data, and the adapter does not filter on property_type at all. The LLM should still extract property_type='condo' (or similar) from the message. The real downstream result will be whatever the unfiltered/price-only query returns (likely all 'residential' rows), not an honest empty result and not actually condos -- this case exists specifically to document that double limitation (no condo data + no property_type filtering)."
     },
     "actual": {
-      "reply": "I searched our catalog for condos, but the current results didn't pull up any condo listings \u2014 they\u2019re all showing up as residential properties. Would you like me to help you look for condos in a specific area, or would you like to see some of the residential options we do have available?",
+      "reply": "  I searched our current listings, but everything that came back is listed under \"residential\" rather than specifically as a condo \u2014 for example:\n\n- 3bd/2ba residential \u2013 Philadelphia, PA \u2013 $239,000\n- 3bd/1ba residential \u2013 Philadelphia, PA \u2013 $299,900\n- 3bd/4ba residential \u2013 Westport, CT \u2013 $1,299,000\n\nIt's possible some of these are condos in our system but they're not labeled that way in the results. Would you like me to look into any of these, or would you like to narrow things down by location, price range, or number of bedrooms?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "property_type": "condo"
           },
-          "id": "chatcmpl-tool-b1ac5cfe55a62ab6"
+          "id": "chatcmpl-tool-b34aaf04567ad986"
         }
       ],
       "tool_results": [
@@ -664,7 +664,7 @@
         }
       ]
     },
-    "latency_ms": 11672.00000000048
+    "latency_ms": 16968.000000000757
   },
   {
     "message": "I need a 2-bedroom apartment under $250,000",
@@ -678,7 +678,7 @@
       "outcome": "bedrooms/property_type should be extracted from the message even though neither is actually filtered by the adapter. 2-bed rows under 250000 do exist in the data, but returned matches are not guaranteed to be 2-bed or apartments specifically -- known limitation, not a tool-selection failure."
     },
     "actual": {
-      "reply": " I found a match for you:\n\n**2bd/1ba residential \u2013 New Haven, Connecticut**  \n- Price: $164,000  \n- 2 bedrooms, 1 bathroom  \n- Lot size: 0.17 acres  \n- Home size: 906 sq ft  \n\nWould you like more details on this property, or should I keep looking for other 2-bedroom options in your price range?",
+      "reply": "I found a listing that matches what you're looking for:\n\n- **2bd/1ba residential - New Haven, Connecticut** \u2014 $164,000 (906 sq ft, 0.17 acre lot)\n\nWould you like more details on this one, or are you looking in a specific area? I can also narrow the search further if you have a preferred location in mind.",
       "tool_calls_made": [
         {
           "name": "search_listings",
@@ -687,7 +687,7 @@
             "bedrooms": 2,
             "price_max": 250000
           },
-          "id": "chatcmpl-tool-859dc2419f524e50"
+          "id": "chatcmpl-tool-be397d31d89b5d17"
         }
       ],
       "tool_results": [
@@ -728,7 +728,7 @@
         }
       ]
     },
-    "latency_ms": 16359.999999998763
+    "latency_ms": 18781.999999999243
   },
   {
     "message": "Any commercial properties for sale?",
@@ -740,14 +740,14 @@
       "outcome": "real_estate_raw.csv contains zero commercial listings (every row is 'residential'). A correct, fully-filtering implementation would return zero matches. The current adapter ignores property_type entirely, so it will instead return whatever unfiltered residential rows exist -- this is the known limitation, not a hallucination by the LLM if it extracts property_type='commercial' correctly."
     },
     "actual": {
-      "reply": "I searched for commercial properties, but all the current listings in our catalog came back as residential homes. It looks like we don't have any commercial properties available right now.\n\nWould you like me to help you find a residential property instead, or is there another way I can assist you?",
+      "reply": "I ran a search for commercial properties, but unfortunately the results only came back with residential listings\u2014I don\u2019t see any commercial properties currently in the catalog. Would you like me to look at those residential options, or is there a specific location or type of property you have in mind that I could try searching for?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "property_type": "commercial"
           },
-          "id": "chatcmpl-tool-ade7d7bbef60084d"
+          "id": "chatcmpl-tool-9dce271bc13b69e9"
         }
       ],
       "tool_results": [
@@ -788,7 +788,7 @@
         }
       ]
     },
-    "latency_ms": 9922.00000000048
+    "latency_ms": 13703.000000001339
   },
   {
     "message": "I want a 4-bedroom, 3-bathroom house, nothing over $600,000",
@@ -801,15 +801,16 @@
       "outcome": "bedrooms=4 and price_max=600000 should be extracted (bathroom count has no schema field and may reasonably be dropped or folded into notes-style context, but there is no notes field on search_listings so it's fine for the LLM to simply omit it). 4-bed rows under 600000 exist, but the bedroom count won't actually be enforced -- known limitation."
     },
     "actual": {
-      "reply": " I found a few homes, but the search didn't turn up an exact 4-bedroom, 3-bathroom match under $600,000 yet. Let me run a more specific search with the bathroom filter to see if there's anything that fits.\n\n",
+      "reply": " I searched for 4-bedroom homes at or under $600,000, but I wasn't able to find one that also has 3 bathrooms within that price. The closest matches I found are:\n\n- **6 bed / 3 bath** residential in Paterson, New Jersey \u2014 $515,000\n- **4 bed / 2 bath** residential in Trumbull, Connecticut \u2014 $549,900\n\nWould you like to widen the search (for example, letting me look for any number of bathrooms), or should I focus on one of these properties?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
+            "property_type": "house",
             "bedrooms": 4,
             "price_max": 600000
           },
-          "id": "chatcmpl-tool-ba39283ce8d755f7"
+          "id": "chatcmpl-tool-a6770a160e27a9be"
         }
       ],
       "tool_results": [
@@ -850,7 +851,7 @@
         }
       ]
     },
-    "latency_ms": 24359.00000000038
+    "latency_ms": 15843.000000000757
   },
   {
     "message": "Do you have any land or lots for sale?",
@@ -862,21 +863,14 @@
       "outcome": "No 'land' property_type exists anywhere in real_estate_raw.csv (all rows are 'residential' single properties with house_size values, i.e. built homes). A correct implementation returns zero matches; the current adapter will not enforce that due to the property_type limitation."
     },
     "actual": {
-      "reply": " I searched the catalog for land or lots, but everything that came back is residential homes \u2014 it looks like we don't currently have any standalone land or empty lots listed. Would you like me to show you the residential properties that are available, or were you specifically looking for undeveloped land?",
+      "reply": " I\u2019m sorry, but it looks like the current catalog doesn\u2019t have any land or vacant lots for sale \u2014 everything that came back is residential properties (homes). \n\nWould you like to see some of those homes, or are you looking for something specific in a piece of land that I can try to help with?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "property_type": "land"
           },
-          "id": "chatcmpl-tool-99d1178c01a2088e"
-        },
-        {
-          "name": "search_listings",
-          "arguments": {
-            "property_type": "lot"
-          },
-          "id": "chatcmpl-tool-8f89a9117ed19f56"
+          "id": "chatcmpl-tool-9923ffd59eeb41b5"
         }
       ],
       "tool_results": [
@@ -914,45 +908,10 @@
             }
           ],
           "count": 339
-        },
-        {
-          "matches": [
-            {
-              "id": 353,
-              "name": "6bd/3ba residential - Paterson, New Jersey",
-              "price": 515000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
-            },
-            {
-              "id": 364,
-              "name": "3bd/4ba residential - Westport, Connecticut",
-              "price": 1299000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"4\", \"acre_lot\": \"1.05\", \"city\": \"Westport\", \"state\": \"Connecticut\", \"zip_code\": \"6880\", \"house_size\": \"2598\"}"
-            },
-            {
-              "id": 365,
-              "name": "3bd/2ba residential - Philadelphia, Pennsylvania",
-              "price": 239000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19136\", \"house_size\": \"1152\"}"
-            },
-            {
-              "id": 366,
-              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
-              "price": 299900.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19128\", \"house_size\": \"1616\"}"
-            },
-            {
-              "id": 367,
-              "name": "4bd/3ba residential - Dover, Massachusetts",
-              "price": 1599000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"3\", \"acre_lot\": \"2.21\", \"city\": \"Dover\", \"state\": \"Massachusetts\", \"zip_code\": \"2030\", \"house_size\": \"3649\"}"
-            }
-          ],
-          "count": 339
         }
       ]
     },
-    "latency_ms": 15811.99999999808
+    "latency_ms": 11312.999999994645
   },
   {
     "message": "Looking for a townhouse with at least 3 bedrooms",
@@ -965,7 +924,7 @@
       "outcome": "No 'townhouse' property_type exists in the data (only 'residential'). property_type/bedrooms extraction should still happen correctly on the LLM side; downstream filtering limitation applies as documented."
     },
     "actual": {
-      "reply": "I searched our catalog for townhouses with at least 3 bedrooms, but unfortunately the results that came back are all listed as residential properties rather than townhouses, so I don't want to pass those off as matches.\n\nCould you tell me a bit more about what you're looking for? For example:\n\n- Do you have a preferred city or state?\n- Is there a budget range I should keep in mind?\n- Would you like me to look at residential properties with at least 3 beds as an alternative, or keep trying specifically for a townhouse?\n\nJust let me know how you'd like to narrow it down!",
+      "reply": "I ran a search for townhouses with at least 3 bedrooms, but I want to be upfront: the results that came back are labeled as **residential** properties rather than townhouses specifically. Here are a few options that match your 3+ bedroom requirement:\n\n- **6bd/3ba** \u2013 Paterson, NJ \u2013 $515,000\n- **3bd/4ba** \u2013 Westport, CT \u2013 $1,299,000\n- **3bd/2ba** \u2013 Philadelphia, PA \u2013 $239,000\n- **3bd/1ba** \u2013 Philadelphia, PA \u2013 $299,900\n- **4bd/3ba** \u2013 Dover, MA \u2013 $1,599,000\n\nWould you like more details on any of these, or would you prefer to adjust your search \u2014 for example, a specific city or price range? I'm happy to keep looking.",
       "tool_calls_made": [
         {
           "name": "search_listings",
@@ -973,7 +932,7 @@
             "property_type": "townhouse",
             "bedrooms": 3
           },
-          "id": "chatcmpl-tool-8b4cf00528b06818"
+          "id": "chatcmpl-tool-9ddea4d73b5654d1"
         }
       ],
       "tool_results": [
@@ -1014,7 +973,7 @@
         }
       ]
     },
-    "latency_ms": 15875.0
+    "latency_ms": 29516.00000000326
   },
   {
     "message": "I'd like a multi-family property, 2 units or more",
@@ -1026,21 +985,14 @@
       "outcome": "No 'multi-family' property_type exists in the data (only 'residential'). Correct behavior would be zero matches; adapter limitation prevents that from being enforced."
     },
     "actual": {
-      "reply": "I searched the catalog for multi-family properties, but the results all came back listed as \"residential\" rather than multi-family with 2 or more units, so I don't want to mislabel any of them for you.\n\nHere are a few of the larger residential listings that came up, in case one happens to be close to what you have in mind:\n- **6bd/3ba residential** in Paterson, New Jersey \u2013 $515,000\n- **4bd/3ba residential** in Dover, Massachusetts \u2013 $1,599,000\n- **3bd/4ba residential** in Westport, Connecticut \u2013 $1,299,000\n\nHowever, none of these are verified as multi-family (2+ units).\n\nTo help me find the right fit, could you share a bit more?\n- Are you looking in a specific city or state?\n- What's your budget range?\n- Do you specifically need the property to be zoned/listed as multi-family, or would a large home with a separate entrance or in-law suite work too?\n\nHappy to refine the search once I know a little more!",
+      "reply": "I found several residential properties in our catalog, but I want to make sure they fit your needs. The results I have show properties with different bedroom and bathroom counts, though they don't specify the number of units.\n\nTo help narrow things down, could you tell me:\n- Are you looking in a particular city or state?\n- Do you have a budget range in mind?\n\nThat way I can find the best multi-family option for you.",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "property_type": "multi-family"
           },
-          "id": "chatcmpl-tool-809bf7f49daf23f1"
-        },
-        {
-          "name": "search_listings",
-          "arguments": {
-            "property_type": "multi family"
-          },
-          "id": "chatcmpl-tool-88cda2d1a1d7d8c5"
+          "id": "chatcmpl-tool-8d50bf348985543f"
         }
       ],
       "tool_results": [
@@ -1078,45 +1030,10 @@
             }
           ],
           "count": 339
-        },
-        {
-          "matches": [
-            {
-              "id": 353,
-              "name": "6bd/3ba residential - Paterson, New Jersey",
-              "price": 515000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
-            },
-            {
-              "id": 364,
-              "name": "3bd/4ba residential - Westport, Connecticut",
-              "price": 1299000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"4\", \"acre_lot\": \"1.05\", \"city\": \"Westport\", \"state\": \"Connecticut\", \"zip_code\": \"6880\", \"house_size\": \"2598\"}"
-            },
-            {
-              "id": 365,
-              "name": "3bd/2ba residential - Philadelphia, Pennsylvania",
-              "price": 239000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19136\", \"house_size\": \"1152\"}"
-            },
-            {
-              "id": 366,
-              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
-              "price": 299900.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19128\", \"house_size\": \"1616\"}"
-            },
-            {
-              "id": 367,
-              "name": "4bd/3ba residential - Dover, Massachusetts",
-              "price": 1599000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"3\", \"acre_lot\": \"2.21\", \"city\": \"Dover\", \"state\": \"Massachusetts\", \"zip_code\": \"2030\", \"house_size\": \"3649\"}"
-            }
-          ],
-          "count": 339
         }
       ]
     },
-    "latency_ms": 29157.00000000288
+    "latency_ms": 16686.99999999808
   },
   {
     "message": "Any single-family homes with 6 bedrooms under $1,000,000?",
@@ -1129,16 +1046,16 @@
       "outcome": "6-bedroom rows under 1,000,000 do exist in the data (e.g. 515000, 449000, 420000, 294900, 379999). price_max is genuinely applied; bedrooms is not (known limitation), so returned matches aren't guaranteed to all be 6-bed."
     },
     "actual": {
-      "reply": " I found a great match for you:\n\n**6bd/3ba residential \u2013 Paterson, New Jersey**\n- Price: $515,000\n- Bedrooms: 6, Bathrooms: 3\n- Lot size: 0.09 acres\n- House size: 3,267 sq ft\n\nThis single-family home fits your 6-bedroom and under-$1,000,000 criteria. Would you like more details on this listing, or should I keep looking for other options?",
+      "reply": "I found one property that matches your criteria:\n\n- **6bd/3ba residential** \u2013 Paterson, New Jersey \u2013 **$515,000**\n  - 6 bedrooms, 3 bathrooms\n  - 3,267 sq ft on a 0.09-acre lot\n\nWould you like more details on this one, or would you like me to widen the search?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
-            "property_type": "single-family home",
+            "property_type": "single-family",
             "bedrooms": 6,
             "price_max": 1000000
           },
-          "id": "chatcmpl-tool-b45ab995cac5e794"
+          "id": "chatcmpl-tool-96fe7023ec748dc7"
         }
       ],
       "tool_results": [
@@ -1179,7 +1096,7 @@
         }
       ]
     },
-    "latency_ms": 14296.999999998661
+    "latency_ms": 13671.999999998661
   },
   {
     "message": "I want something affordable",
@@ -1189,12 +1106,12 @@
       "outcome": "No concrete price or type given. search_listings with empty args (or a clarifying question first) is acceptable; exact args are not strictly graded for this ambiguous case."
     },
     "actual": {
-      "reply": " Thanks for your patience! Here are a few affordable options from our catalog:\n\n- **3bd/2ba residential in Philadelphia, PA** \u2013 $239,000\n- **3bd/1ba residential in Philadelphia, PA** \u2013 $299,900\n- **6bd/3ba residential in Paterson, NJ** \u2013 $515,000\n\nWould any of these catch your eye? Or if you'd like, I can narrow things down further by location, number of bedrooms, or a specific price range that feels comfortable for you.",
+      "reply": " Thanks for your patience! Here are a couple of the more affordable places I came across:\n\n- **3bd/2ba residential in Philadelphia, PA** \u2013 $239,000\n- **3bd/1ba residential in Philadelphia, PA** \u2013 $299,900\n\nWould you like more details on either of these, or are you looking for a particular area or number of bedrooms? I'm happy to help narrow things down.",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {},
-          "id": "chatcmpl-tool-acf5de4eab1c43e6"
+          "id": "chatcmpl-tool-91c38df1c67b3696"
         }
       ],
       "tool_results": [
@@ -1235,7 +1152,7 @@
         }
       ]
     },
-    "latency_ms": 25155.99999999904
+    "latency_ms": 18172.000000005937
   },
   {
     "message": "I'm looking for a starter home",
@@ -1245,14 +1162,12 @@
       "outcome": "'Starter home' has no direct schema mapping. search_listings with empty/loose args is acceptable; not strictly graded on args."
     },
     "actual": {
-      "reply": "  Here are a few options from our current listings that could work well as a starter home:\n\n1. **3bd/2ba residential** in Philadelphia, PA \u2014 $239,000 (1,152 sq ft)\n2. **3bd/1ba residential** in Philadelphia, PA \u2014 $299,900 (1,616 sq ft)\n3. **3bd/4ba residential** in Westport, CT \u2014 $1,299,000 (2,598 sq ft)\n\nThe two Philadelphia homes look especially well-suited for a first-time buyer. Do you have a preferred location or a price range in mind? I'd be happy to narrow the search further.",
+      "reply": "I see a few options in our catalog that could work well as starter homes. Here are the ones that stand out:\n\n1. **3bd/2ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $239,000\n   - 1,152 sq ft, small lot\n   - Nice, compact size for a first home\n\n2. **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $299,900\n   - 1,616 sq ft, small lot\n   - More space, still a reasonable starter size\n\nI also have some larger/more expensive listings, but those are probably more than a typical starter-home buyer is looking for.\n\nDo either of those Philadelphia homes sound interesting to you? I'm also happy to narrow things down by location, price range, or other details if you have something specific in mind.",
       "tool_calls_made": [
         {
           "name": "search_listings",
-          "arguments": {
-            "property_type": "house"
-          },
-          "id": "chatcmpl-tool-8e8e30ab5c09bc0e"
+          "arguments": {},
+          "id": "chatcmpl-tool-ad21f9069a25ba94"
         }
       ],
       "tool_results": [
@@ -1293,7 +1208,7 @@
         }
       ]
     },
-    "latency_ms": 20203.00000000134
+    "latency_ms": 18827.999999994063
   },
   {
     "message": "Do you have any investment properties?",
@@ -1303,12 +1218,12 @@
       "outcome": "'Investment property' is not a schema field. search_listings with empty args acceptable; not strictly graded on args."
     },
     "actual": {
-      "reply": " I found several residential properties in our catalog that could work well as investment opportunities. Here are a few options to start:\n\n- **6bd/3ba residential \u2013 Paterson, New Jersey** \u2013 $515,000\n- **3bd/2ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $239,000\n- **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $299,900\n- **3bd/4ba residential \u2013 Westport, Connecticut** \u2013 $1,299,000\n- **4bd/3ba residential \u2013 Dover, Massachusetts** \u2013 $1,599,000\n\nWould you like to narrow it down by location, budget, or property type? I'm happy to help you find the right fit.",
+      "reply": "We do have quite a few residential properties that could work as investments. To help me narrow it down, do you have a location or budget in mind? For context, a few options that just came up include:\n\n- **6bd/3ba residential** in Paterson, New Jersey \u2013 $515,000\n- **3bd/4ba residential** in Westport, Connecticut \u2013 $1,299,000\n- **3bd/2ba residential** in Philadelphia, Pennsylvania \u2013 $239,000\n- **3bd/1ba residential** in Philadelphia, Pennsylvania \u2013 $299,900\n- **4bd/3ba residential** in Dover, Massachusetts \u2013 $1,599,000\n\nWould any of these areas interest you, or would you like me to look for something in a particular price range or city?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {},
-          "id": "chatcmpl-tool-b7e438c2b34a9b78"
+          "id": "chatcmpl-tool-b9e7016f5b0797a0"
         }
       ],
       "tool_results": [
@@ -1349,7 +1264,7 @@
         }
       ]
     },
-    "latency_ms": 14625.0
+    "latency_ms": 16078.000000001339
   },
   {
     "message": "What's on the market right now?",
@@ -1359,12 +1274,12 @@
       "outcome": "General browse request maps cleanly to search_listings with no filters -- this is the clearest of the ambiguous cases and args genuinely should be empty."
     },
     "actual": {
-      "reply": "Here\u2019s a quick look at a few homes currently on the market:\n\n- **6bd/3ba residential** in Paterson, NJ \u2014 $515,000\n- **3bd/4ba residential** in Westport, CT \u2014 $1,299,000\n- **3bd/2ba residential** in Philadelphia, PA \u2014 $239,000\n- **3bd/1ba residential** in Philadelphia, PA \u2014 $299,900\n- **4bd/3ba residential** in Dover, MA \u2014 $1,599,000\n\nThere are many more listings too. What are you looking for? A particular area, budget range, or number of bedrooms and bathrooms? I can narrow it down for you.",
+      "reply": "Here are a few properties currently on the market:\n\n- **6bd/3ba residential** in Paterson, New Jersey \u2014 $515,000\n- **3bd/4ba residential** in Westport, Connecticut \u2014 $1,299,000\n- **3bd/2ba residential** in Philadelphia, Pennsylvania \u2014 $239,000\n- **3bd/1ba residential** in Philadelphia, Pennsylvania \u2014 $299,900\n- **4bd/3ba residential** in Dover, Massachusetts \u2014 $1,599,000\n\nThere are many more available \u2014 339 listings in total. What kind of place are you hoping to find? I can narrow it down by location, price range, or other features you care about.",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {},
-          "id": "chatcmpl-tool-a67429ba7bc45dee"
+          "id": "chatcmpl-tool-8000c5ccafd640d8"
         }
       ],
       "tool_results": [
@@ -1405,7 +1320,7 @@
         }
       ]
     },
-    "latency_ms": 16000.0
+    "latency_ms": 11766.00000000326
   },
   {
     "message": "I want something spacious for a big family",
@@ -1415,20 +1330,15 @@
       "outcome": "'Spacious' doesn't map directly to bed/bath/price without more info. search_listings with empty args, or a clarifying question, is acceptable; not strictly graded on args."
     },
     "actual": {
-      "reply": "Here are a couple of options that look especially roomy for a big family:\n\n- **6bd/3ba residential** in Paterson, New Jersey \u2014 3,267 sq ft, listed at $515,000\n- **4bd/3ba residential** in Dover, Massachusetts \u2014 3,649 sq ft, listed at $1,599,000\n- There's also a **3bd/4ba** in Westport, Connecticut \u2014 2,598 sq ft, listed at $1,299,000\n\nWould you like to narrow it down by location or budget? I'm happy to look further!",
+      "reply": "Here are a few options that could work well for a big family:\n\n1. **6bd/3ba residential \u2013 Paterson, New Jersey** \u2013 $515,000  \n   - 6 bedrooms, 3 bathrooms, 3,267 sq ft on a 0.09-acre lot\n\n2. **4bd/3ba residential \u2013 Dover, Massachusetts** \u2013 $1,599,000  \n   - 4 bedrooms, 3 bathrooms, 3,649 sq ft on 2.21 acres\n\n3. **3bd/4ba residential \u2013 Westport, Connecticut** \u2013 $1,299,000  \n   - 3 bedrooms, 4 bathrooms, 2,598 sq ft on 1.05 acres\n\nWould you like more details on any of these, or should I adjust the search (for example, a specific area or budget)?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
-            "property_type": "house",
+            "property_type": "House",
             "bedrooms": 4
           },
-          "id": "chatcmpl-tool-8c0ff7c9bee9c3c7"
-        },
-        {
-          "name": "search_listings",
-          "arguments": {},
-          "id": "chatcmpl-tool-81f4b8d3f1f2a5e1"
+          "id": "chatcmpl-tool-8d81baaed66ddaa7"
         }
       ],
       "tool_results": [
@@ -1466,45 +1376,10 @@
             }
           ],
           "count": 339
-        },
-        {
-          "matches": [
-            {
-              "id": 353,
-              "name": "6bd/3ba residential - Paterson, New Jersey",
-              "price": 515000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
-            },
-            {
-              "id": 364,
-              "name": "3bd/4ba residential - Westport, Connecticut",
-              "price": 1299000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"4\", \"acre_lot\": \"1.05\", \"city\": \"Westport\", \"state\": \"Connecticut\", \"zip_code\": \"6880\", \"house_size\": \"2598\"}"
-            },
-            {
-              "id": 365,
-              "name": "3bd/2ba residential - Philadelphia, Pennsylvania",
-              "price": 239000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19136\", \"house_size\": \"1152\"}"
-            },
-            {
-              "id": 366,
-              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
-              "price": 299900.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19128\", \"house_size\": \"1616\"}"
-            },
-            {
-              "id": 367,
-              "name": "4bd/3ba residential - Dover, Massachusetts",
-              "price": 1599000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"3\", \"acre_lot\": \"2.21\", \"city\": \"Dover\", \"state\": \"Massachusetts\", \"zip_code\": \"2030\", \"house_size\": \"3649\"}"
-            }
-          ],
-          "count": 339
         }
       ]
     },
-    "latency_ms": 19500.0
+    "latency_ms": 16514.999999999418
   },
   {
     "message": "Looking for a fixer-upper, something cheap I can renovate",
@@ -1514,97 +1389,55 @@
       "outcome": "'Fixer-upper' has no schema field; 'cheap' has no concrete number. search_listings with empty args (or a guessed low price_max) is acceptable; not strictly graded on args."
     },
     "actual": {
-      "reply": "I ran a search for residential properties, but I should be upfront that our catalog doesn't have a specific \"fixer-upper\" or condition filter, so I can't confirm which of these need work. Here are a few of the more budget-friendly options that came back:\n\n- **3bd/2ba residential \u2013 Philadelphia, PA** \u2013 $239,000\n- **3bd/1ba residential \u2013 Philadelphia, PA** \u2013 $299,900\n- **6bd/3ba residential \u2013 Paterson, NJ** \u2013 $515,000\n\nDo you have a preferred location or a max budget in mind? If you can share a bit more about what you're looking for, I can narrow things down. Also, if you'd like, I can pull the full details on any of these.",
+      "reply": " Here are a few affordable fixer-uppers from our current listings:\n\n1. **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $99,000  \n   1,320 sq ft, 0.02 acre lot\n\n2. **3bd/1ba residential \u2013 Smyrna Mills, Maine** \u2013 $85,500  \n   858 sq ft, 0.8 acre lot\n\n3. **2bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $114,000  \n   896 sq ft, 0.02 acre lot\n\n4. **1bd/1ba residential \u2013 Bridgeton, New Jersey** \u2013 $61,000  \n   696 sq ft, 0.2 acre lot\n\nWould any of these areas appeal to you? I can search by location or narrow the price range further if you'd like.",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
-            "property_type": "house"
+            "price_max": 120000
           },
-          "id": "chatcmpl-tool-962a5b67425bc693"
-        },
-        {
-          "name": "search_listings",
-          "arguments": {
-            "property_type": "condo"
-          },
-          "id": "chatcmpl-tool-8ad95e88762de553"
+          "id": "chatcmpl-tool-b83d4317432f6006"
         }
       ],
       "tool_results": [
         {
           "matches": [
             {
-              "id": 353,
-              "name": "6bd/3ba residential - Paterson, New Jersey",
-              "price": 515000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
-            },
-            {
-              "id": 364,
-              "name": "3bd/4ba residential - Westport, Connecticut",
-              "price": 1299000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"4\", \"acre_lot\": \"1.05\", \"city\": \"Westport\", \"state\": \"Connecticut\", \"zip_code\": \"6880\", \"house_size\": \"2598\"}"
-            },
-            {
-              "id": 365,
-              "name": "3bd/2ba residential - Philadelphia, Pennsylvania",
-              "price": 239000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19136\", \"house_size\": \"1152\"}"
-            },
-            {
-              "id": 366,
+              "id": 370,
               "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
-              "price": 299900.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19128\", \"house_size\": \"1616\"}"
+              "price": 99000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19143\", \"house_size\": \"1320\"}"
             },
             {
-              "id": 367,
-              "name": "4bd/3ba residential - Dover, Massachusetts",
-              "price": 1599000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"3\", \"acre_lot\": \"2.21\", \"city\": \"Dover\", \"state\": \"Massachusetts\", \"zip_code\": \"2030\", \"house_size\": \"3649\"}"
+              "id": 402,
+              "name": "3bd/1ba residential - Smyrna Mills, Maine",
+              "price": 85500.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.8\", \"city\": \"Smyrna Mills\", \"state\": \"Maine\", \"zip_code\": \"4780\", \"house_size\": \"858\"}"
+            },
+            {
+              "id": 427,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 115900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19138\", \"house_size\": \"960\"}"
+            },
+            {
+              "id": 466,
+              "name": "2bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 114000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19134\", \"house_size\": \"896\"}"
+            },
+            {
+              "id": 469,
+              "name": "1bd/1ba residential - Bridgeton, New Jersey",
+              "price": 61000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.2\", \"city\": \"Bridgeton\", \"state\": \"New Jersey\", \"zip_code\": \"8302\", \"house_size\": \"696\"}"
             }
           ],
-          "count": 339
-        },
-        {
-          "matches": [
-            {
-              "id": 353,
-              "name": "6bd/3ba residential - Paterson, New Jersey",
-              "price": 515000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
-            },
-            {
-              "id": 364,
-              "name": "3bd/4ba residential - Westport, Connecticut",
-              "price": 1299000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"4\", \"acre_lot\": \"1.05\", \"city\": \"Westport\", \"state\": \"Connecticut\", \"zip_code\": \"6880\", \"house_size\": \"2598\"}"
-            },
-            {
-              "id": 365,
-              "name": "3bd/2ba residential - Philadelphia, Pennsylvania",
-              "price": 239000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19136\", \"house_size\": \"1152\"}"
-            },
-            {
-              "id": 366,
-              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
-              "price": 299900.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19128\", \"house_size\": \"1616\"}"
-            },
-            {
-              "id": 367,
-              "name": "4bd/3ba residential - Dover, Massachusetts",
-              "price": 1599000.0,
-              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"3\", \"acre_lot\": \"2.21\", \"city\": \"Dover\", \"state\": \"Massachusetts\", \"zip_code\": \"2030\", \"house_size\": \"3649\"}"
-            }
-          ],
-          "count": 339
+          "count": 15
         }
       ]
     },
-    "latency_ms": 22719.00000000096
+    "latency_ms": 15953.000000001339
   },
   {
     "message": "I want something near the beach",
@@ -1614,12 +1447,12 @@
       "outcome": "Location/proximity has no schema field on search_listings (no city/state args exposed). search_listings with empty args is acceptable, or a clarifying/conversational reply about location not being searchable; not strictly graded on args."
     },
     "actual": {
-      "reply": "I'm sorry, but my catalog search doesn't have a specific \"near the beach\" filter, and none of the listings that came back are obviously beachfront or coastal properties \u2014 they're mostly in cities like Paterson, NJ; Westport, CT; Philadelphia, PA; and Dover, MA.\n\nWould you like to tell me a specific city or region you have in mind? I'd be happy to search again with that detail.",
+      "reply": "Thanks for your patience \u2014 I pulled up what's currently in the catalog. I don't have a \"near the beach\" filter specifically, so I can't confirm beach proximity from the listing data alone. That said, one option stands out as being in a coastal area:\n\n- **3bd/4ba residential \u2013 Westport, Connecticut** at $1,299,000 (Westport is right on the coast)\n\nWould you like more details on that one, or are you looking for something in a particular area or price range?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {},
-          "id": "chatcmpl-tool-84342b5d2e462023"
+          "id": "chatcmpl-tool-9d3f3d7bd989baac"
         }
       ],
       "tool_results": [
@@ -1660,7 +1493,7 @@
         }
       ]
     },
-    "latency_ms": 26969.00000000096
+    "latency_ms": 23562.999999994645
   },
   {
     "message": "What's a good property for a first-time buyer?",
@@ -1670,12 +1503,12 @@
       "outcome": "Vague qualitative request with no concrete filter. search_listings with empty args acceptable; not strictly graded on args."
     },
     "actual": {
-      "reply": " Since you mentioned this is for a first-time buyer, I'd love to help you narrow it down! Would you like to tell me a bit more about what you're looking for \u2014 for example, a budget range, preferred city or state, number of bedrooms, or any must-have features?\n\nIn the meantime, here are a few of the more accessible options from our current catalog that could work well as starter homes:\n\n- **3bd/2ba residential in Philadelphia, PA** \u2013 $239,000\n- **3bd/1ba residential in Philadelphia, PA** \u2013 $299,900\n\nBoth are reasonably priced and could be a great starting point depending on your needs. Do either of these sound interesting, or would you like to explore more options?",
+      "reply": " I'd be glad to help you find a great starter home! To narrow things down, could you tell me:\n\n1. **Preferred location** (city or state)?\n2. **Approximate budget**?\n3. Any **must-haves** like number of bedrooms or a yard?\n\nThat way I can point you to options that fit what a first-time buyer in your situation is really looking for.",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {},
-          "id": "chatcmpl-tool-83c6ee4e36e7eb29"
+          "id": "chatcmpl-tool-a2ca29efde093921"
         }
       ],
       "tool_results": [
@@ -1716,7 +1549,7 @@
         }
       ]
     },
-    "latency_ms": 15155.99999999904
+    "latency_ms": 11437.000000005355
   },
   {
     "message": "Do you have anything under $50,000?",
@@ -1728,14 +1561,14 @@
       "outcome": "The cheapest property in real_estate_raw.csv is 61000. price_max=50000 is genuinely below every seeded price, and since price_max filtering is real (not subject to the bedrooms/property_type limitation), the system should correctly return zero matches end-to-end."
     },
     "actual": {
-      "reply": " I'm sorry, but it looks like we don't currently have any listings available under $50,000. Would you like to broaden your search, or is there a different price range or type of item I can help you look for?",
+      "reply": " I searched our catalog for items under $50,000, but unfortunately nothing came back in that price range. Would you like to adjust your budget or share a bit more about what you're looking for so I can help find the right fit?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_max": 50000
           },
-          "id": "chatcmpl-tool-a9a9ae3b0e7ce689"
+          "id": "chatcmpl-tool-a0156b39ce9453d5"
         }
       ],
       "tool_results": [
@@ -1745,7 +1578,7 @@
         }
       ]
     },
-    "latency_ms": 12296.999999998661
+    "latency_ms": 9390.999999995984
   },
   {
     "message": "Is there anything over $20,000,000?",
@@ -1757,14 +1590,14 @@
       "outcome": "The most expensive property in real_estate_raw.csv is 16,800,000. Asking for something OVER a max isn't representable by the price_max (upper-bound) schema field at all -- the correct behavior is a clarifying response or a conversational answer noting nothing exceeds that price, likely without a meaningful search_listings call. If the LLM does call search_listings, no price_max value can correctly express 'over $20M', so expected_args intentionally leaves it null/unset; grade primarily on whether the reply correctly conveys no such listing exists rather than on tool args."
     },
     "actual": {
-      "reply": " I searched for items over $20,000,000, but I\u2019m afraid nothing in the catalog falls in that price range. If you\u2019d like, I can help you look for something in a different price bracket\u2014just let me know what you have in mind!",
+      "reply": " I searched our catalog for anything over $20,000,000, but unfortunately there are no current listings in that price range. \n\nWould you like me to check a lower price point, or is there another type of property you're interested in?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_min": 20000000
           },
-          "id": "chatcmpl-tool-91f715c779835893"
+          "id": "chatcmpl-tool-bc5a1276ceacd9be"
         }
       ],
       "tool_results": [
@@ -1774,7 +1607,7 @@
         }
       ]
     },
-    "latency_ms": 11000.0
+    "latency_ms": 9359.000000004016
   },
   {
     "message": "I need a 5-bedroom condo under $150,000",
@@ -1788,7 +1621,7 @@
       "outcome": "No condo property_type exists at all in real_estate_raw.csv (only 'residential'), independent of the bedroom/price combination. A fully correct implementation returns zero matches for the type reason alone. The current adapter won't enforce that (property_type is not filtered), so this is both a genuine no-match case and a limitation-exposing case at once."
     },
     "actual": {
-      "reply": "  I searched the catalog for 5-bedroom condos under $150,000, but unfortunately none of the results matched that exact combination. The listings that came back were all residential properties with fewer than 5 bedrooms (mostly 3-bedroom homes), with prices ranging from about $85,500 to $128,000.\n\nWould you like me to broaden your search \u2014 for example, to include other property types, or to look for a different number of bedrooms? I'm happy to help find something closer to what you need.",
+      "reply": " I looked for a 5-bedroom condo under $150,000, but I'm not finding any that match that specific combination. The closest listings I have right now are homes with 1 to 3 bedrooms in that price range (for example, a 3-bedroom in Philadelphia for $99,000).\n\nWould you like me to broaden the search to include other property types, or adjust the bedroom count? I'm happy to help you explore other options.",
       "tool_calls_made": [
         {
           "name": "search_listings",
@@ -1797,7 +1630,7 @@
             "bedrooms": 5,
             "price_max": 150000
           },
-          "id": "chatcmpl-tool-a6023c358fb3c174"
+          "id": "chatcmpl-tool-897bf82d19b94b8d"
         }
       ],
       "tool_results": [
@@ -1838,7 +1671,7 @@
         }
       ]
     },
-    "latency_ms": 21250.0
+    "latency_ms": 10438.00000000192
   },
   {
     "message": "Do you have anything in Beverly Hills, California?",
@@ -1848,12 +1681,12 @@
       "outcome": "real_estate_raw.csv covers Northeastern/Mid-Atlantic US states plus Puerto Rico (e.g. Massachusetts, New Jersey, Connecticut, New York, Pennsylvania, Rhode Island, New Hampshire, Maine, Vermont, Delaware) -- no California rows exist at all. There is no city/state arg on search_listings, so the LLM cannot filter by location even if it wanted to; the correct conversational behavior is to say California/Beverly Hills isn't covered, ideally without fabricating a match. This tests hallucination resistance more than tool-arg correctness."
     },
     "actual": {
-      "reply": "I searched our catalog for you, but the current listings don't include any properties in Beverly Hills, California \u2014 the available homes are in other areas like New Jersey, Connecticut, Pennsylvania, and Massachusetts.\n\nIf you'd like, I can help you search for something in a different city, or you can tell me more about what you're looking for (number of bedrooms, price range, etc.) and I'll do my best to find a match.",
+      "reply": " I searched our current inventory, but unfortunately I don't see any listings in Beverly Hills, California right now. The available properties I found are in places like New Jersey, Connecticut, Pennsylvania, and Massachusetts.\n\nWould you like me to broaden the search to other areas in California, or is there another city or type of property you have in mind? I'm happy to keep looking for you.",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {},
-          "id": "chatcmpl-tool-a695ca1aae60c9a6"
+          "id": "chatcmpl-tool-80dc2a944fd6b73c"
         }
       ],
       "tool_results": [
@@ -1894,7 +1727,7 @@
         }
       ]
     },
-    "latency_ms": 18485.000000000582
+    "latency_ms": 11296.000000002095
   },
   {
     "message": "Anything under $10,000?",
@@ -1906,14 +1739,14 @@
       "outcome": "The cheapest property in real_estate_raw.csv is 61000, far above 10000. price_max filtering is real and reliable, so this should correctly return zero matches end-to-end."
     },
     "actual": {
-      "reply": "I searched our catalog for items under $10,000, but nothing came back at that price point right now.\n\nWould you like me to check listings in a different price range, or do you have a specific type of item in mind that I can look for?",
+      "reply": "I searched the catalog for items under $10,000, but nothing came back in that price range. If you'd like, I can widen the search or help you look for something else \u2014 just let me know.",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_max": 10000
           },
-          "id": "chatcmpl-tool-8215d0d1d58bcdfd"
+          "id": "chatcmpl-tool-ad8109e55413fa2b"
         }
       ],
       "tool_results": [
@@ -1923,7 +1756,7 @@
         }
       ]
     },
-    "latency_ms": 10545.999999998457
+    "latency_ms": 9578.000000001339
   },
   {
     "message": "I need an 8-bedroom mansion under $200,000",
@@ -1936,16 +1769,16 @@
       "outcome": "8-bedroom rows in real_estate_raw.csv are all priced well above 200000 (e.g. 674900, 415000, 480000, 339000 minimum for 8-bed is around 339000). A correct implementation would return zero matches for this exact bed+price combo, but since bedrooms isn't actually filtered, the current adapter will return other listings under 200000 that aren't 8-bed -- known limitation, exposed intentionally by this case."
     },
     "actual": {
-      "reply": "I searched our catalog for an 8-bedroom mansion under $200,000, but the results didn't include any homes matching that description. The closest listings I found were much smaller properties\u2014mostly 1- to 3-bedroom homes in states like New Jersey, Pennsylvania, Connecticut, Maine, and Massachusetts.\n\nWould you like me to adjust the search\u2014for example, by raising your budget, relaxing the number of bedrooms, or looking specifically in a certain state? I'm happy to help you find something closer to what you need.",
+      "reply": "I searched for an 8-bedroom mansion under $200,000, but unfortunately none of the listings I found match that description \u2014 the results available are all smaller residential homes (ranging from 1 to 3 bedrooms) and are priced under $200k, but not mansions with 8 bedrooms.\n\nWould you like me to broaden your search, perhaps by adjusting the number of bedrooms, location, or price range?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
+            "property_type": "mansion",
             "bedrooms": 8,
-            "price_max": 200000,
-            "property_type": "mansion"
+            "price_max": 200000
           },
-          "id": "chatcmpl-tool-a797d5af28e3c268"
+          "id": "chatcmpl-tool-bf5cb8a710c6f032"
         }
       ],
       "tool_results": [
@@ -1986,7 +1819,7 @@
         }
       ]
     },
-    "latency_ms": 15563.00000000192
+    "latency_ms": 10125.0
   },
   {
     "message": "What's your commission rate as an agent?",
@@ -1996,11 +1829,11 @@
       "outcome": "Commission/fee questions are not covered by either tool (search_listings, create_lead). Expected: conversational reply, no tool call."
     },
     "actual": {
-      "reply": "I'm not able to quote commission rates \u2014 I'm just here to help you browse the catalog and get you connected with the right person for anything sales-side. Happy to search available listings if you'd like! Is there a particular type of property or price range you're interested in?",
+      "reply": "I'm not the right person to ask about commission rates \u2014 I'm just here to help you browse the catalog and get you connected with our sales team. Is there a particular type of home you're looking for today?",
       "tool_calls_made": [],
       "tool_results": []
     },
-    "latency_ms": 5139.999999999418
+    "latency_ms": 3938.000000001921
   },
   {
     "message": "Do you offer virtual tours of the properties?",
@@ -2010,11 +1843,11 @@
       "outcome": "Virtual tour availability is not a tool-schema concern. Expected: conversational reply, no tool call."
     },
     "actual": {
-      "reply": "I'm sorry, I don't offer virtual tours myself \u2014 I'm only able to help you search the catalog and pass your info along to a human on the team who can help further. Would you like me to help you find some properties that match what you're looking for in the meantime?",
+      "reply": " I'm sorry, I'm not able to arrange virtual tours or provide details about them. But I'd be happy to help you search our available listings by property type, bedrooms, or price \u2014 or set up a viewing of a specific property. What kind of place are you looking for?",
       "tool_calls_made": [],
       "tool_results": []
     },
-    "latency_ms": 6453.000000001339
+    "latency_ms": 4889.999999999418
   },
   {
     "message": "What's your office address?",
@@ -2024,11 +1857,11 @@
       "outcome": "Office location isn't covered by either tool. Expected: conversational reply, no tool call."
     },
     "actual": {
-      "reply": "I appreciate you asking, but I don't have an office address to share \u2014 I'm just here to help you browse the catalog of listings and connect you with a human salesperson when you're ready.\n\nIs there a particular type of property you're looking for? I'd be happy to help you find something that fits your needs.",
+      "reply": " I don't have an office address to share \u2014 I'm only set up to help you search the catalog, schedule viewings, and create leads. Is there a particular kind of property I can help you find today?",
       "tool_calls_made": [],
       "tool_results": []
     },
-    "latency_ms": 5296.999999998661
+    "latency_ms": 3656.9999999992433
   },
   {
     "message": "Can I talk to a real human agent?",
@@ -2038,11 +1871,11 @@
       "outcome": "Escalation request, not a search or lead action. Expected: conversational reply acknowledging the request, no tool call."
     },
     "actual": {
-      "reply": " I can certainly help you look through what's available and get you started! I'm not able to transfer calls directly, but if you tell me a bit about what you're looking for \u2014 like the type of property, number of bedrooms, or a budget \u2014 I can find matching options. Once you've found one you're interested in, I can pass your details along so a human agent can follow up with you.\n\nWhat are you in the market for?",
+      "reply": "I'm happy to help you browse our catalog in the meantime. If you tell me what you're looking for (property type, budget, number of bedrooms, etc.), I can search for options for you. When you're ready to move forward on a specific place, I can also pass your details along to a human agent to get you connected. Is there something particular you'd like me to look for?",
       "tool_calls_made": [],
       "tool_results": []
     },
-    "latency_ms": 16797.0000000023
+    "latency_ms": 6500.0
   },
   {
     "message": "Do you accept cryptocurrency as payment?",
@@ -2052,11 +1885,11 @@
       "outcome": "Payment method policy is out of scope for both tools. Expected: conversational reply, no tool call."
     },
     "actual": {
-      "reply": "That's a great question, but I can't speak to payment policies \u2014 that would be handled by the human sales team. I'm here to help you browse the catalog and find properties that match what you're looking for. What type of place are you interested in?",
+      "reply": "I'm sorry, I don't handle payment details \u2014 that's something our human team would be happy to walk you through. In the meantime, is there something specific I can help you find in our listings, like a property type or price range?",
       "tool_calls_made": [],
       "tool_results": []
     },
-    "latency_ms": 7390.999999999622
+    "latency_ms": 4406.000000002678
   },
   {
     "message": "What's today's mortgage interest rate?",
@@ -2066,11 +1899,11 @@
       "outcome": "Mortgage rates are unrelated to search_listings/create_lead. Expected: conversational reply, no tool call."
     },
     "actual": {
-      "reply": "I'm sorry, but I don't have access to mortgage interest rate information \u2014 I can only help you browse our property catalog and connect you with our team. I'd be glad to help you find listings that match what you're looking for. What kind of property are you in the market for?",
+      "reply": "I don't have access to current mortgage rates \u2014 that's outside what I can help with. But I'd be happy to help you find listings, set up a viewing, or hold a property you're interested in. What are you looking for in a home?",
       "tool_calls_made": [],
       "tool_results": []
     },
-    "latency_ms": 8452.9999999977
+    "latency_ms": 3968.9999999973224
   },
   {
     "message": "I want to put in an offer on the house at $299,900 in Monroeville. I'm David Kim, david.kim@example.com.",
@@ -2085,7 +1918,7 @@
       "outcome": "Clear purchase-intent statement referencing a specific listing, name, contact, and price -- create_lead is expected. Exact wording of the 'name' field may vary; grade on presence of customer_name/customer_contact/price and correct tool selection."
     },
     "actual": {
-      "reply": "Thanks, David! I've created the lead for the Monroeville property at $299,900 under your name and email. A human agent will be in touch with you soon to help with the next steps for your offer. Is there anything else I can help you with in the meantime?",
+      "reply": "Thank you, David! I've passed your offer along to our sales team, and they'll be in touch with you at david.kim@example.com shortly to assist with next steps.\n\nJust to confirm, you're interested in the Monroeville property listed at $299,900 \u2014 correct? If there's anything else I can help you with in the meantime \u2014 like browsing other homes or setting up a time for you to view a property \u2014 just let me know!",
       "tool_calls_made": [
         {
           "name": "create_lead",
@@ -2094,9 +1927,9 @@
             "customer_name": "David Kim",
             "customer_contact": "david.kim@example.com",
             "price": 299900,
-            "notes": "Customer would like to put in an offer on this Monroeville property."
+            "notes": "Customer would like to put in an offer on the house at $299,900 in Monroeville."
           },
-          "id": "chatcmpl-tool-bbb23b60d09972f6"
+          "id": "chatcmpl-tool-89b046dc98fdd4a3"
         }
       ],
       "tool_results": [
@@ -2105,7 +1938,7 @@
         }
       ]
     },
-    "latency_ms": 20453.00000000134
+    "latency_ms": 34561.99999999808
   },
   {
     "message": "Please have someone contact me about the $649,900 listing in East Providence. Name's Angela Ruiz, phone 555-222-3333.",
@@ -2120,18 +1953,18 @@
       "outcome": "Callback request about a specific priced listing with contact info -- create_lead expected."
     },
     "actual": {
-      "reply": "Thanks, Angela \u2014 I've passed your request along, and someone will reach out to you at 555-222-3333 about the East Providence listing. Is there anything else I can help you with in the meantime?",
+      "reply": "Thank you, Angela. I've passed along your request, and someone will be in touch about the East Providence listing shortly. Is there anything else I can help you with in the meantime?",
       "tool_calls_made": [
         {
           "name": "create_lead",
           "arguments": {
-            "name": "East Providence listing - $649,900",
+            "name": "$649,900 listing in East Providence",
             "customer_name": "Angela Ruiz",
             "customer_contact": "555-222-3333",
             "price": 649900,
-            "notes": "Customer requested follow-up on the $649,900 listing in East Providence. Contact by phone."
+            "notes": "Customer asked to be contacted about this listing."
           },
-          "id": "chatcmpl-tool-9dbbbed285be2883"
+          "id": "chatcmpl-tool-9e73d87a52af4c13"
         }
       ],
       "tool_results": [
@@ -2140,7 +1973,7 @@
         }
       ]
     },
-    "latency_ms": 22186.99999999808
+    "latency_ms": 23063.00000000192
   },
   {
     "message": "I'm ready to move forward on the $450,000 property. This is Michael Chen, michael.chen@example.com. I can close within 30 days.",
@@ -2156,27 +1989,56 @@
       "outcome": "Clear buy decision with a timeline note -- create_lead expected, with the closing timeline captured as notes."
     },
     "actual": {
-      "reply": "Perfect, Michael \u2014 I've passed your information along as a lead to our team. You're all set to move forward on the $450,000 property, and someone will be in touch with you at michael.chen@example.com shortly regarding next steps. Please don't hesitate to reach out if there's anything else I can help you with in the meantime!",
+      "reply": "Sorry, I didn't catch that. Could you tell me what you're looking for?",
       "tool_calls_made": [
         {
-          "name": "create_lead",
+          "name": "search_listings",
           "arguments": {
-            "name": "$450,000 Property",
-            "customer_name": "Michael Chen",
-            "customer_contact": "michael.chen@example.com",
-            "price": 450000,
-            "notes": "Customer is ready to move forward on the $450,000 property and can close within 30 days."
+            "price_min": 440000,
+            "price_max": 460000
           },
-          "id": "chatcmpl-tool-918c9065427d6a9a"
+          "id": "chatcmpl-tool-970531c01e93c821"
         }
       ],
       "tool_results": [
         {
-          "lead_id": 900000
+          "matches": [
+            {
+              "id": 372,
+              "name": "3bd/1ba residential - East Hampton, Connecticut",
+              "price": 450000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"9.59\", \"city\": \"East Hampton\", \"state\": \"Connecticut\", \"zip_code\": \"6424\", \"house_size\": \"2014\"}"
+            },
+            {
+              "id": 376,
+              "name": "6bd/3ba residential - Elizabeth City, New Jersey",
+              "price": 449000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.07\", \"city\": \"Elizabeth City\", \"state\": \"New Jersey\", \"zip_code\": \"7206\", \"house_size\": \"4535\"}"
+            },
+            {
+              "id": 383,
+              "name": "3bd/1ba residential - Yonkers, New York",
+              "price": 459000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.06\", \"city\": \"Yonkers\", \"state\": \"New York\", \"zip_code\": \"10704\", \"house_size\": \"924\"}"
+            },
+            {
+              "id": 406,
+              "name": "3bd/2ba residential - Old Bridge, New Jersey",
+              "price": 449900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.15\", \"city\": \"Old Bridge\", \"state\": \"New Jersey\", \"zip_code\": \"8857\", \"house_size\": \"1529\"}"
+            },
+            {
+              "id": 409,
+              "name": "6bd/3ba residential - Bridgeport, Connecticut",
+              "price": 449900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.1\", \"city\": \"Bridgeport\", \"state\": \"Connecticut\", \"zip_code\": \"6604\", \"house_size\": \"3149\"}"
+            }
+          ],
+          "count": 10
         }
       ]
     },
-    "latency_ms": 20875.0
+    "latency_ms": 51078.00000000134
   },
   {
     "message": "Sign me up for the property at $825,000 in Yonkers -- Karen White, karen.white@example.com.",
@@ -2191,18 +2053,18 @@
       "outcome": "Direct request with name, contact, and price -- create_lead expected."
     },
     "actual": {
-      "reply": "Thanks, Karen! I've passed along your interest in the $825,000 property in Yonkers, and our team has your contact information (karen.white@example.com) on file. You should be hearing from a human associate shortly.\n\nIs there anything else I can help you with \u2014 perhaps another property from the catalog?",
+      "reply": " Thanks, Karen! I've passed your information along for the property in Yonkers at $825,000, and someone from our team will be in touch with you at karen.white@example.com shortly. Is there anything else I can help you with in the meantime?",
       "tool_calls_made": [
         {
           "name": "create_lead",
           "arguments": {
-            "name": "Property at $825,000 in Yonkers",
+            "name": "Yonkers property at $825,000",
             "customer_name": "Karen White",
             "customer_contact": "karen.white@example.com",
             "price": 825000,
-            "notes": "Customer asked to be signed up for the $825,000 property in Yonkers based on her message."
+            "notes": "Customer wants to move forward on the Yonkers property listed at $825,000."
           },
-          "id": "chatcmpl-tool-8f4ed456f1e866a7"
+          "id": "chatcmpl-tool-a6b34210d85b9e96"
         }
       ],
       "tool_results": [
@@ -2211,7 +2073,7 @@
         }
       ]
     },
-    "latency_ms": 23532.00000000288
+    "latency_ms": 35718.00000000076
   },
   {
     "message": "Create a lead for me: interested in the $375,000 home, my name is James Wilson, contact james.wilson@example.com, please follow up this week.",
@@ -2227,18 +2089,18 @@
       "outcome": "Explicit 'create a lead' phrasing with all fields present -- unambiguous create_lead call."
     },
     "actual": {
-      "reply": "Thanks, James! I've passed your interest in the $375,000 home along to our team, and someone will follow up with you this week at james.wilson@example.com. Let me know if there's anything else I can help you with in the meantime!",
+      "reply": "I've created your lead for the $375,000 home, James. A member of our team will be in touch with you this week at james.wilson@example.com.\n\nIs there anything else I can help you with \u2014 perhaps a viewing or information about other homes in the catalog?",
       "tool_calls_made": [
         {
           "name": "create_lead",
           "arguments": {
-            "name": "$375,000 home - Interested buyer",
+            "name": "$375,000 home",
             "customer_name": "James Wilson",
             "customer_contact": "james.wilson@example.com",
             "price": 375000,
-            "notes": "Interested in the $375,000 home. Customer requested a follow-up this week."
+            "notes": "Interested in the $375,000 home. Please follow up this week."
           },
-          "id": "chatcmpl-tool-be6bbf887513b67f"
+          "id": "chatcmpl-tool-852db42a161f7d0d"
         }
       ],
       "tool_results": [
@@ -2247,7 +2109,7 @@
         }
       ]
     },
-    "latency_ms": 17780.99999999904
+    "latency_ms": 26078.999999997905
   },
   {
     "message": "I'm very interested in the $1,299,000 property in Brooklyn. This is Nina Patel, nina.patel@example.com. Also, do you know the annual property tax?",
@@ -2263,18 +2125,18 @@
       "outcome": "Primary intent is to be contacted about a specific listing -- create_lead is expected even though a secondary out-of-scope tax question is mentioned; that question may be answered conversationally alongside the tool call."
     },
     "actual": {
-      "reply": "Thanks, Nina! I've passed your information along to our team, and they'll be in touch with you shortly about the Brooklyn property.\n\nAs for the annual property tax \u2014 I don't have that specific figure available through our catalog, and I wouldn't want to guess. The tax amount can depend on several factors, like the exact location, assessment value, and any exemptions that may apply. The agent who follows up with you will be able to give you an accurate estimate.\n\nIs there anything else I can help you with, such as other properties or details about the Brooklyn listing?",
+      "reply": " Thanks, Nina \u2014 I've passed your interest in the $1,299,000 Brooklyn property along to a member of our team, and they'll be in touch with you at nina.patel@example.com shortly.\n\nRegarding the annual property tax \u2014 I don't have that figure available in our catalog, so the team member following up will be able to give you the exact amount. Is there anything else I can help you with in the meantime?",
       "tool_calls_made": [
         {
           "name": "create_lead",
           "arguments": {
-            "name": "Brooklyn property - $1,299,000",
+            "name": "Brooklyn property at $1,299,000",
             "customer_name": "Nina Patel",
             "customer_contact": "nina.patel@example.com",
             "price": 1299000,
-            "notes": "Customer is very interested in the $1,299,000 Brooklyn property and would like to move forward. She also asked about the annual property tax."
+            "notes": "Customer is very interested in the $1,299,000 Brooklyn property and asked about the annual property tax. A person should follow up with details."
           },
-          "id": "chatcmpl-tool-a8c6406676c1bf0c"
+          "id": "chatcmpl-tool-b2f938337fcab5c5"
         }
       ],
       "tool_results": [
@@ -2283,7 +2145,7 @@
         }
       ]
     },
-    "latency_ms": 25921.99999999866
+    "latency_ms": 41311.99999999808
   },
   {
     "message": "Please reach out about the $299,900 place in West Warwick. Robert Taylor, 555-444-5555.",
@@ -2298,18 +2160,18 @@
       "outcome": "Contact request about a specific priced listing with name and phone -- create_lead expected."
     },
     "actual": {
-      "reply": " Thanks, Robert \u2014 I\u2019ve passed along your interest in the West Warwick property at $299,900, along with your contact info, and someone will reach out shortly. Let me know if there\u2019s anything else I can help you with!",
+      "reply": "I've passed your information along to our sales team, Robert. A representative will reach out to you soon about the West Warwick property. Is there anything else I can help you with in the meantime?",
       "tool_calls_made": [
         {
           "name": "create_lead",
           "arguments": {
-            "name": "West Warwick - $299,900",
+            "name": "$299,900 place in West Warwick",
             "customer_name": "Robert Taylor",
             "customer_contact": "555-444-5555",
             "price": 299900,
-            "notes": "Customer is interested in the $299,900 property in West Warwick and asked to be reached out to."
+            "notes": "Customer asked to be reached out about the $299,900 property in West Warwick."
           },
-          "id": "chatcmpl-tool-99cbd778c25422dd"
+          "id": "chatcmpl-tool-ac2a77bdd5a2cf2d"
         }
       ],
       "tool_results": [
@@ -2318,7 +2180,7 @@
         }
       ]
     },
-    "latency_ms": 44172.0000000023
+    "latency_ms": 31375.0
   },
   {
     "message": "I'd like to make an offer on the $549,900 house. Grace Lin, grace.lin@example.com.",
@@ -2333,7 +2195,7 @@
       "outcome": "Offer intent with name, contact, and price -- create_lead expected."
     },
     "actual": {
-      "reply": "Thanks, Grace! I've passed along your offer on the $549,900 house to our team. A human sales associate will be in touch with you at grace.lin@example.com shortly to help with the next steps.\n\nIs there anything else I can help you with?",
+      "reply": " Thanks, Grace! I've passed your offer along to our team, and they'll be in touch with you at grace.lin@example.com soon. Is there anything else I can help you with in the meantime\u2014perhaps another property or a question about the process?",
       "tool_calls_made": [
         {
           "name": "create_lead",
@@ -2342,9 +2204,9 @@
             "customer_name": "Grace Lin",
             "customer_contact": "grace.lin@example.com",
             "price": 549900,
-            "notes": "Customer would like to make an offer on the house at $549,900."
+            "notes": "Customer would like to make an offer on the $549,900 house."
           },
-          "id": "chatcmpl-tool-85daec19bc3b646c"
+          "id": "chatcmpl-tool-b40683f11a0bb818"
         }
       ],
       "tool_results": [
@@ -2353,7 +2215,7 @@
         }
       ]
     },
-    "latency_ms": 25875.0
+    "latency_ms": 22406.000000002678
   },
   {
     "message": "Looking for a 1-bedroom condo under $250,000 as an investment",
@@ -2367,7 +2229,7 @@
       "outcome": "1-bed rows under 250000 exist in real_estate_raw.csv, but no 'condo' property_type exists at all (all rows are 'residential'), and bedrooms is not filtered server-side either. LLM extraction of bedrooms/property_type/price_max should still be correct; downstream results won't actually respect bedrooms or property_type -- known limitation, not a tool-selection failure."
     },
     "actual": {
-      "reply": "  I ran a search for 1-bedroom properties under $250,000, but I want to be upfront: the results that came back are listed as \"residential\" rather than \"condo,\" so I may not have found exactly what you're looking for. Here are the closest options I did find:\n\n- **1bd/1ba in Little Egg Harbor, NJ \u2013 $128,000** (680 sq ft)\n- **1bd/1ba in Pomona, NY \u2013 $209,000** (934 sq ft)\n\nBoth are within your budget and could work as investment properties, but if you're specifically set on a **condo**, my current search didn't turn up any that match. Would you like me to look further, or would one of these residential options be of interest?",
+      "reply": " Good news \u2014 I found a few 1-bedroom options under $250,000 that could work as an investment. Here are the matches:\n\n1. **1bd/1ba residential \u2013 Little Egg Harbor, NJ** \u2013 $128,000 (680 sq ft)\n2. **1bd/1ba residential \u2013 Pomona, NY** \u2013 $209,000 (934 sq ft)\n\nA quick note: my search results came back labeled as \"residential\" rather than strictly \"condo,\" so I'd recommend confirming the building type on any you're interested in. Is there a particular city or area you'd prefer, or would you like more details on either of these?",
       "tool_calls_made": [
         {
           "name": "search_listings",
@@ -2376,7 +2238,7 @@
             "bedrooms": 1,
             "price_max": 250000
           },
-          "id": "chatcmpl-tool-af84644f76533cec"
+          "id": "chatcmpl-tool-8f323e2594f40a3d"
         }
       ],
       "tool_results": [
@@ -2417,7 +2279,7 @@
         }
       ]
     },
-    "latency_ms": 22110.000000000582
+    "latency_ms": 17890.999999995984
   },
   {
     "message": "Do you have anything in Los Angeles under $800,000?",
@@ -2429,14 +2291,14 @@
       "outcome": "No Los Angeles or any California rows exist in real_estate_raw.csv at all (data covers the Northeast/Mid-Atlantic plus Puerto Rico). There's no location arg on search_listings, so price_max is the only extractable filter; the LLM should ideally note that Los Angeles isn't in the covered area rather than presenting an unrelated result as if it matched the city. This case primarily tests hallucination resistance around location."
     },
     "actual": {
-      "reply": " I ran a search for properties under $800,000, but the results that came back are all on the East Coast \u2014 Paterson, New Jersey; Philadelphia, Pennsylvania; Trumbull, Connecticut; and Little Egg Harbor, New Jersey. None of them are in Los Angeles.\n\nIt looks like my catalog search may not have a location filter for city, so I wasn't able to pull up L.A. listings directly. If you'd like, I can help you look at what's available under $800,000 in the broader sense, or you can share a bit more detail (like a neighborhood or ZIP code) and I'll do my best to help from there.",
+      "reply": "Sorry, I didn't catch that. Could you tell me what you're looking for?",
       "tool_calls_made": [
         {
           "name": "search_listings",
           "arguments": {
             "price_max": 800000
           },
-          "id": "chatcmpl-tool-beee2e27c564fd18"
+          "id": "chatcmpl-tool-9e1baa5672fb2f70"
         }
       ],
       "tool_results": [
@@ -2477,6 +2339,6 @@
         }
       ]
     },
-    "latency_ms": 18092.99999999712
+    "latency_ms": 26219.0000000046
   }
 ]

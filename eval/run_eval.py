@@ -58,14 +58,22 @@ RETRYABLE_NETWORK_EXCEPTIONS = (httpx.TimeoutException, httpx.ConnectError, http
 
 
 class LeadRecordingOdoo(OdooClient):
-    """Real reads; crm.lead writes are answered with a fake id instead of being
-    executed, so re-running the eval does not fill the CRM with duplicate
-    leads. Enabled with EVAL_RECORD_LEADS=1."""
+    """Real reads; every write (leads, contacts, tasks, holds, status changes) is answered
+    with a fake result instead of being executed, so re-running the eval does not fill the
+    CRM with leads or put items on hold. Enabled with EVAL_RECORD_LEADS=1."""
 
     def create(self, model, values):
-        if model in ("crm.lead", "res.partner"):
+        if model in ("crm.lead", "res.partner", "mail.activity"):
             return 900_000
         return super().create(model, values)
+
+    def write(self, model, ids, values):
+        return True  # no status, stage or link is changed for real
+
+    def call(self, model, method, args, kwargs=None):
+        if model == "leadgate.catalog.item" and method == "action_reserve":
+            return {"ok": True, "reserved_until": "2999-01-01 00:00:00"}  # a hold is answered, not placed
+        return True
 
 
 def build_adapter(domain: str, config: dict):
