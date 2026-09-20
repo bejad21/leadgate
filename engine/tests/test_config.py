@@ -1,6 +1,7 @@
 import pytest
 
 import engine.config as config_module
+from engine.llm_client import FailoverLLM
 from engine.config import get_llm_client, load_config
 
 
@@ -72,7 +73,7 @@ def test_load_config_fails_fast_when_no_llm_key_present(monkeypatch):
         load_config()
 
 
-def test_get_llm_client_uses_mistral_settings_when_mistral_key_present(monkeypatch):
+def test_get_llm_client_uses_mistral_settings_when_only_mistral_key_present(monkeypatch):
     for key, value in BASE_ENV.items():
         if key == "OPENROUTER_API_KEY":
             continue
@@ -80,22 +81,57 @@ def test_get_llm_client_uses_mistral_settings_when_mistral_key_present(monkeypat
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.setenv("MISTRAL_API_KEY", "test-mistral-key")
 
-    config = load_config()
-    client = get_llm_client(config)
+    client = get_llm_client(load_config())
 
     assert client.api_key == "test-mistral-key"
     assert client.base_url == "https://api.mistral.ai/v1"
     assert client.model == "mistral-small-latest"
 
 
-def test_get_llm_client_uses_openrouter_settings_when_only_openrouter_key_present(monkeypatch):
+def test_openrouter_alone_gives_an_ordered_failover_of_its_models(monkeypatch):
     for key, value in BASE_ENV.items():
         monkeypatch.setenv(key, value)
     monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_MODELS", raising=False)
 
-    config = load_config()
-    client = get_llm_client(config)
+    client = get_llm_client(load_config())
 
-    assert client.api_key == "test-openrouter-key"
-    assert client.base_url == "https://openrouter.ai/api/v1"
-    assert client.model == "deepseek/deepseek-v4-flash-0731:free"
+    assert isinstance(client, FailoverLLM)
+    assert len(client.clients) >= 2
+    assert all(c.base_url == "https://openrouter.ai/api/v1" and c.api_key == "test-openrouter-key" for c in client.clients)
+    assert all(c.model.endswith(":free") for c in client.clients)
+    assert "deepseek/deepseek-v4-flash-0731:free" not in [c.model for c in client.clients]  # retired
+
+
+def test_the_model_list_can_be_overridden_from_the_environment(monkeypatch):
+    for key, value in BASE_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
+    monkeypatch.setenv("OPENROUTER_MODELS", " vendor/a:free , vendor/b:free ,, ")
+
+    client = get_llm_client(load_config())
+
+    assert [c.model for c in client.clients] == ["vendor/a:free", "vendor/b:free"]
+
+
+def test_a_single_configured_model_is_returned_without_a_wrapper(monkeypatch):
+    for key, value in BASE_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
+    monkeypatch.setenv("OPENROUTER_MODELS", "vendor/only:free")
+
+    client = get_llm_client(load_config())
+
+    assert not isinstance(client, FailoverLLM) and client.model == "vendor/only:free"
+
+
+def test_both_providers_configured_puts_mistral_after_the_openrouter_models(monkeypatch):
+    for key, value in BASE_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("MISTRAL_API_KEY", "test-mistral-key")
+    monkeypatch.delenv("OPENROUTER_MODELS", raising=False)
+
+    client = get_llm_client(load_config())
+
+    assert client.clients[-1].base_url == "https://api.mistral.ai/v1"
+    assert client.clients[0].base_url == "https://openrouter.ai/api/v1"

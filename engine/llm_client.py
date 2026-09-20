@@ -1,5 +1,7 @@
-import httpx
+import time
 from dataclasses import dataclass
+
+import httpx
 
 @dataclass
 class ToolCall:
@@ -41,3 +43,46 @@ class LLMClient:
 def _parse_args(raw: str) -> dict:
     import json
     return json.loads(raw)
+
+
+# Statuses that mean "this model cannot answer right now" (retired, rate limited, provider fault).
+# Anything else, such as 400, 401 or 403, is a problem with our request or key, and trying another
+# model would only hide it.
+_RETRYABLE = {404, 429} | set(range(500, 600))
+
+
+def _worth_trying_elsewhere(exc: Exception) -> bool:
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in _RETRYABLE
+    return isinstance(exc, httpx.TransportError)  # timeouts, connection failures
+
+
+class FailoverLLM:
+    """Try an ordered list of models and remember which ones are down.
+
+    Free model catalogs rotate: a model that answered yesterday can be gone today. Each model is
+    tried in order; one that fails for a retryable reason is skipped for `cooldown_seconds` so a
+    dead model costs one failed call, not one per message. If every model is cooling down they
+    are all tried anyway, because waiting would only make things worse."""
+
+    def __init__(self, clients: list, cooldown_seconds: float = 600, clock=time.monotonic):
+        if not clients:
+            raise ValueError("FailoverLLM needs at least one model")
+        self.clients = list(clients)
+        self.cooldown_seconds = cooldown_seconds
+        self._clock = clock
+        self._down_until: dict[int, float] = {}
+
+    def chat(self, messages: list[dict], tools: list[dict]) -> LLMResponse:
+        now = self._clock()
+        ready = [i for i in range(len(self.clients)) if self._down_until.get(i, 0) <= now]
+        last_error: Exception | None = None
+        for index in ready or range(len(self.clients)):
+            try:
+                return self.clients[index].chat(messages, tools)
+            except Exception as exc:
+                if not _worth_trying_elsewhere(exc):
+                    raise
+                self._down_until[index] = self._clock() + self.cooldown_seconds
+                last_error = exc
+        raise last_error
