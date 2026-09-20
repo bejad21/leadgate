@@ -222,8 +222,8 @@ to answer the customer) expires on its own after `LEAD_CHAT_RETENTION_DAYS`, and
 expires when its time is up. Conversation text in MongoDB and Supabase has no such limit.
 
 **No data-residency guarantee from the free-tier LLM provider.** Every customer message
-is sent to OpenRouter's free tier (`deepseek/deepseek-v4-flash-0731:free`), with Mistral
-as a fallback. Neither the free-tier terms nor this project's configuration make any
+is sent to OpenRouter's free tier (a rotating list of free models, set in
+`engine/config.py` or `OPENROUTER_MODELS`), with Mistral as a fallback. Neither the free-tier terms nor this project's configuration make any
 data-residency, retention, or no-training guarantee. A real deployment handling actual
 customer conversations would need a paid tier with an explicit data-processing agreement
 before this is acceptable.

@@ -36,7 +36,7 @@ has a hand-labeled test set with an expected tool call, expected extracted
 arguments, and an expected outcome per case.
 
 `eval/run_eval.py` sends every case through the real engine, the actual LLM
-(OpenRouter's free-tier deepseek/deepseek-v4-flash-0731:free), the actual Odoo
+(OpenRouter's free-tier deepseek/deepseek-v4-flash-0731:free, which OpenRouter has since removed), the actual Odoo
 adapters, the actual catalog data, end to end, and records what the engine
 actually did. There is no mocking of the model or the data layer anywhere in this
 run; case counts, tool-call arguments, and latencies in the results files are the
@@ -158,7 +158,7 @@ The second run, after that fix:
 The one tool-choice miss is "I'm ready to move forward on the $450,000 property" when two
 properties cost exactly $450,000; the assistant searched rather than guess. Two runs of a
 free-tier model on identical cases differ by a few cases, so these are one sample, not a
-guarantee. The earlier numbers in this report were measured on the previous prompt.
+guarantee. The earlier numbers in this report were measured on the previous prompt. Both runs used `deepseek/deepseek-v4-flash-0731:free`. OpenRouter removed it on or before 2026-09-20, and the engine now walks a list of other free models that returned correct tool calls in a spot check. The eval has not been re-run on them, so treat these scores as a record of what the assistant did on that model.
 
 ## Weakest points, stated plainly
 

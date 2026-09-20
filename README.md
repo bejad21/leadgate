@@ -12,9 +12,9 @@ An AI agent that talks to customers on Telegram, searches a real catalog, and ha
 
 ## See it work
 
-![Odoo on the left, the dashboard on the right: a status changed in Odoo flips a key on the board about a second later, then a customer chats with the bot and the new lead lands on the Leads tab and in Odoo with a real contact](docs/demo/leadgate-demo.gif)
+![Odoo on the left, the dashboard on the right: a customer asks the assistant to hold a car, the hold appears on the Leads tab and the key flips to On hold, the owner's alert arrives with buttons, the owner replies and then marks it sold, and the key leaves its hook](docs/demo/leadgate-demo.gif)
 
-*61 seconds, real services throughout: a status changed in Odoo moves a key on the dashboard about a second later, then a customer's chat with the bot becomes a lead in both places. Near the end, Odoo's side shows the receipts Telegram returned: the customer's messages arriving at the webhook, and the owner alert going out through the separate bot with its message id. The wait for the model's replies is sped up. [Watch the full-quality video](docs/demo/leadgate-demo.mp4).*
+*About 110 seconds, real services throughout. A customer asks for a certified Toyota and then for a hold on the cheapest one (the wait for the model is sped up). The hold lands on the Leads tab and the key flips to On hold on the board. The owner's alert arrives with buttons, and the Telegram receipt for it is on screen. The owner taps Contacted and a stamp appears on the slip, replies to the customer, who answers while the assistant stays out of the chat, and then taps Mark sold. The key leaves its hook and Odoo shows the lead as Won. The owner's taps and replies are posted to the alert bot's webhook the way Telegram delivers them, and the customer's side of Telegram is simulated. [Watch the full-quality video](docs/demo/leadgate-demo.mp4).*
 
 ## What it does
 
@@ -51,7 +51,7 @@ Lead creation and the sync pipeline are separate paths. The agent writes a `crm.
 | Abuse protection | Injection screening, schema-checked tool arguments, verified lead prices, per-chat lead limits, link-free replies. Tested with 38 red-team attacks. See [SECURITY.md](SECURITY.md). |
 | Measured behavior | 93 hand-labeled test cases run against the live system, scoring tool choice, argument extraction, grounding, and task completion. |
 | Webhook security | Constant-time secret check and per-chat rate limiting on the webhook. Row Level Security on every Supabase table: the catalog is public to read, leads and conversations are staff only. |
-| Provider fallback | Uses a free OpenRouter model first and falls back to Mistral if only that key is set. |
+| Provider fallback | Tries an ordered list of free OpenRouter models, then Mistral, and remembers for ten minutes that a model is down, because free catalogs rotate and models get retired. `OPENROUTER_MODELS` in `.env` sets your own list. |
 | Tests | 488 engine tests, including a scripted model that obeys every attack. 32 dashboard tests. 44 browser checks on the Leads tab. Live scripts against real Odoo, Supabase and the model: who can read which table, six simultaneous holds against a cap of one, the follow-up, and a 42-step run of the whole owner loop. |
 
 ## A conversation, end to end
@@ -246,7 +246,7 @@ Scored on 93 hand-labeled cases (45 cars, 48 real estate) run end to end against
 
 ![Bar chart of the four eval metrics for cars and real estate](eval/charts/final_metrics_by_domain.png)
 
-Grounding is the share of replies in which every price the agent stated traced back to a real tool result. The scorer is strict and counts a customer's own figure repeated back ("around $1,000,000") as ungrounded; no reply in this run states an ungrounded price. The one missed tool choice is a request to move forward on "the $450,000 property" when two properties cost exactly that, where the assistant searched instead of guessing which. These numbers were re-measured after holds, viewings and the owner channel were added, because the prompt changed; a free-tier model varies by a few cases from run to run, so read the last digit as noise. The test cases are hand-written, not real customer data, and [eval/REPORT.md](eval/REPORT.md) says so up front. It also covers what each metric means, the bugs found in both the agent and the scoring code on the way to these numbers, and an independent review that checked the improvement wasn't just a loosened metric.
+Grounding is the share of replies in which every price the agent stated traced back to a real tool result. The scorer is strict and counts a customer's own figure repeated back ("around $1,000,000") as ungrounded; no reply in this run states an ungrounded price. The one missed tool choice is a request to move forward on "the $450,000 property" when two properties cost exactly that, where the assistant searched instead of guessing which. These numbers were re-measured after holds, viewings and the owner channel were added, because the prompt changed; a free-tier model varies by a few cases from run to run, so read the last digit as noise. They were measured on `deepseek/deepseek-v4-flash-0731:free`, which OpenRouter has since retired. The engine now defaults to other free models and has not been re-scored on them. The test cases are hand-written, not real customer data, and [eval/REPORT.md](eval/REPORT.md) says so up front. It also covers what each metric means, the bugs found in both the agent and the scoring code on the way to these numbers, and an independent review that checked the improvement wasn't just a loosened metric.
 
 ### Red-team results
 
@@ -285,7 +285,7 @@ The exact commands, required environment variables, and the reasons behind the l
 | Doc | What's in it |
 |---|---|
 | [docs/SETUP.md](docs/SETUP.md) | The complete, ordered setup with exact commands |
-| [docs/demo/](docs/demo/) | The 61-second demo as an MP4 and a GIF |
+| [docs/demo/](docs/demo/) | The demo (about 110 seconds) as an MP4 and a GIF |
 | [dashboard/README.md](dashboard/README.md) | How the key board works, and how to run and use it |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Data-flow diagram and the two-database reasoning |
 | [SECURITY.md](SECURITY.md) | Protections, how they were tested, and what a formal review would check |

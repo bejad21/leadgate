@@ -11,8 +11,8 @@ project is and what it looks like running, see the [README](../README.md).
 - Node.js and `npm` (for the dashboard)
 - A Kaggle account (for the two source datasets)
 - A Telegram bot token (from [@BotFather](https://t.me/BotFather))
-- An OpenRouter or Mistral API key (OpenRouter has a usable free tier; the engine tries
-  it first and falls back to Mistral if only that key is set)
+- An OpenRouter or Mistral API key (OpenRouter has a usable free tier; the engine tries a list
+  of its free models in order, then Mistral if that key is also set)
 - A Supabase project
 - A MongoDB connection string (Atlas free tier works)
 - A way to expose `localhost:8000` publicly for Telegram's webhook. This project used
@@ -30,6 +30,10 @@ Fill in `.env`. `.env.example` documents the baseline set:
 - `ODOO_URL`, `ODOO_DB`, `ODOO_USER`, `ODOO_PASSWORD`: Odoo connection (defaults work
   for the local Docker setup below: `http://localhost:8069`, `leadgate`, `admin`/`admin`)
 - `OPENROUTER_API_KEY` and/or `MISTRAL_API_KEY`: at least one is required
+- `OPENROUTER_MODELS` (optional): comma-separated OpenRouter model ids, tried in order. The
+  default list is in `engine/config.py`. Free models are retired from time to time, so if
+  replies stop with a 404 in the engine's log, pick current ones from
+  `https://openrouter.ai/api/v1/models` (free models end in `:free`)
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`: the second is a secret you generate
   yourself (e.g. `python -c "import secrets; print(secrets.token_urlsafe(32))"`) and
   register with Telegram in Step 8 below
