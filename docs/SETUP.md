@@ -49,6 +49,17 @@ Fill in `.env`. `.env.example` documents the baseline set:
   owner account you'll create in Step 6
 - `TELEGRAM_ALERTS_BOT_TOKEN`, `TELEGRAM_ALERTS_CHAT_ID` (optional): a second bot that
   messages only you when a lead arrives (see "Alerts" under Step 6)
+- `TELEGRAM_ALERTS_WEBHOOK_SECRET` (optional): a secret you generate yourself. Telegram
+  sends it with every update from the alert bot, and the engine refuses updates without
+  it. You need it for the alert buttons and for replying to customers (see "Buttons and
+  replies" under Step 8)
+- `ODOO_SALESPERSON_LOGIN` (optional): the Odoo login that new leads are assigned to.
+  Defaults to `ODOO_USER`
+- `DEFAULT_PHONE_COUNTRY_CODE` (optional): the country code of your customers, digits only.
+  A phone number the assistant records must be one the customer typed, or that number with
+  this code in front. The default is 971
+- `LEAD_REMINDER_MINUTES` (optional): how long an untouched lead waits before the owner
+  gets one reminder. The default is 30; 0 turns reminders off
 - `DASHBOARD_LOGIN_EMAIL`, `DASHBOARD_LOGIN_PASSWORD`: the staff login for the dashboard's
   Leads tab, created in Step 6
 - `CHAT_REF_SECRET`: any long random string. It keys the hash that stands in for a Telegram
@@ -191,7 +202,10 @@ python n8n/scripts/verify_leads_rls.py                                 # who can
 ```
 
 `verify_leads_rls.py` plants a probe row and checks that an anonymous visitor and a
-signed-in stranger see nothing while you see everything. All seven checks should pass.
+signed-in stranger see nothing while you see everything, that even you cannot write with
+the browser key, and that a signed-in user can still see the public catalog. All eight
+checks should pass. The SQL is safe to re-run on an existing install: it adds the `kind`,
+`status` and `detail` columns to `leads` if they are missing.
 It is also worth turning off "Allow new users to sign up" in the Supabase dashboard
 (Authentication, Sign In / Providers), since nobody else needs an account.
 
@@ -219,7 +233,14 @@ link works.
 
 The `leadgate_domain` module adds a **LeadGate > Catalog** menu to Odoo: a list with
 coloured status badges, filters, and a form with a clickable Available / Reserved / Sold
-bar. Change a status there and the dashboard updates. After pulling this change into an
+bar. Change a status there and the dashboard updates.
+
+The module also handles holds. When the assistant holds an item for a customer, Odoo
+checks and records it in one transaction: an item can only be held once, one customer can
+hold one item, and no more than ten holds can be active at a time (change the limit with
+the system parameter `leadgate.max_active_holds`). A scheduled job runs every five minutes
+and puts lapsed holds back on the board. Both the hold and the release are status changes,
+so they reach the dashboard through n8n like any other. After pulling this change into an
 existing install, upgrade the module:
 
 ```bash
@@ -256,6 +277,22 @@ curl -F "url=<TUNNEL_URL>/webhook/telegram" \
 
 Message your bot on Telegram. You should see the request land in the FastAPI logs and
 get a reply back.
+
+### Buttons and replies
+
+The alert bot's buttons and replies reach the engine through a webhook of their own. The
+customer bot's webhook does not cover it, because it is a different bot. With the engine
+running and the tunnel up, set `TELEGRAM_ALERTS_WEBHOOK_SECRET` in `.env`, restart the
+engine, and register the alert bot:
+
+```bash
+python -m engine.register_alert_webhook https://<random-words>.trycloudflare.com
+```
+
+Press a button under an alert, or reply to one, and the engine handles it. Only updates
+from your own chat are acted on. `python -m engine.register_alert_webhook --remove` takes
+the webhook off again. A quick tunnel gets a new address every time it restarts, so run
+the command again after restarting it.
 
 ## 9. Run the dashboard
 

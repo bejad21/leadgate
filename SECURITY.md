@@ -140,7 +140,86 @@ instead of a duplicate.
 cannot be reached by customers. A failure to send an alert, to mirror to Supabase, or to
 create a helper record in Odoo never costs the customer their reply or the lead.
 
+**What the assistant can change, and what stops it doing more.** Beyond searching, the
+assistant can create a lead, hold an item, and request a viewing. Each is limited in code
+rather than by the prompt. One state-changing action is allowed per message, and a chat gets
+three an hour. A hold or a viewing is only accepted for an item that a search in that chat has already shown
+the customer. An item can only be held if it exists in the catalog for this domain and is
+available, and Odoo decides that inside one transaction under a lock, so two customers
+cannot get the same item. One customer (identified by email or phone) can hold one item, and
+ten holds can be active at once. A hold lapses after 24 hours and a scheduled job puts the
+item back. The price on every one of these comes from the catalog. A viewing date must be
+between today and sixty days ahead. No tool can change an existing lead or mark anything
+sold. Only the owner can, through buttons the customer cannot reach.
+
+**Contact details must come from the customer.** A model can be talked into (or fed, through
+a poisoned catalog entry) an email or number that no customer gave, which would send
+follow-ups to an attacker. A contact detail is recorded only if it appears in the customer's
+own messages. Anything the model adds on its own is dropped, and anything the customer wrote
+that the model left out is added back. The match is strict. An email must be the whole address,
+not the end of a longer one. A phone number must be the digits the customer typed, or the same
+digits with the shop's country code in front (`DEFAULT_PHONE_COUNTRY_CODE`, 971 unless you
+change it). A different prefix or a shortened tail is a different subscriber. The customer's
+messages are joined with a separator, so digits at the end of one message and the start of the
+next never read as one number.
+
+**Catalog text is treated as untrusted.** A catalog entry is text someone typed, and it goes
+to the model as tool output. Before the model reads it, links, chat-template tokens and known
+injection phrases are removed and long fields are cut. The raw result is kept for the owner's
+alert, and the alert is escaped, so the cleaning affects only what the model sees.
+
+**The owner channel.** The alert bot has its own webhook, which refuses everything unless a
+secret is configured and compares it in constant time (on the bytes, so a hostile header
+is refused and cannot crash the route). On top of that, every update is
+ignored unless it comes from the owner's chat and the owner's account, so someone who finds
+the address and the secret still cannot act as the owner without controlling that account.
+Nothing a customer sends is routed to it. Customer messages that look like owner commands
+(`/open`, button data) are ordinary text to the assistant, and the red-team set includes them.
+While a chat is in human mode the customer's text is forwarded to the owner escaped.
+
+**Prompt injection is contained, not solved.** No prompt can make a model immune, and adaptive
+attacks are known to get past prompt-only defences, so the limits above sit outside the
+model. The red-team set (`eval/datasets/redteam_set.json`) covers the new abilities: holding
+every car, chaining actions in one message, forged item ids, impossible dates, markup in
+notes, a poisoned catalog, owner commands typed by a customer, and attempts to list the tool
+definitions. The results are in the README. What remains possible is described next.
+
 ## What a formal security review would still flag
+
+**A determined person can still tie up inventory.** Holds are limited per customer and
+overall, but a customer identity is an email or phone number that anyone can invent. Someone
+with many Telegram accounts could keep up to ten items on hold, renewing after each 24 hour
+lapse. The owner sees every hold and can release it, and lowering the
+`leadgate.max_active_holds` parameter shrinks the exposure. A real deployment would want
+verified contact details before a hold.
+
+**Run one worker.** Conversation history, update de-duplication, the rate limits and the
+reminder task live in the engine's memory or start once per process. With two workers the
+limits would not be shared and each worker would send its own reminders. The reminder claim
+(a tag in Odoo) stops repeats after a restart, not two processes acting at the same moment.
+Hold limits are different: they are enforced inside Odoo and hold across any number of workers.
+
+**Owner controls need the right chat id.** Buttons and replies work only from the owner's
+private chat with the alert bot, so `TELEGRAM_ALERTS_CHAT_ID` must be that chat's positive
+number. A group or a username would leave the alerts arriving and the buttons ignored; the
+engine logs an error at startup if the value cannot work.
+
+**A hostile customer can still waste the owner's time.** Three leads an hour per chat is a
+limit per chat, and chats are free to create. Every lead is alerted, tagged and assigned.
+The alert bot cannot be muted per customer. Rate limiting by Telegram account and a block
+list are not built.
+
+**The assistant's words are only filtered, not verified.** The reply filter removes links and
+prompt leaks, and tool results carry notes telling the model not to promise a hold or a time.
+A model can still say something inaccurate about what will happen next, and a reader would
+have to catch it.
+
+**Human mode forgets what the owner said.** The owner's messages are logged on the lead in
+Odoo, but they are not part of the history the assistant reads after the chat is handed back.
+
+**The store keeps chat ids for 180 days.** The record of which chat a lead came from (needed
+to answer the customer) expires on its own after `LEAD_CHAT_RETENTION_DAYS`, and a handoff
+expires when its time is up. Conversation text in MongoDB and Supabase has no such limit.
 
 **No data-residency guarantee from the free-tier LLM provider.** Every customer message
 is sent to OpenRouter's free tier (`deepseek/deepseek-v4-flash-0731:free`), with Mistral

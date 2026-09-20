@@ -79,6 +79,52 @@ flowchart LR
 5. **The dashboard.** The Leads tab reads the two Supabase tables. Row level security lets
    only staff accounts read them, and new rows arrive over Realtime.
 
+## After the lead
+
+Once a lead exists the owner can act on it from Telegram, and the assistant can do two more
+things for a customer. This is the loop.
+
+```mermaid
+flowchart LR
+    OWNER["Owner (alert bot)"] -->|"button or reply"| AW["/webhook/alerts (secret, owner chat only)"]
+    AW --> OB["Owner bot"]
+    OB -->|"stage, assignee, note, task"| ODOO[("Odoo")]
+    OB -->|"reply text"| CB["Customer bot"]
+    CB --> CUST["Customer"]
+    OB -->|"human mode on or off"| STORE[("Store in MongoDB")]
+    OB -->|"status"| SUPA[("Supabase leads")]
+    CUST -->|"message"| WH["Customer webhook"]
+    WH -->|"chat in human mode?"| STORE
+    WH -->|"yes: forward"| OWNER
+    WH -->|"no"| LOOP["Agent loop"]
+    LOOP -->|"hold or viewing"| ODOO
+    SWEEP["Sweeper"] -->|"untouched lead, once"| OWNER
+    ODOO -->|"status change"| N8N["n8n"] --> SUPA
+```
+
+1. **Follow-up.** When a lead is created it is assigned to a salesperson and gets a call task.
+   A background task looks once a minute for leads still in the New stage after the reminder
+   time and alerts the owner. It tags the lead first and sends second, and removes the tag if
+   the send fails. The tag lives in Odoo, so a restart neither forgets nor repeats a reminder.
+2. **Holds.** The assistant asks Odoo to hold an item. Odoo takes a lock, checks that the item
+   is available, that the customer has no other hold and that the overall limit is not
+   reached, and records the hold, all in one transaction. It reads the current state through a
+   separate database connection opened after the lock is granted, because a transaction only sees
+   the database as it was when it started, and a hold committed a moment earlier would otherwise
+   be invisible. `n8n/scripts/verify_holds.py` proves it by firing six holds at once against a cap
+   of one. The status change then travels to the
+   dashboard the way any change does. A scheduled job in Odoo releases holds that have lapsed.
+3. **Viewings.** A viewing is a lead with a meeting on the requested day. It does not change
+   the item.
+4. **The owner's buttons and replies.** They arrive at a webhook of their own and are handled
+   by `engine/owner_bot.py`, which is given its dependencies (Odoo, the store, both bots) so it
+   can be tested without any of them.
+5. **Human mode.** Replying to an alert relays the text to the customer and records, in
+   MongoDB, that the assistant should stay quiet in that chat for six hours. While that record
+   exists the customer webhook forwards the customer's messages to the owner instead of
+   running the assistant. The record also holds which chat each lead came from, since the
+   dashboard only has a one-way hash of it.
+
 ## What each piece actually does
 
 **Telegram to engine.** Telegram delivers updates to `POST /webhook/telegram`. The

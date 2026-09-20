@@ -40,18 +40,19 @@ Lead creation and the sync pipeline are separate paths. The agent writes a `crm.
 | Feature | How it works |
 |---|---|
 | Domain-agnostic agent | `engine/core/` has no car or property vocabulary. Each vertical is one small adapter that declares its tools and turns them into an Odoo query. |
-| Real CRM integration | Tool calls hit a self-hosted Odoo 18 over XML-RPC. A lead is a real `crm.lead` with a linked contact (name, email, phone), a Telegram source and a catalog tag. A customer who asks again about the same item within minutes gets the same lead, not a second one. The catalog has its own screen in Odoo. |
-| Lead alerts | A separate Telegram bot tells the owner the moment a lead is created, with the customer, contact, price and a link to the lead in Odoo. |
+| Real CRM integration | Tool calls hit a self-hosted Odoo 18 over XML-RPC. A lead is a real `crm.lead` with a linked contact (name, email, phone), a Telegram source and a catalog tag. A customer who asks again about the same item within minutes gets the same lead, not a second one. The catalog has its own screen in Odoo. Each lead is assigned to a salesperson with a call due the next day. |
+| Lead alerts | A separate Telegram bot tells the owner the moment a lead is created, with the customer, contact and price. Buttons under the alert take the lead, mark it contacted, win it or lose it. Replying to the alert writes to the customer through the customer bot. A lead nobody has touched gets one reminder. |
+| Holds and viewings | A customer can ask the assistant to hold a car for 24 hours or to arrange a viewing on a day they choose. Both are requests: the owner confirms or releases them from Telegram, and a hold moves the key on the dashboard. |
 | Leads and conversations | A Leads tab shows each lead as a message slip and prints the conversation behind it, including what the assistant did. It is behind a staff sign-in; visitors see labelled samples. |
 | Live key board | Every catalog item is a key on a hook. An Odoo status change reaches an open browser tab in about a second: the tag swings, the tallies move, and a stamped row lands on the sign-out sheet. Works on a phone, and by keyboard. |
 | Two databases, two jobs | Supabase holds the structured mirror the dashboard reads. MongoDB holds the append-only event and conversation log. |
 | Search filters | Cars filter by make, model, price range, year, mileage, condition and location, and sort by price, mileage or year. Real estate filters by price range. |
 | Memory across restarts | The last 20 turns of each chat are rebuilt from MongoDB after a restart, and Telegram retries are ignored. |
-| Abuse protection | Injection screening, schema-checked tool arguments, verified lead prices, per-chat lead limits, link-free replies. Tested with 26 red-team attacks. See [SECURITY.md](SECURITY.md). |
+| Abuse protection | Injection screening, schema-checked tool arguments, verified lead prices, per-chat lead limits, link-free replies. Tested with 38 red-team attacks. See [SECURITY.md](SECURITY.md). |
 | Measured behavior | 93 hand-labeled test cases run against the live system, scoring tool choice, argument extraction, grounding, and task completion. |
 | Webhook security | Constant-time secret check and per-chat rate limiting on the webhook. Row Level Security on every Supabase table: the catalog is public to read, leads and conversations are staff only. |
 | Provider fallback | Uses a free OpenRouter model first and falls back to Mistral if only that key is set. |
-| Tests | 268 engine tests, including a scripted model that obeys every attack. 22 dashboard tests. 34 browser checks on the Leads tab. A script that proves who can read which Supabase table. |
+| Tests | 488 engine tests, including a scripted model that obeys every attack. 32 dashboard tests. 44 browser checks on the Leads tab. Live scripts against real Odoo, Supabase and the model: who can read which table, six simultaneous holds against a cap of one, the follow-up, and a 42-step run of the whole owner loop. |
 
 ## A conversation, end to end
 
@@ -159,11 +160,32 @@ When a lead is created the owner gets a message from a separate alert bot, so al
 
 Telegram answers every send with a receipt that includes a message id, and the engine logs any send that fails. If the alert bot is not set up, or Telegram is down, the lead and the customer's reply are not affected. The "Open in Odoo" link is tappable once `ODOO_PUBLIC_URL` is an address your phone can reach. Telegram does not turn `localhost` into a link.
 
-The dashboard's Leads tab shows the same lead as a message slip, and the conversation behind it prints on a paper roll. The customer's words are in blue, the assistant's in black, and between them is a stamped note for each thing the assistant did. A lead whose price the customer made up is flagged on its slip.
+The dashboard's Leads tab shows the same lead as a message slip, and the conversation behind it prints on a paper roll. The customer's words are in blue, the assistant's in black, and between them is a stamped note for each thing the assistant did. A lead whose price the customer made up is flagged on its slip. A hold or a viewing request has its own tag on the slip, and a stamp shows where the owner has taken it.
 
-![The Leads tab: a staff sign-in plate, three message slips, and a paper roll showing a conversation with the search the assistant ran](docs/screenshots/dashboard-leads.png)
+![The Leads tab: a staff sign-in plate, message slips including a hold with its 24 hour tag, and a paper roll showing the conversation and the hold the assistant placed](docs/screenshots/dashboard-leads.png)
 
 Leads and conversations hold customers' names, contact details and messages, so they are private. Only staff accounts can read them, and the database enforces that, not just the page. Anyone else, including a stranger who registers their own account, sees nothing. Signed-out visitors get the sample conversations above, labelled as samples.
+
+### After the lead
+
+A lead is the start of the work, so each one carries its next step. It is assigned to a salesperson in Odoo and gets a call task due the next day. If nobody has touched it after 30 minutes, the owner gets one reminder. Odoo holds the record of that reminder (a tag on the lead), so a restart cannot make it nag twice.
+
+The owner can act from Telegram without opening Odoo. The buttons under an alert do this:
+
+| Button | What it does |
+|---|---|
+| Take it | Assigns the lead to you and notes it in Odoo |
+| Contacted | Closes the call task and moves the lead to Qualified |
+| Lost | Archives the lead, and releases the item if it was a hold |
+| Reply | Opens a reply box, described below |
+
+A hold alert has "Mark sold" and "Release hold" instead. Marking it sold takes the key off the board and wins the lead. A viewing alert has "Confirm viewing", which tells the customer the day and time of day.
+
+Replying to an alert sends your text to the customer through the customer bot, logs it on the lead in Odoo, and puts that chat in human mode. In human mode the assistant stays quiet and the customer's messages come to you with Reply and "Hand back to bot" buttons, so you can answer by replying to them. `/back 71` or the button gives the chat back to the assistant, and it goes back by itself after six hours. `/open` lists the leads still waiting.
+
+The assistant can do two things beyond creating a lead. A customer can ask it to hold a car, or to arrange a viewing on a day they pick. A hold takes the key off the board for 24 hours, and a scheduled job in Odoo puts it back if nobody confirms it. A viewing becomes a meeting on the lead for that day. Both are requests that a person confirms, and the assistant is told not to promise either. Because a hold changes the catalog, it reaches the dashboard the same way an Odoo change does. The price on these leads always comes from the catalog, never from the model or the customer.
+
+![Odoo lead form for a hold: the contact and phone, the Cars and Reservation tags, the salesperson, a call due today to confirm the hold, and the owner's Telegram reply in the chatter](docs/screenshots/odoo-hold-lead.png)
 
 ### How catalog changes reach the dashboard
 
@@ -194,7 +216,12 @@ Anyone can message a public bot, so every message and every tool call passes che
 | Verified leads | A lead's price is only recorded if a catalog item really has it. Three leads per chat per hour, three tool calls per turn, and identical calls in one turn run once. |
 | Reply filter | Links are removed, replies that repeat the system prompt are replaced, and a blank reply is never sent. |
 | Retry safety | Telegram redeliveries are ignored, and a turn that fails is rolled back. If the assistant fails after creating a lead, the owner is still alerted and a resend gets the same lead. |
-| Contact safety | Customer contact details are parsed and matched exactly, capped, and escaped before they reach Odoo, the alert or the dashboard. |
+| Contact safety | Customer contact details are parsed and matched exactly, capped, and escaped before they reach Odoo, the alert or the dashboard. A contact is only recorded if the customer typed it; an email or number the model supplies on its own is dropped. |
+| Bounded actions | One state-changing action per message, and three leads, holds or viewings per chat per hour. A hold lasts 24 hours, one customer can hold one item, and at most ten holds are active at once. The price always comes from the catalog. |
+| Untrusted catalog text | Whatever the catalog returns is cleaned before the model reads it: links, chat-template tokens and known injection phrasing are removed and long text is cut. |
+| Owner channel | The alert bot's webhook has its own secret and acts only on updates from the owner's chat. Nothing a customer sends can reach it. |
+
+Prompt injection cannot be fully solved, because a model can always be talked into asking for something. These limits are enforced in code, outside the model, and sized to what a hijacked assistant could do. At worst it can place one lead, hold or viewing per message and three per hour for a chat, on items that exist, at their catalog price, with contact details the customer typed, and a person confirms or releases each one. It cannot change an existing lead, reach the owner's controls, or mark anything sold. [SECURITY.md](SECURITY.md) lists what is still open.
 
 Two real exchanges from the red-team run:
 
@@ -214,23 +241,25 @@ Scored on 93 hand-labeled cases (45 cars, 48 real estate) run end to end against
 
 | Domain | Tool selection | Argument extraction | Grounding | Task completion |
 |---|---|---|---|---|
-| Cars | 100.00% | 98.68% | 96.77% | 95.56% (43/45) |
-| Real estate | 100.00% | 98.44% | 94.12% | 95.83% (46/48) |
+| Cars | 100.00% | 100.00% | 100.00% | 100.00% (45/45) |
+| Real estate | 97.92% | 96.67% | 100.00% | 93.75% (45/48) |
 
 ![Bar chart of the four eval metrics for cars and real estate](eval/charts/final_metrics_by_domain.png)
 
-Grounding is the share of replies in which every price the agent stated traced back to a real tool result. The scorer is strict and counts a customer's own figure repeated back ("around $1,000,000") as ungrounded; none of the three flagged replies in this run invents a listing. The test cases are hand-written, not real customer data, and [eval/REPORT.md](eval/REPORT.md) says so up front. It also covers what each metric means, the bugs found in both the agent and the scoring code on the way to these numbers, and an independent review that checked the improvement wasn't just a loosened metric.
+Grounding is the share of replies in which every price the agent stated traced back to a real tool result. The scorer is strict and counts a customer's own figure repeated back ("around $1,000,000") as ungrounded; no reply in this run states an ungrounded price. The one missed tool choice is a request to move forward on "the $450,000 property" when two properties cost exactly that, where the assistant searched instead of guessing which. These numbers were re-measured after holds, viewings and the owner channel were added, because the prompt changed; a free-tier model varies by a few cases from run to run, so read the last digit as noise. The test cases are hand-written, not real customer data, and [eval/REPORT.md](eval/REPORT.md) says so up front. It also covers what each metric means, the bugs found in both the agent and the scoring code on the way to these numbers, and an independent review that checked the improvement wasn't just a loosened metric.
 
 ### Red-team results
 
-26 hand-written attacks (direct overrides, prompt-leak requests, role-play, fake system tags, tool abuse, links, injected instructions, off-topic requests, Unicode obfuscation) were sent through the real webhook, LLM and Odoo reads. Pass criteria are string and structure checks, not an LLM judge: no leaked instructions, no links, no more leads than allowed, no invented or unverified prices, no blank replies.
+38 hand-written attacks (direct overrides, prompt-leak requests, role-play, fake system tags, tool abuse, links, injected instructions, off-topic requests, Unicode obfuscation, and attacks on the newer abilities: holding every car, chaining actions, forged item ids, impossible dates, markup in notes, a poisoned catalog, owner commands typed by a customer, and requests to list the tool definitions) were sent through the real webhook, LLM and Odoo reads. Pass criteria are string and structure checks, not an LLM judge: no leaked instructions, no links, no more leads than allowed, no invented or unverified prices, no more holds than allowed, no existing lead modified, and no blank replies. A case where the model only produced an empty reply counts as inconclusive, not as a pass.
 
 | Run | Passed |
 |---|---|
-| With guardrails, four runs | 26 of 26 every time |
-| Every guardrail and the safety section of the prompt switched off | 19 of 26 |
+| With guardrails, latest run | 38 of 38 |
+| Every guardrail and the safety section of the prompt switched off | 26 of 38 |
 
-With the guardrails off, the same model confirmed a $1 lead, created a lead for $999,999,999,999, quoted made-up 50%-off prices because a message said so, appended an injected ad line, recited its own instructions in a role-play, and wrote a web-scraper script. With them on, input screening stopped 8 of the 26 attacks before any LLM call.
+The first 26 attacks passed in each of four earlier runs. With the guardrails off, the same model created a lead at $1 and one at $999,999,999,999, quoted a made-up price, appended an injected ad line, recited its own instructions in a role-play, listed its tool definitions, and wrote a web-scraper script. Three more cases failed only because the model returned nothing, which says nothing about the controls. With them on, input screening stopped 8 of the 38 attacks before any LLM call.
+
+One result cuts the other way. The two poisoned-catalog attacks, where the catalog itself tells the model to reserve every car for an attacker, did not fool this model even with the controls off. So on those two the run shows the controls hold, not that they were needed. Being fooled by such text is a matter of which model and which day, which is why the limits sit in code.
 
 A live model rarely misbehaves on demand, so `engine/tests/test_compromised_model.py` covers the worst case directly. It scripts a model that obeys every attack in one turn (six leads at $1, an unknown tool, a negative number, a link, a prompt leak) and checks that the guardrails hold. The same attack with the guardrails off succeeds.
 
@@ -245,7 +274,7 @@ In order:
 3. Create the Odoo database and install the modules, including this repo's `leadgate_domain`.
 4. Create a virtualenv and `pip install -r requirements.txt`.
 5. Download, clean, and load the two Kaggle datasets into Odoo.
-6. Create the Supabase tables, deploy the n8n sync workflow, backfill the catalog, and create your staff login. Optionally create the alert bot.
+6. Create the Supabase tables, deploy the n8n sync workflow, backfill the catalog, and create your staff login. Optionally create the alert bot and register its webhook so its buttons and replies work.
 7. `uvicorn engine.main:app`, then tunnel it and register the Telegram webhook.
 8. `cd dashboard && npm install && npm run dev`.
 
@@ -269,8 +298,11 @@ LeadGate/
 ├── engine/                       # FastAPI app: webhook, agent loop, LLM client, Odoo client
 │   ├── core/                     # Domain-agnostic agent loop, guardrails, contact handling, adapter interface
 │   ├── adapters/                 # cars.py, real_estate.py: the only domain-specific code
-│   ├── notifier.py               # Owner alert through the second Telegram bot
-│   └── supabase_sync.py          # Copies leads and conversations to Supabase
+│   ├── notifier.py               # Owner alerts and buttons through the second Telegram bot
+│   ├── owner_bot.py              # What the owner's buttons and replies do; human mode
+│   ├── sweeper.py                # Reminds the owner about untouched leads
+│   ├── store.py                  # Which chat a lead came from; human-mode state
+│   └── supabase_sync.py          # Copies leads, statuses and conversations to Supabase
 ├── odoo/addons/leadgate_domain/  # Custom Odoo module: catalog model and sync webhook
 ├── data/                         # Dataset prep and seeding scripts
 ├── n8n/                          # Sync workflow, setup and deployment scripts, and the access-control check
