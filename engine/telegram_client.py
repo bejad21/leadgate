@@ -5,6 +5,8 @@ import re
 import httpx
 from dotenv import load_dotenv
 
+from engine.notifier import valid_username
+
 load_dotenv()
 
 TELEGRAM_API_BASE = "https://api.telegram.org"
@@ -28,21 +30,27 @@ def format_for_telegram(text: str) -> str:
     return _BOLD.sub(r"<b>\1</b>", escaped)
 
 
-def send_message(chat_id: int, text: str) -> httpx.Response:
+def send_message(chat_id: int, text: str, reply_markup: dict | None = None, *, strict: bool = False) -> httpx.Response:
     """Send a message to a Telegram chat via the Bot API, with light formatting.
 
-    If Telegram rejects the formatted version, the original text goes out as plain
-    text so the customer still gets a reply.
+    `reply_markup` is an optional keyboard (for example the share-my-number button, or a request to
+    remove it). If Telegram rejects the formatted version, the original text goes out as plain
+    text, with the same keyboard, so the customer still gets a reply. With `strict`, a rejection
+    that survives that retry (the customer blocked the bot, say) raises instead of being returned.
     """
     bot_token = os.environ["TELEGRAM_BOT_TOKEN"]
     url = f"{TELEGRAM_API_BASE}/bot{bot_token}/sendMessage"
-    response = httpx.post(
-        url,
-        json={"chat_id": chat_id, "text": format_for_telegram(text), "parse_mode": "HTML"},
-        timeout=10,
-    )
+    payload = {"chat_id": chat_id, "text": format_for_telegram(text), "parse_mode": "HTML"}
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    response = httpx.post(url, json=payload, timeout=10)
     if response.status_code == 400:
-        response = httpx.post(url, json={"chat_id": chat_id, "text": text}, timeout=10)
+        plain = {"chat_id": chat_id, "text": text}
+        if reply_markup:
+            plain["reply_markup"] = reply_markup
+        response = httpx.post(url, json=plain, timeout=10)
+    if strict:
+        response.raise_for_status()
     return response
 
 
@@ -69,3 +77,43 @@ def extract_update_id(update: dict) -> int | None:
     """Telegram's per-bot update counter, used to recognise redelivered updates."""
     update_id = update.get("update_id")
     return update_id if isinstance(update_id, int) and not isinstance(update_id, bool) else None
+
+
+def extract_chat_id(update: dict) -> int | None:
+    message = update.get("message")
+    chat = message.get("chat") if isinstance(message, dict) else None
+    chat_id = chat.get("id") if isinstance(chat, dict) else None
+    return chat_id if isinstance(chat_id, int) and not isinstance(chat_id, bool) else None
+
+
+def extract_sender(update: dict) -> dict | None:
+    """Who wrote the message: their id, their public username (only if it is a valid Telegram
+    username, so a hostile one never becomes a link) and first name. None if there is no sender."""
+    message = update.get("message")
+    sender = message.get("from") if isinstance(message, dict) else None
+    if not isinstance(sender, dict):
+        return None
+    sender_id = sender.get("id")
+    if not isinstance(sender_id, int) or isinstance(sender_id, bool):
+        return None
+    username = sender.get("username")
+    first_name = sender.get("first_name")
+    return {
+        "id": sender_id,
+        "username": username if valid_username(username) else None,
+        "first_name": first_name if isinstance(first_name, str) else None,
+    }
+
+
+def extract_shared_contact(update: dict) -> dict | None:
+    """The contact card in a message (what the share-my-number button sends), or None."""
+    message = update.get("message")
+    contact = message.get("contact") if isinstance(message, dict) else None
+    if not isinstance(contact, dict) or not isinstance(contact.get("phone_number"), str):
+        return None
+    first_name = contact.get("first_name")
+    return {
+        "phone_number": contact["phone_number"],
+        "first_name": first_name if isinstance(first_name, str) else None,
+        "user_id": contact.get("user_id"),
+    }

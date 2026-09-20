@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import hmac
 import logging
 import os
@@ -13,14 +14,21 @@ from engine.adapters.real_estate import RealEstateAdapter
 from engine.config import get_llm_client, load_config
 from engine.core.agent_loop import SYSTEM_PROMPT, AgentTurnResult, run_turn
 from engine.core.guardrails import INJECTION_REFUSAL, filter_reply, is_injection_attempt, sanitize_user_text
-from engine import notifier, owner_bot, supabase_sync, sweeper
+from engine import contact_share, notifier, owner_bot, supabase_sync, sweeper
 from engine import store as store_module
 from engine.leads import extract_leads
 from engine.mongo_client import load_history, log_turn
 from engine.notifier import deliver_lead_alert
 from engine.odoo_client import OdooClient
 from engine.rate_limiter import FixedWindowRateLimiter
-from engine.telegram_client import extract_message, extract_update_id, send_message
+from engine.telegram_client import (
+    extract_chat_id,
+    extract_message,
+    extract_sender,
+    extract_shared_contact,
+    extract_update_id,
+    send_message,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -160,10 +168,32 @@ def _owner_deps() -> owner_bot.OwnerDeps:
         odoo=_get_adapter().odoo,
         store=store_module.get_store(),
         owner=notifier,
-        tell_customer=lambda chat_id, text: send_message(chat_id, text),
+        tell_customer=lambda chat_id, text: send_message(chat_id, text, strict=True),
         mirror_status=_mirror_status,
         owner_chat_id=int(os.environ["TELEGRAM_ALERTS_CHAT_ID"]),
     )
+
+
+def _share_deps() -> contact_share.ShareDeps:
+    return contact_share.ShareDeps(
+        odoo=_get_adapter().odoo,
+        store=store_module.get_store(),
+        owner=notifier,
+        send_customer=lambda chat_id, text, markup=None: send_message(chat_id, text, reply_markup=markup, strict=True),
+        mirror_phone=lambda lead_id, phone: supabase_sync.update_lead(lead_id, {"phone": phone}),
+    )
+
+
+def _seen_before(update_id) -> bool:
+    """Telegram redelivers an update it did not get a 200 for. Remember recent ids so a redelivery is ignored."""
+    if update_id is None:
+        return False
+    if update_id in _seen_updates:
+        return True
+    _seen_updates[update_id] = None
+    while len(_seen_updates) > SEEN_UPDATES_MAX:
+        _seen_updates.popitem(last=False)
+    return False
 
 
 def _sweep_deps() -> sweeper.SweepDeps:
@@ -192,7 +222,13 @@ def _clean_restored(messages: list[dict]) -> list[dict]:
     return cleaned
 
 
-def _handle_new_leads(chat_id: int, result) -> None:
+def _is_private(chat_id, sender: dict | None) -> bool:
+    """In a private chat the chat id is the user's own id. A group is never asked for, or believed
+    about, a phone number: anyone in it could answer."""
+    return bool(sender) and sender.get("id") == chat_id
+
+
+def _handle_new_leads(chat_id: int, result, sender: dict | None = None) -> None:
     """Alert the owner and mirror each lead created this turn to the dashboard.
 
     The lead already exists in Odoo, so nothing here may fail the request: each
@@ -203,13 +239,15 @@ def _handle_new_leads(chat_id: int, result) -> None:
     except Exception:
         logger.exception("could not read leads from the turn for chat_id=%s", chat_id)
         return
+    username = (sender or {}).get("username")
     for lead in leads:
+        lead = dataclasses.replace(lead, username=username)
         # Remember which chat the lead came from, so the owner can answer the customer.
         can_reply = False
         try:
             store_module.get_store().save_lead_chat(
                 lead.lead_id, chat_id=chat_id, kind=lead.kind, item_name=lead.item_name,
-                customer_name=lead.customer_name, detail=lead.detail,
+                customer_name=lead.customer_name, detail=lead.detail, username=username,
             )
             can_reply = True
         except Exception:
@@ -224,6 +262,12 @@ def _handle_new_leads(chat_id: int, result) -> None:
             supabase_sync.record_lead(chat_id, lead)
         except Exception:
             logger.exception("could not mirror lead %s to Supabase", lead.lead_id)
+        # A customer with no public username cannot be opened from the alert, so ask them for a number.
+        try:
+            if _is_private(chat_id, sender):  # a share-my-number button only works in a private chat
+                contact_share.maybe_ask_for_number(_share_deps(), chat_id, lead, username)
+        except Exception:
+            logger.exception("could not ask chat_id=%s for a phone number", chat_id)
 
 
 def _mirror_turn(chat_id: int, message: str, reply: str, tool_calls: list, blocked: bool = False) -> None:
@@ -233,13 +277,27 @@ def _mirror_turn(chat_id: int, message: str, reply: str, tool_calls: list, block
         logger.exception("could not mirror the turn to Supabase for chat_id=%s", chat_id)
 
 
-def _after_reply(chat_id: int, text: str, result, mongodb_uri: str | None, delivered: bool) -> None:
+def _after_shared_contact(chat_id: int, sender_id, contact: dict) -> None:
+    try:
+        contact_share.handle_shared_contact(_share_deps(), chat_id, sender_id, contact)
+    except Exception:
+        logger.exception("could not handle a shared contact for chat_id=%s", chat_id)
+
+
+def _after_typed_phone(chat_id: int, text: str) -> None:
+    try:
+        contact_share.maybe_attach_typed_phone(_share_deps(), chat_id, text)
+    except Exception:
+        logger.exception("could not use a typed phone number for chat_id=%s", chat_id)
+
+
+def _after_reply(chat_id: int, text: str, result, mongodb_uri: str | None, delivered: bool, sender: dict | None = None) -> None:
     """Everything that happens after the customer has their reply: tell the owner
     about any lead, then log the turn. Runs as a background task, so a slow Supabase
     or Telegram cannot hold up the next customer's message."""
     # The lead exists in Odoo whether or not the customer saw the reply, so the
     # owner is told either way.
-    _handle_new_leads(chat_id, result)
+    _handle_new_leads(chat_id, result, sender)
     if not delivered:
         return  # a turn the customer never saw is not logged
 
@@ -322,6 +380,20 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
         return Response(status_code=401)
 
     body = await request.json()
+
+    shared = extract_shared_contact(body)
+    if shared is not None:
+        # The customer pressed the share-my-number button. It is not a message for the assistant.
+        contact_chat, contact_sender = extract_chat_id(body), extract_sender(body)
+        if contact_chat is None or contact_sender is None or not _is_private(contact_chat, contact_sender):
+            return {"ok": True}
+        if not _rate_limiter.allow(contact_chat):
+            return Response(status_code=429)
+        if _seen_before(extract_update_id(body)):
+            return {"ok": True}
+        background_tasks.add_task(_after_shared_contact, contact_chat, contact_sender["id"], shared)
+        return {"ok": True}
+
     extracted = extract_message(body)
     if extracted is None:
         # Non-text update (e.g. edited message, channel post, callback
@@ -336,17 +408,17 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     if len(text) > MAX_MESSAGE_LENGTH:
         text = text[:MAX_MESSAGE_LENGTH]
 
-    update_id = extract_update_id(body)
-    if update_id is not None:
-        if update_id in _seen_updates:
-            return {"ok": True}
-        _seen_updates[update_id] = None
-        while len(_seen_updates) > SEEN_UPDATES_MAX:
-            _seen_updates.popitem(last=False)
+    if _seen_before(extract_update_id(body)):
+        return {"ok": True}
 
     text = sanitize_user_text(text)
     if not text:
         return {"ok": True}
+
+    sender = extract_sender(body)
+    if _is_private(chat_id, sender) and contact_share.looks_like_phone(text):
+        # Someone we asked for a number may have typed it. Checked off the request path.
+        background_tasks.add_task(_after_typed_phone, chat_id, text)
 
     mongodb_uri = os.environ.get("MONGODB_URI")
 
@@ -432,6 +504,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
                     tool_calls_made=[call for call, _ in tool_events],
                     tool_results=[outcome for _, outcome in tool_events],
                 ),
+                sender,
             )
         return {"ok": True}
 
@@ -444,7 +517,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
         logger.exception("send_message failed for chat_id=%s", chat_id)
         delivered = False
 
-    background_tasks.add_task(_after_reply, chat_id, text, result, mongodb_uri, delivered)
+    background_tasks.add_task(_after_reply, chat_id, text, result, mongodb_uri, delivered, sender)
     return {"ok": True}
 
 
