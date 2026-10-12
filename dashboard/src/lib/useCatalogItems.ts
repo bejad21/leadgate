@@ -27,16 +27,12 @@ export interface CatalogChange {
 const MAX_CHANGES = 30
 
 /**
- * Shared data hook for `catalog_items`: does an initial full fetch (the
- * Realtime channel only delivers *future* changes, not existing rows) and
- * then keeps the in-memory list in sync via a Postgres Changes subscription.
+ * Shared data hook for `catalog_items`: an initial full fetch (the Realtime channel only delivers
+ * *future* changes), then a Postgres Changes subscription keeps the list in sync. It also reports
+ * whether the channel is connected and records each live status change with the previous status.
  *
- * It also reports whether the Realtime channel is connected, and records each
- * live status change together with the previous status, so a UI can show what
- * moved from where.
- *
- * The page calls this once and filters by domain itself. Pass `domain` to get
- * an already-filtered `items` list.
+ * The page calls this once and filters by domain itself. Pass `domain` to get an already-filtered
+ * `items` list.
  */
 export function useCatalogItems(domain?: DomainType) {
   const [items, setItems] = useState<CatalogItem[]>([])
@@ -86,10 +82,9 @@ export function useCatalogItems(domain?: DomainType) {
 
     fetchInitial()
 
-    // Every hook instance needs its own channel name. supabase-js dedupes
-    // channels by topic, so a fixed name makes a second subscriber (and
-    // React's dev-mode double mount) get back an already-subscribed channel,
-    // and calling `.on()` on it throws and blanks the whole page.
+    // Each hook instance needs its own channel name: supabase-js dedupes channels by topic, so a fixed
+    // name makes a second subscriber (or React's dev double mount) get an already-subscribed channel,
+    // and calling `.on()` on it throws.
     const channel = supabase
       .channel(`catalog_items-changes-${crypto.randomUUID()}`)
       .on(

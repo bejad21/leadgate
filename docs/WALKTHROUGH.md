@@ -4,7 +4,7 @@ A tour of what LeadGate does, in the order a customer and an owner meet it: the 
 
 ## A conversation, end to end
 
-These are real runs of the agent loop against the live Odoo instance and the real LLM (not the Telegram app itself; the Telegram webhook is a thin wrapper around this same loop). The catalog is seeded from real listings, so every car below exists in it.
+These are runs of the agent loop against the live Odoo instance and the live LLM (not the Telegram app itself; the Telegram webhook is a thin wrapper around this same loop). The catalog is seeded from listing datasets, so every car below exists in it.
 
 **Customer:** Do you have any Toyota under 25000?
 
@@ -26,14 +26,14 @@ These are real runs of the agent loop against the live Odoo instance and the rea
 
 > Got it, Sarah — I've submitted your request for the **2020 Toyota Camry** at **$21,834**. A human sales specialist has your contact info (sarah.connor@example.com) and will reach out to you this week to move things forward.
 
-The second message names a specific car and gives contact details, so the agent goes straight to creating the lead instead of searching again. The agent originally had no system prompt and often searched again at this point. Adding one fixed that; the history is in [eval/REPORT.md](../eval/REPORT.md).
+The second message names a specific car and gives contact details, so the agent goes straight to creating the lead instead of searching again.
 
 <details>
 <summary>The same flow on real estate</summary>
 
 **Customer:** What homes do you have under $400,000?
 
-*Agent calls `search_listings(price_max=400000)` and lists five real listings with price, beds, baths, and size.*
+*Agent calls `search_listings(price_max=400000)` and lists five listings with price, beds, baths, and size.*
 
 **Customer:** I'd like to make an offer on the 3bd/2ba house in Guilford, Maine at $379,000. I'm Alex Rivera, alex.rivera@example.com.
 
@@ -65,7 +65,7 @@ The second message names a specific car and gives contact details, so the agent 
 >
 > Would you like more details on any of these, or should I refine the search further?
 
-The engine was then stopped and started again, so it had no memory of the chat in RAM. The next message arrived at the new process, which rebuilt the conversation from MongoDB:
+After an engine restart the new process has no memory of the chat in RAM, so it rebuilds the conversation from MongoDB when the next message arrives:
 
 **Customer:** Which of those has the lowest mileage, and where is it located?
 
@@ -85,7 +85,7 @@ The leads from those conversations show up in Odoo's CRM pipeline as regular opp
 
 ![Odoo CRM pipeline with new leads created by the agent](screenshots/odoo-crm-pipeline.png)
 
-Opening one shows what the agent captured. The customer is a real contact with an email and a phone number, the lead is tagged by catalog, and the revenue is a price the catalog really has:
+Opening one shows what the agent captured. The customer is a linked contact with an email and a phone number, the lead is tagged by catalog, and the revenue is a price from the catalog:
 
 ![Odoo lead form with the contact, email and phone filled in, the Cars tag, the expected revenue and the customer's note](screenshots/odoo-lead-detail.png)
 
@@ -133,7 +133,7 @@ Replying to an alert sends your text to the customer through the customer bot, l
 
 Replying to every message gets tedious, so there is a shorter way. Press "Talk here" under an alert, or send `/talk 71`, and from then on everything you type goes to that customer until you send `/back`. `/talk 72` switches to someone else. If you reply to a specific alert while talking to someone, that reply goes to the customer you replied to and the session stays where it was. `/talk` on its own says who you are talking to. A session ends after six hours, and every message you send keeps it going.
 
-A customer with a public Telegram username also gets an "Open chat" button on their alert, which opens their profile so you can message them from your own account. Not everyone has a username, so the bot asks those customers once for a phone number, using Telegram's share-my-number button (they can type it instead). The number is added to the lead in Odoo and on the dashboard, and you get an alert with the number, a WhatsApp button and "Talk here". Telegram only treats a shared contact as genuine when it is the sender's own number, so a forwarded contact card is refused, and a number typed in a message is only used after the bot has asked for one.
+A customer with a public Telegram username also gets an "Open chat" button on their alert, which opens their profile so you can message them from your own account. Not everyone has a username, so the bot asks those customers once for a phone number, using Telegram's share-my-number button (they can type it instead). The number is added to the lead in Odoo and on the dashboard, and you get an alert with the number, a WhatsApp button and "Talk here". A shared contact is accepted only when Telegram says it is the sender's own number, so a forwarded contact card is refused, and a number typed in a message is only used after the bot has asked for one.
 
 The assistant can do two things beyond creating a lead. A customer can ask it to hold a car, or to arrange a viewing on a day they pick. A hold takes the key off the board for 24 hours, and a scheduled job in Odoo puts it back if nobody confirms it. A viewing becomes a meeting on the lead for that day. Both are requests that a person confirms, and the assistant is told not to promise either. Because a hold changes the catalog, it reaches the dashboard the same way an Odoo change does. The price on these leads always comes from the catalog, never from the model or the customer.
 
@@ -145,7 +145,7 @@ Changing a catalog item's status in Odoo fires an automation rule that posts to 
 
 ![n8n canvas showing a webhook trigger feeding a Supabase upsert branch and a MongoDB insert branch](screenshots/n8n-workflow.png)
 
-Here that pipeline is in action. Two statuses were changed in Odoo while the board was open: one car was put on hold and another was sold. Its tag left the hook, both tallies moved, and both changes were stamped onto the sheet.
+In this screenshot, two statuses were changed in Odoo while the board was open: one car was put on hold and another was sold. The sold car's key left its hook, both tallies moved, and both changes were stamped onto the sheet.
 
 ![The board after two changes made in Odoo: one key flipped to on hold, one gone from its hook, and two stamped rows at the top of the sign-out sheet](screenshots/dashboard-live-change.png)
 

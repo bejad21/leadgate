@@ -1,18 +1,14 @@
-"""Eval runner for the LeadGate agent loop (Task 5.2).
+"""Eval runner for the LeadGate agent loop.
 
-Loads a labeled test-case dataset (Task 5.1) for a given domain, runs each
-case through the real agent loop (`engine.core.agent_loop.run_turn`) against
-a live Odoo instance and a real LLM (via OpenRouter's free tier), and writes
-`{message, expected, actual, latency_ms}` records to
+Loads a labeled test-case dataset for a domain, runs each case through the agent loop
+(`engine.core.agent_loop.run_turn`) against a live Odoo instance and an LLM (OpenRouter's free
+tier), and writes `{message, expected, actual, latency_ms}` records to
 `eval/results/<domain>_results.json`.
 
-This makes REAL network calls for every test case, so:
-  - a small delay is inserted between cases to stay under free-tier
-    per-minute rate limits
-  - a 429 (rate limited) or transient network error triggers a couple of
-    retries with backoff
-  - if a case still fails after retries, the failure is recorded honestly
-    in that case's result (actual.error) instead of crashing the whole run
+Every case makes network calls, so:
+- a short delay between cases keeps it under free-tier per-minute rate limits;
+- a 429 or transient network error is retried a couple of times with backoff;
+- a case that still fails is recorded in its result (`actual.error`) instead of crashing the run.
 """
 
 import argparse
@@ -42,15 +38,11 @@ DATASETS = {
 }
 RESULTS_DIR = ROOT / "eval" / "results"
 
-# Delay between cases so we stay under the free-tier LLM's per-minute rate
-# limit. Deliberately conservative given we're making ~2 LLM calls per case
-# (the initial tool-selection call, plus a follow-up call to phrase the
-# reply whenever a tool was actually invoked).
+# Delay between cases to stay under the free-tier per-minute rate limit. Each case makes about two
+# LLM calls: tool selection, then the reply once a tool ran.
 DELAY_BETWEEN_CASES_SECONDS = 2.0
 
-# Retry policy for rate limiting / transient network failures. Kept small:
-# this is a free-tier eval run, not a production service, and the brief
-# calls for honestly recording a failure rather than looping forever.
+# Retries for rate limits and transient network failures. Kept small: a failure is recorded, not looped on.
 MAX_RETRIES = 2
 RETRY_BACKOFF_SECONDS = 20
 
@@ -58,9 +50,11 @@ RETRYABLE_NETWORK_EXCEPTIONS = (httpx.TimeoutException, httpx.ConnectError, http
 
 
 class LeadRecordingOdoo(OdooClient):
-    """Real reads; every write (leads, contacts, tasks, holds, status changes) is answered
-    with a fake result instead of being executed, so re-running the eval does not fill the
-    CRM with leads or put items on hold. Enabled with EVAL_RECORD_LEADS=1."""
+    """Real reads; lead, contact and task creation, field writes and method calls (holds, status changes)
+    are answered with a fake result instead of being executed, so re-running the eval does not fill the
+    CRM with leads or put items on hold. Other creates (such as tags) still run. Enabled with
+    EVAL_RECORD_LEADS=1.
+    """
 
     def create(self, model, values):
         if model in ("crm.lead", "res.partner", "mail.activity"):
@@ -89,11 +83,10 @@ def build_adapter(domain: str, config: dict):
 
 
 def run_turn_with_retry(history: list[dict], adapter, llm):
-    """Run one turn, retrying on 429 / transient network errors.
+    """Run one turn, retrying on 429 and transient network errors.
 
-    Returns (AgentTurnResult, None) on success, or (None, exception) if all
-    attempts failed -- the caller records the exception as an honest failure
-    instead of letting it crash the whole eval run.
+    Returns (AgentTurnResult, None) on success, or (None, exception) if every attempt failed; the
+    caller records the exception as a failure instead of crashing the run.
     """
     last_error: Exception | None = None
     for attempt in range(MAX_RETRIES + 1):

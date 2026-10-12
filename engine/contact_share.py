@@ -5,7 +5,7 @@ the bot asks them once, with Telegram's share-my-number button (or they can just
 comes back is attached to their lead in Odoo and the dashboard, and the owner is alerted with the
 number, a WhatsApp link and a Talk button.
 
-Two rules keep this honest:
+Two rules apply:
 - A shared contact counts only if Telegram says it is the sender's own (contact.user_id equals
   the sender's id). Anyone can forward someone else's contact card.
 - A typed number is only used after the bot has asked for one, and it must be long enough to be a
@@ -100,7 +100,7 @@ def _typed_number(text: str) -> str | None:
     return None
 
 
-# ---------------------------------------------------------------- asking
+# Asking
 
 def maybe_ask_for_number(deps: ShareDeps, chat_id: int, lead, username) -> bool:
     """Ask a customer for a number, once, if there is no username to open them by and no number
@@ -141,7 +141,7 @@ def inherit_known_number(deps: ShareDeps, chat_id: int, lead) -> str | None:
     return phone
 
 
-# ---------------------------------------------------------------- receiving
+# Receiving
 
 def handle_shared_contact(deps: ShareDeps, chat_id: int, sender_id, contact: dict) -> None:
     """The customer pressed the share button (or sent a contact card)."""

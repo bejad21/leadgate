@@ -1,42 +1,17 @@
-"""
-Prepare the USA Real Estate dataset for LeadGate.
+"""Prepare the USA Real Estate dataset for LeadGate.
 
-This script:
-1. Downloads the ahmedshahriarsakib/usa-real-estate-dataset from Kaggle
-2. Filters out rows with missing core fields or invalid (null/zero) price
-3. Normalizes columns to: property_type, bed, bath, price, acre_lot, city,
-   state, zip_code, house_size
-4. Outputs real_estate_raw.csv
+1. Download ahmedshahriarsakib/usa-real-estate-dataset from Kaggle.
+2. Drop rows missing a core field (price, bed, bath, acre_lot, city, state, zip_code, house_size)
+   and rows with a price of zero or less.
+3. Normalize the columns to: property_type, bed, bath, price, acre_lot, city, state, zip_code,
+   house_size.
+4. Sample 300-500 rows from the filtered candidates and write real_estate_raw.csv.
 
-Column mapping (from the raw dataset's own columns):
-- price -> price (already numeric, no transformation needed)
-- bed -> bed
-- bath -> bath
-- acre_lot -> acre_lot
-- city -> city
-- state -> state
-- zip_code -> zip_code
-- house_size -> house_size
-
-IMPORTANT: the source dataset has NO property-type column (no house/condo/
-land/apartment distinction) -- it only has a `status` field (for_sale,
-ready_to_build), which is a listing/sale status, not a property type. Rather
-than fabricate a type distinction the data doesn't support, `property_type`
-is set to the constant "residential" for every row, since the entire
-dataset is residential listings. This matches the already-known limitation
-that the RealEstateAdapter's `search_listings` tool doesn't actually filter
-on `property_type` yet either (see Task 2.2's review) -- there's no real
-type data on either side of that gap.
-
-Data Quality Filtering:
-- Drops rows with any null value in a core field (price, bed, bath,
-  acre_lot, city, state, zip_code, house_size)
-- Drops rows with price <= 0 (a handful of zero/negative-price rows exist
-  in the raw data and are not real listings)
-
-Target schema: property_type, bed, bath, price, acre_lot, city, state,
-zip_code, house_size
-Output rows: 300-500 (sampled from pre-filtered candidates)
+The source has no property-type column, only a `status` field (for_sale, ready_to_build), which is
+a sale status, not a type. Rather than invent a distinction the data doesn't support,
+`property_type` is the constant "residential" for every row. The RealEstateAdapter's
+`search_listings` doesn't filter on `property_type` yet either, so there is no type data on either
+side of that gap.
 """
 
 import sys
@@ -71,7 +46,7 @@ def download_dataset() -> Path:
 
 
 def load_candidates(download_dir: Path) -> pd.DataFrame:
-    """Load a candidate pool of rows from the raw CSV (the file has 2.2M+ rows total)."""
+    """Load a candidate pool of rows from the raw CSV."""
     csv_files = list(download_dir.glob("*.csv"))
     if not csv_files:
         raise FileNotFoundError(f"No CSV file found in {download_dir}")
@@ -82,7 +57,6 @@ def load_candidates(download_dir: Path) -> pd.DataFrame:
 
 
 def prepare_real_estate_data(df: pd.DataFrame, output_path: Path, sample_size: int = SAMPLE_SIZE) -> pd.DataFrame:
-    """Filter, normalize, and sample the real estate dataset to the target schema."""
     print(f"\nTotal candidate rows: {len(df)}")
 
     missing_cols = [c for c in CORE_COLUMNS if c not in df.columns]
@@ -124,7 +98,7 @@ def prepare_real_estate_data(df: pd.DataFrame, output_path: Path, sample_size: i
 
 
 def verify_output(output_path: Path) -> bool:
-    """Verify the output meets all hard requirements. Returns True iff all checks pass."""
+    """Return True if every check passes."""
     print("\n" + "=" * 60)
     print("VERIFICATION")
     print("=" * 60)

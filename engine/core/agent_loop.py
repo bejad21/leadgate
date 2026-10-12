@@ -20,17 +20,7 @@ class AgentTurnResult:
     tool_calls_made: list[ToolCall] = field(default_factory=list)
     tool_results: list[dict] = field(default_factory=list)
 
-# System prompt injected as the first message of every conversation.
-#
-# Deliberately domain-agnostic (Global Constraint: no car/real-estate-specific
-# strings): it describes the general decision rule for when to search a
-# catalog versus when to create a CRM lead, not any particular vertical's
-# vocabulary. This exists because, without any system prompt at all, the
-# model defaults to calling the search tool even when the customer has
-# already named the specific item they want and clearly intends to buy it --
-# see Task 5.2 eval failures (cars indices 37/38/40/41/42, real_estate
-# indices 38-45) where "I want to buy <specific item> at <price>, here's my
-# name/contact" still triggered another search instead of create_lead.
+# System prompt for every conversation. Domain-agnostic on purpose: no car or real-estate vocabulary.
 SYSTEM_PROMPT = (
     "You are a sales assistant helping a customer browse a catalog of items "
     "and, when appropriate, hand them off to a human by creating a CRM lead.\n\n"
@@ -188,16 +178,9 @@ def run_turn(
     executed_calls = list(response.tool_calls)
 
     if response.tool_calls:
-        # The OpenAI/OpenRouter tool-calling protocol requires the
-        # assistant's own message (carrying its `tool_calls` array, each
-        # with an `id`) to be appended to history BEFORE any `tool` role
-        # messages, and each `tool` message must carry a `tool_call_id`
-        # that matches one of those ids. Skipping the assistant message
-        # and omitting tool_call_id (as this used to do) happens to work
-        # against the currently-configured free-tier model, but is a real
-        # protocol violation that could break silently if the model/
-        # provider ever changes -- a real risk given this project's own
-        # free-tier constraint (see config.py's provider fallback logic).
+        # The tool-calling protocol needs the assistant message (with its `tool_calls`, each with an `id`)
+        # appended before any `tool` messages, and each `tool` message needs a matching `tool_call_id`.
+        # One free-tier model tolerates leaving them out; another provider may not.
         assistant_tool_calls = []
         for call in response.tool_calls:
             call_id = call.id or f"call_{uuid.uuid4().hex}"
@@ -245,7 +228,7 @@ def run_turn(
             )
 
     if response.tool_calls:
-        # Ask the LLM to turn tool results into a natural-language reply, grounded only in those results
+        # Second call, without tools, writes the reply from the tool results.
         follow_up = llm.chat(history, tools=[])
         reply = follow_up.content or ""
         if not reply.strip():

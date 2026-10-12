@@ -44,11 +44,7 @@ ODOO_DB = os.environ.get("ODOO_DB", "leadgate")
 ODOO_USER = os.environ.get("ODOO_USER", "admin")
 ODOO_PASSWORD = os.environ.get("ODOO_PASSWORD")
 if not ODOO_PASSWORD:
-    # Fail loudly rather than silently falling back to a guessed
-    # credential -- matches config.py's deliberate fail-fast convention for
-    # this same variable. Silently defaulting to "admin" here would let
-    # this script quietly authenticate against the wrong Odoo instance (or
-    # fail with a confusing XML-RPC error) instead of a clear message.
+    # No default: a guessed password could authenticate against the wrong Odoo instance.
     raise SystemExit("ODOO_PASSWORD is not set in .env/the environment - refusing to guess it")
 
 

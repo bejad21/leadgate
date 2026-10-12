@@ -152,11 +152,10 @@ def test_unknown_tool_raises_value_error():
 
 
 def _live_odoo_client():
-    """Build a real OdooClient against the local Odoo instance, or skip.
+    """Build an OdooClient against the local Odoo instance, or skip if Odoo is unreachable.
 
-    This is an integration-style check (no mocking): it proves the make/model
-    ilike filter actually narrows results against the real 350-car seeded
-    dataset, not just that the domain list was constructed correctly.
+    Raises if ODOO_PASSWORD is unset. Integration-style (no mocking): it shows the make/model ilike
+    filter narrows results over the 350 seeded cars, not just that the domain list was built.
     """
     from engine.odoo_client import OdooClient
 
@@ -165,10 +164,7 @@ def _live_odoo_client():
     user = os.environ.get("ODOO_USER", "admin")
     password = os.environ.get("ODOO_PASSWORD")
     if not password:
-        # Fail loudly rather than silently falling back to a guessed
-        # credential -- matches config.py's deliberate fail-fast convention
-        # for this same variable. A missing ODOO_PASSWORD here is a real
-        # misconfiguration, not something to paper over with "admin".
+        # Fail loudly instead of guessing a credential, as config.py does for this variable.
         raise RuntimeError(
             "ODOO_PASSWORD is not set -- required to run this live Odoo integration test"
         )
@@ -182,18 +178,10 @@ def _live_odoo_client():
 
 
 def test_live_search_inventory_make_filter_only_returns_matching_make():
-    """Integration check against the real, live Odoo instance (350 seeded cars).
+    """Integration check against live Odoo (350 seeded cars): a make filter only returns that make.
 
-    Confirms search_inventory({"make": "Toyota", "price_max": ...}) only
-    returns cars whose name actually contains "Toyota" -- proving the fix
-    works end-to-end against real data, not just against a mock.
-
-    NOTE: execute_tool truncates "matches" to the first 5 records
-    (`records[:5]` in CarsAdapter.execute_tool), so checking only
-    result["matches"] would silently miss leakage anywhere past position 5.
-    This test therefore checks result["count"] (computed from the full,
-    untruncated `records` list) against a full, untruncated recount obtained
-    via a direct search_read call below -- not just the truncated preview.
+    execute_tool truncates "matches" to 5 records, so this checks result["count"] (from the full list)
+    against a full recount via search_read, not just the preview.
     """
     client = _live_odoo_client()
     adapter = CarsAdapter(client)
@@ -201,17 +189,13 @@ def test_live_search_inventory_make_filter_only_returns_matching_make():
     result = adapter.execute_tool("search_inventory", {"make": "Toyota", "price_max": 40000})
     assert result["count"] > 0, "expected at least one live Toyota match under 40000"
 
-    # The 5-record preview should still look correct...
     for record in result["matches"]:
         assert "toyota" in record["name"].lower(), (
             f"non-Toyota record leaked into make-filtered results: {record['name']}"
         )
         assert record["price"] <= 40000
 
-    # ...but the real proof has to cover the FULL result set, not just the
-    # truncated preview. Query the same domain execute_tool builds
-    # internally, directly via search_read with no [:5] slicing, and check
-    # every single returned record.
+    # Check the full result set, not the 5-record preview.
     full_domain = [
         ("domain_type", "=", "cars"),
         ("status", "=", "available"),
@@ -235,9 +219,7 @@ def test_live_search_inventory_make_filter_only_returns_matching_make():
     over_budget = [r["name"] for r in full_records if r["price"] > 40000]
     assert over_budget == [], f"records over price_max leaked into the FULL result set: {over_budget}"
 
-    # Sanity check: without the make filter, the live dataset has strictly
-    # more matches under the same price cap, proving the filter is genuinely
-    # narrowing the query rather than passing through by coincidence.
+    # Without the make filter there are strictly more matches, so the filter narrows the query.
     unfiltered = adapter.execute_tool("search_inventory", {"price_max": 40000})
     assert unfiltered["count"] > result["count"], (
         "expected the unfiltered live query to return more cars than the "
@@ -247,10 +229,6 @@ def test_live_search_inventory_make_filter_only_returns_matching_make():
 
 @pytest.mark.parametrize("make", ["Toyota", "Honda", "Ford"])
 def test_live_search_inventory_full_result_set_has_zero_leakage_across_makes(make):
-    """Mirrors the reviewer's independent verification: for each of several
-    makes, pull the FULL (untruncated) live result set directly via
-    search_read and assert zero non-matching records anywhere in it, not
-    just within the first 5 previewed by execute_tool."""
     client = _live_odoo_client()
 
     domain = [
@@ -265,7 +243,7 @@ def test_live_search_inventory_full_result_set_has_zero_leakage_across_makes(mak
     assert leaks == [], f"non-{make} records leaked into the full {make} result set: {leaks}"
 
 
-# ---- v2 search filters -------------------------------------------------
+# Search filters
 
 import json as _json
 
@@ -421,7 +399,7 @@ def test_lead_result_marks_a_verified_price():
     assert result == {"lead_id": 9}
 
 
-# ---- review fixes: location matching and non-finite numbers -----------------
+# Location matching and non-finite numbers
 
 def _loc_fleet(*places):
     return [_car(f"{2020 + i} Toyota Camry", 20000 + i, 2020, 10000, "Used", place) for i, place in enumerate(places)]

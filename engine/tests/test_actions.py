@@ -1,4 +1,4 @@
-"""Reserving an item and booking a viewing: what the assistant can now do, and what it cannot."""
+"""Reserving an item and booking a viewing: what the assistant can do, and what it cannot."""
 import datetime as dt
 
 import pytest
@@ -29,7 +29,7 @@ def _leads(odoo):
     return [v for m, v in odoo.created if m == "crm.lead"]
 
 
-# ------------------------------------------------------------------ reservation
+# Reservation
 
 def test_an_available_item_is_held_and_a_lead_is_opened():
     odoo = _odoo()
@@ -130,7 +130,7 @@ def test_the_success_message_tells_the_model_not_to_promise_the_item():
     assert "confirm" in result["note"].lower()
 
 
-# ---------------------------------------------------------------------- viewing
+# Viewing
 
 def _view_args(**extra):
     return {"item_id": 7, "customer_name": "Sarah Connor", "customer_contact": CONTACT, "date": "2026-09-26", "slot": "afternoon", **extra}

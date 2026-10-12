@@ -1,26 +1,11 @@
-"""MongoDB conversation-turn logging (Task 3.4).
+"""MongoDB conversation logging: one document per turn in the `conversations` collection.
 
-Writes one document per conversation turn to MongoDB's `conversations`
-collection: `{chat_id, domain_type, message, reply, tool_calls, timestamp}`.
-This is the dataset Task 5.4's report and the dashboard's transcript view
-both read.
+Each document is `{chat_id, domain_type, message, reply, tool_calls, blocked, handled_by,
+timestamp}`. `load_history` rebuilds a chat's recent history from it. The dashboard reads
+Supabase, not this collection.
 
-Per the `mongodb-connection` skill's guidance: a single `MongoClient` is
-created lazily on first use and reused for the lifetime of the process,
-not re-created per call. This is a single-process, low-throughput
-portfolio deployment (one FastAPI worker, bursty conversational traffic,
-not a high-QPS service), so the pool is intentionally small rather than
-the driver's 100-connection default:
-
-- `maxPoolSize=10`: comfortably above any realistic concurrent-webhook
-  count for a single-worker deployment, without holding open connections
-  the workload will never use.
-- `minPoolSize=0`: no pre-warming: conversation turns are bursty, not a
-  steady stream, so idle connections would just sit unused between messages.
-- `serverSelectionTimeoutMS=5000` / `connectTimeoutMS=5000`: fail fast
-  (5s) rather than hang the webhook response if MongoDB (Atlas free tier)
-  is briefly unreachable -- logging a turn should never make the customer
-  wait a long time for their reply.
+One MongoClient is created on first use and reused. A small pool suits one worker with bursty
+traffic, and the 5s timeouts keep an unreachable Atlas cluster from stalling replies.
 """
 from datetime import datetime, timezone
 from typing import Any
@@ -75,12 +60,8 @@ def log_turn(
     blocked: bool = False,
     handled_by: str | None = None,
 ) -> None:
-    """Write one conversation-turn document to MongoDB's `conversations`
-    collection in the `leadgate` database.
-
-    `tool_calls` is stored as a list of plain dicts (name/arguments), not
-    raw `ToolCall` dataclass instances, so the document is always
-    JSON/BSON-serializable regardless of what the caller passes in.
+    """`tool_calls` is stored as plain dicts (name/arguments), not `ToolCall` instances, so the document is
+    always BSON-serializable.
     """
     client = _get_client(mongodb_uri)
     db = client["leadgate"]

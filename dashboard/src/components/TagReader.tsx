@@ -6,7 +6,6 @@ interface TagReaderProps {
   pinned: boolean
 }
 
-/** A brass nameplate that reads out whichever key is pointed at or picked. */
 export function TagReader({ item, pinned }: TagReaderProps) {
   if (!item) {
     return (

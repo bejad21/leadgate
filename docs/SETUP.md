@@ -1,7 +1,6 @@
 # LeadGate setup guide
 
-Full, ordered setup for running LeadGate locally. Every command here comes from the real
-scripts in this repo and was run in this order to build the working system. For what the
+Full, ordered setup for running LeadGate locally. For what the
 project is and what it looks like running, see the [README](../README.md).
 
 ## Prerequisites
@@ -15,9 +14,8 @@ project is and what it looks like running, see the [README](../README.md).
   of its free models in order, then Mistral if that key is also set)
 - A Supabase project
 - A MongoDB connection string (Atlas free tier works)
-- A way to expose `localhost:8000` publicly for Telegram's webhook. This project used
-  [`cloudflared`](https://github.com/cloudflare/cloudflared)'s free, account-less quick
-  tunnel, no sign-up needed
+- A way to expose `localhost:8000` publicly for Telegram's webhook. [`cloudflared`](https://github.com/cloudflare/cloudflared)'s free, account-less quick
+  tunnel works, no sign-up needed
 
 ## 1. Configure environment variables
 
@@ -68,10 +66,7 @@ Fill in `.env`. `.env.example` documents the baseline set:
   Leads tab, created in Step 6
 - `CHAT_REF_SECRET`: any long random string. It keys the hash that stands in for a Telegram
   chat id in Supabase. Without it, conversations are not mirrored to the dashboard
-- `N8N_API_KEY`: `.env.example` carries this as a placeholder like everything else, but
-  it can't actually be filled in until n8n is already running. Generate it from the n8n
-  UI (Settings > n8n API) after Step 2 (n8n's container is up by then), then add the real
-  value to `.env` before running the n8n scripts in Step 6
+- `N8N_API_KEY`: a placeholder until n8n is running; generate it in Step 6 (Settings > n8n API)
 
 ## 2. Start the core services
 
@@ -86,7 +81,7 @@ comments in `docker-compose.yml` for why each one is loopback-only rather than e
 
 Odoo's XML-RPC `db.create_database` call doesn't work cleanly against a single
 just-started Postgres container (it auto-routes to the wrong, uninitialized database),
-so this project created the database via the Odoo CLI directly:
+so create it with the Odoo CLI directly:
 
 ```bash
 docker compose exec -T odoo odoo -d leadgate --db_host=postgres --db_port=5432 \
@@ -155,9 +150,8 @@ curl -X POST http://localhost:5678/rest/owner/setup \
 ```
 
 Then, from the n8n UI (Settings > n8n API), generate an API key and replace the
-`N8N_API_KEY` placeholder in `.env` with the real value (it can't be filled in until n8n
-is already running, which is why it's a placeholder at this point rather than a real
-value from Step 1). With that in place:
+`N8N_API_KEY` placeholder in `.env` with that value (it can't be filled in until n8n
+is already running, so it is a placeholder until this step). With that in place:
 
 ```bash
 python n8n/scripts/setup_n8n_credentials.py   # creates the Supabase + MongoDB credentials n8n needs
@@ -181,7 +175,7 @@ python n8n/scripts/setup_supabase_table.py
 ```
 
 This runs `n8n/scripts/setup_supabase_table.sql`, which creates `public.catalog_items`,
-turns on Row Level Security with a read-only policy for the public anon key, and adds the
+turns on Row Level Security with a read-only policy for the anon and authenticated roles, and adds the
 table to Supabase's `supabase_realtime` publication. That last part matters: a new table
 is not in the publication by default, and without it the dashboard connects but never
 receives live updates. The script is safe to re-run.
@@ -244,8 +238,8 @@ checks and records it in one transaction: an item can only be held once, one cus
 hold one item, and no more than ten holds can be active at a time (change the limit with
 the system parameter `leadgate.max_active_holds`). A scheduled job runs every five minutes
 and puts lapsed holds back on the board. Both the hold and the release are status changes,
-so they reach the dashboard through n8n like any other. After pulling this change into an
-existing install, upgrade the module:
+so they reach the dashboard through n8n like any other. On an
+existing install, upgrade the module after updating:
 
 ```bash
 docker compose exec odoo odoo -d leadgate --db_host=postgres --db_user=odoo \
@@ -327,14 +321,6 @@ move, and a stamped row lands on the sign-out sheet. If the board is empty, run 
 backfill in step 6. Open `#/leads` (the Leads tab) and sign in with your staff login to see
 leads and conversations. See [dashboard/README.md](../dashboard/README.md) for how it works.
 
-### Hosting the dashboard
-
-The dashboard is a static app, so GitHub Pages can host it for free. It talks to Supabase
-with the public anon key only. Under Settings > Secrets and variables > Actions add the
-variables `SUPABASE_URL` and `SUPABASE_ANON_KEY`, set Settings > Pages > Source to
-"GitHub Actions", and run the "Deploy dashboard" workflow. Visitors see the live key board
-and sample conversations; real leads stay behind the staff sign-in.
-
 ## 10. Reproduce the evaluation
 
 ```bash
@@ -343,8 +329,9 @@ and sample conversations; real leads stay behind the staff sign-in.
 .venv/Scripts/python.exe eval/metrics.py
 ```
 
-`run_eval.py` sends every hand-labeled test case through the real engine, the real LLM,
-and the real Odoo adapters end to end (no mocking) and writes the transcripts to
-`eval/results/`. `metrics.py` scores those transcripts and prints the table above. See
+`run_eval.py` sends every hand-labeled test case through the engine, the LLM
+and the Odoo adapters end to end (set `EVAL_RECORD_LEADS=1` to record writes instead of
+executing them) and writes the transcripts to `eval/results/`. `metrics.py` scores those
+transcripts and prints the metrics table. See
 [`eval/REPORT.md`](../eval/REPORT.md) for what each metric means and the full debugging
 history behind these numbers.

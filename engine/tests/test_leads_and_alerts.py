@@ -26,7 +26,7 @@ LEAD_ARGS = {
 }
 
 
-# ---- extract_leads ---------------------------------------------------------------
+# extract_leads
 
 def test_a_created_lead_is_extracted_with_its_contact_parsed():
     leads = extract_leads(_turn([("create_lead", LEAD_ARGS, {"lead_id": 71})]), domain_type="cars")
@@ -68,7 +68,7 @@ def test_two_different_leads_in_one_turn_are_both_extracted():
     assert [l.lead_id for l in extract_leads(turn, domain_type="cars")] == [1, 2]
 
 
-# ---- notifier -------------------------------------------------------------------
+# Notifier
 
 LEAD = LeadInfo(
     lead_id=71, domain_type="cars", item_name="2020 Toyota Camry", customer_name="Sarah Connor",

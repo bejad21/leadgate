@@ -20,7 +20,7 @@ from engine.rate_limiter import FixedWindowRateLimiter
 client = TestClient(app)
 
 
-# ---------------------------------------------------------------- extracting who wrote
+# Extracting who wrote
 
 def update(**message):
     return {"update_id": 1, "message": {"message_id": 1, "chat": {"id": 555, "type": "private"}, **message}}
@@ -85,7 +85,7 @@ def test_without_a_keyboard_none_is_sent(monkeypatch):
     assert "reply_markup" not in json.loads(route.calls[0].request.content)
 
 
-# ---------------------------------------------------------------- the webhook
+# The webhook
 
 @pytest.fixture(autouse=True)
 def wired(monkeypatch):
@@ -139,7 +139,7 @@ def prompts():
     return [c for c in main_module.send_message.call_args_list if (c.kwargs.get("reply_markup") or {}).get("keyboard")]
 
 
-# ---- a customer with a username
+# A customer with a username
 
 def test_a_lead_from_a_customer_with_a_username_carries_it_to_the_alert_and_the_store(monkeypatch):
     monkeypatch.setattr(main_module, "run_turn", lambda *a, **k: lead_turn())
@@ -154,7 +154,7 @@ def test_a_customer_with_a_username_is_not_asked_for_a_number(monkeypatch):
     assert prompts() == []
 
 
-# ---- a customer without one
+# A customer without one
 
 def test_a_customer_with_no_username_is_asked_for_a_number_with_a_share_button(monkeypatch, real_share):
     monkeypatch.setattr(main_module, "run_turn", lambda *a, **k: lead_turn())
@@ -198,7 +198,7 @@ def test_no_lead_means_no_question(monkeypatch):
     assert prompts() == []
 
 
-# ---- the customer shares a contact
+# The customer shares a contact
 
 def test_a_shared_contact_is_handled_with_the_sender_and_the_chat(monkeypatch):
     handler = MagicMock()
@@ -246,7 +246,7 @@ def test_the_secret_is_still_required_for_a_contact():
     assert client.post("/webhook/telegram", json=body, headers={"X-Telegram-Bot-Api-Secret-Token": "wrong"}).status_code == 401
 
 
-# ---- the customer types a number
+# The customer types a number
 
 def test_a_message_that_holds_a_number_is_offered_to_the_number_handler_and_still_answered(monkeypatch):
     attach = MagicMock(return_value=True)

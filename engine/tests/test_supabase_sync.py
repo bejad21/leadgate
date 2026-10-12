@@ -23,7 +23,7 @@ def configured(monkeypatch):
     monkeypatch.setenv("CHAT_REF_SECRET", "test-secret")
 
 
-# ---- chat_ref -----------------------------------------------------------------
+# chat_ref
 
 def test_chat_ref_hides_the_telegram_chat_id(configured):
     ref = supabase_sync.chat_ref(123456789)
@@ -66,7 +66,7 @@ def test_without_a_secret_there_is_no_chat_ref_and_nothing_is_written(monkeypatc
         assert not route.called
 
 
-# ---- record_lead --------------------------------------------------------------
+# record_lead
 
 @respx.mock
 def test_a_lead_is_upserted_on_the_odoo_lead_id(configured):
@@ -89,7 +89,7 @@ def test_a_lead_is_upserted_on_the_odoo_lead_id(configured):
     assert "555" not in json.dumps(body)
 
 
-# ---- record_turn --------------------------------------------------------------
+# record_turn
 
 @respx.mock
 def test_a_turn_is_stored_with_its_tool_calls(configured):
@@ -114,7 +114,7 @@ def test_a_blocked_turn_is_marked(configured):
     assert json.loads(route.calls.last.request.content)["blocked"] is True
 
 
-# ---- failure isolation --------------------------------------------------------
+# Failure isolation
 
 def test_nothing_is_sent_without_supabase_settings(monkeypatch):
     monkeypatch.delenv("SUPABASE_URL", raising=False)

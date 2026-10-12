@@ -49,7 +49,7 @@ def create_verified_lead(
     description; `follow_up` overrides the default next-day call (summary, kind, days, due).
 
     The price the model passes is only trusted if a catalog item of this
-    domain really has that price. Otherwise expected_revenue is left unset and
+    domain has that price. Otherwise expected_revenue is left unset and
     the lead is marked, so a manipulated conversation cannot plant an
     arbitrary revenue figure in the CRM.
     """

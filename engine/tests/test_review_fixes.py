@@ -1,4 +1,4 @@
-"""Fixes that came out of an independent review, each written to fail before the change."""
+"""Hardening regressions."""
 import threading
 from collections import OrderedDict
 from unittest.mock import MagicMock
@@ -20,7 +20,7 @@ from engine.tests.test_hardening import ActionAdapter, ScriptedLLM, _history
 client = TestClient(main_module.app)
 
 
-# ---------------------------------------------------------------- the Odoo client and threads
+# The Odoo client and threads
 
 def test_each_thread_gets_its_own_xmlrpc_connection(monkeypatch):
     """xmlrpc.client's ServerProxy is not thread-safe, and the engine calls Odoo from the request
@@ -44,7 +44,7 @@ def test_each_thread_gets_its_own_xmlrpc_connection(monkeypatch):
     assert main_proxy.url.endswith("/xmlrpc/2/object")
 
 
-# ---------------------------------------------------------------- webhook secrets
+# Webhook secrets
 
 @pytest.mark.parametrize("path", ["/webhook/telegram", "/webhook/alerts"])
 def test_a_non_ascii_secret_is_a_401_not_a_crash(monkeypatch, path):
@@ -59,7 +59,7 @@ def test_a_misconfigured_owner_chat_id_is_reported():
         assert main_module.owner_chat_id_problem(bad), bad
 
 
-# ---------------------------------------------------------------- human mode when the forward fails
+# Human mode when the forward fails
 
 @pytest.fixture
 def wired(monkeypatch):
@@ -118,7 +118,7 @@ def test_a_very_long_forwarded_message_is_cut_before_telegram_sees_it():
     assert len(rec.owner_html[-1]["text"]) < 4096
 
 
-# ---------------------------------------------------------------- a hold whose last write fails
+# A hold whose last write fails
 
 def _reserve(odoo):
     return actions.reserve_item(odoo, "cars", {"item_id": 7, "customer_name": "Sarah", "customer_contact": "sarah@example.com"})
@@ -153,7 +153,7 @@ def test_if_the_link_cannot_be_written_the_lead_is_still_reported_so_the_owner_h
     assert isinstance(result.get("lead_id"), int) and "error" not in result
 
 
-# ---------------------------------------------------------------- whose contact is believed, more strictly
+# Whose contact is believed, more strictly
 
 def test_a_phone_with_a_different_prefix_is_not_the_customers():
     assert customer_contact("+9995551234567", "call me on 555 1234567") is None or "9995551234567" not in customer_contact("+9995551234567", "call me on 555 1234567")
@@ -185,7 +185,7 @@ def test_digits_split_across_two_messages_do_not_join_into_a_number():
     assert "1234567" not in contact and "+971501234567" not in contact
 
 
-# ---------------------------------------------------------------- an item must have been shown
+# An item must have been shown
 
 def _search_then(write_call, shown_ids):
     """A history in which a search already returned `shown_ids`, then a write call."""
@@ -231,7 +231,7 @@ def test_a_plain_lead_needs_no_prior_search():
     assert [name for name, _ in adapter.executed] == ["create_lead"]
 
 
-# ---------------------------------------------------------------- the sweeper survives faults
+# The sweeper survives faults
 
 class _Owner:
     def __init__(self):
@@ -281,7 +281,7 @@ def test_a_reminder_that_blows_up_after_the_claim_is_unclaimed():
     assert odoo.written[-1][2]["tag_ids"][0][0] == 3
 
 
-# ---------------------------------------------------------------- the Mongo store
+# The Mongo store
 
 def test_the_store_creates_its_indexes_and_expiries():
     store = MongoStore.__new__(MongoStore)
@@ -308,7 +308,7 @@ def test_an_index_failure_does_not_stop_the_store_working():
     store._ensure_indexes()  # must not raise
 
 
-# ---------------------------------------------------------------- a contact that passed is left as written
+# A contact that passed is left as written
 
 def test_a_contact_that_already_passes_is_returned_exactly_as_the_model_wrote_it():
     assert customer_contact("555-123-4567", "call me on 555-123-4567") == "555-123-4567"

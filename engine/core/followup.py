@@ -13,7 +13,7 @@ ACTIVITY_TYPES = {
     "todo": "mail.mail_activity_data_todo",
 }
 
-# Looked up once per process; these ids do not change under us.
+# Looked up once per process; these ids do not change.
 _user_ids: dict[str, int | None] = {}
 _xmlid_ids: dict[str, int | None] = {}
 _model_ids: dict[str, int] = {}

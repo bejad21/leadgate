@@ -126,7 +126,7 @@ def test_a_rejected_lead_call_sends_no_alert(monkeypatch):
     main_module.supabase_sync.record_lead.assert_not_called()
 
 
-# ---- a failed turn must not leave the customer in silence ---------------------
+# A failed turn must not leave the customer in silence
 
 def _run_turn_fails(monkeypatch):
     def boom(*args, **kwargs):

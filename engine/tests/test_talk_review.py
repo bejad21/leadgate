@@ -1,4 +1,4 @@
-"""Fixes from an independent review of talk mode and the phone-number flow, each written to fail first."""
+"""Talk mode and phone-number edge cases."""
 import json
 from collections import OrderedDict
 from unittest.mock import MagicMock
@@ -20,7 +20,7 @@ from engine.tests.test_contact_share import CONTACT, World, lead
 from engine.tests.test_owner_bot import NOW, press, say, world  # noqa: F401  (fixtures)
 
 
-# ---------------------------------------------------------------- a rejected send must not look like success
+# A rejected send must not look like success
 
 @pytest.fixture
 def token(monkeypatch):
@@ -65,7 +65,7 @@ def test_a_prompt_the_customer_never_received_is_not_remembered_as_asked():
     assert w.store.has_chat_flag(555, "phone_asked") is False
 
 
-# ---------------------------------------------------------------- dates and times are not phone numbers
+# Dates and times are not phone numbers
 
 @pytest.mark.parametrize(
     "text",
@@ -93,7 +93,7 @@ def test_real_numbers_are_still_taken_even_next_to_a_date(text):
     assert w.owner.number_alerts[0]["phone"] == "+971501234567"
 
 
-# ---------------------------------------------------------------- only private chats
+# Only private chats
 
 @pytest.fixture
 def wired(monkeypatch):
@@ -154,7 +154,6 @@ def test_a_group_is_never_asked_for_a_number(wired, monkeypatch):
     ask.assert_not_called()
 
 
-# ---------------------------------------------------------------- handing back one lead of a chat with two
 
 def test_handing_back_any_lead_of_the_talked_to_chat_ends_the_session(world):
     world.store.save_lead_chat(72, chat_id=555, kind="viewing", item_name="y", customer_name="Sarah Connor")  # a second lead, same chat
@@ -172,7 +171,6 @@ def test_handing_back_another_customer_still_leaves_the_session_alone(world):
     assert world.store.get_talk(now=NOW) == 71
 
 
-# ---------------------------------------------------------------- a number that Odoo did not accept
 
 def test_a_number_odoo_did_not_take_is_not_remembered_so_a_retry_works():
     w = World()
@@ -200,7 +198,6 @@ def test_a_partner_that_already_has_a_phone_keeps_it():
     assert ("crm.lead", [71], {"phone": "+971501234567"}) in w.odoo.written
 
 
-# ---------------------------------------------------------------- a second lead from the same chat
 
 def test_a_second_lead_in_a_chat_that_shared_a_number_starts_with_it():
     w = World()
@@ -231,7 +228,7 @@ def test_an_odoo_failure_while_inheriting_is_survived():
     assert contact_share.inherit_known_number(w.deps, 555, lead(lead_id=72)) is None
 
 
-# ---------------------------------------------------------------- asking is claimed before it is sent
+# Asking is claimed before it is sent
 
 def test_two_racing_questions_send_only_one_prompt():
     w = World()
@@ -247,7 +244,7 @@ def test_a_claimed_flag_can_be_released():
     assert store.has_chat_flag(555, "phone_asked") is False
 
 
-# ---------------------------------------------------------------- the share button stays until it is used
+# The share button stays until it is used
 
 @pytest.mark.parametrize("contact", [{**CONTACT, "user_id": 999}, {**CONTACT, "phone_number": "hello"}])
 def test_a_refused_share_offers_the_button_again(contact):
@@ -256,7 +253,7 @@ def test_a_refused_share_offers_the_button_again(contact):
     assert w.sent[-1][2] == contact_share.CONTACT_KEYBOARD
 
 
-# ---------------------------------------------------------------- the Mongo store
+# The Mongo store
 
 def mongo():
     store = MongoStore.__new__(MongoStore)
@@ -304,7 +301,7 @@ def test_the_phone_known_for_a_chat_comes_from_any_of_its_leads():
     assert store.phone_for_chat(555) is None
 
 
-# ---------------------------------------------------------------- a viewing confirmation the customer never got
+# A viewing confirmation the customer never got
 
 def test_a_viewing_confirmation_telegram_rejects_is_not_marked_confirmed(world):
     world.deps.tell_customer = lambda *a: (_ for _ in ()).throw(httpx.HTTPStatusError("403", request=None, response=None))

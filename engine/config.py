@@ -4,10 +4,8 @@ from dotenv import load_dotenv
 
 from engine.llm_client import FailoverLLM, LLMClient
 
-# Provider-specific settings: base_url and a concrete model id for whichever
-# LLM API key is actually configured. OpenRouter requires a ":free"-suffixed
-# model on the free tier; Mistral's API is OpenAI-compatible for chat/tools
-# but needs its own base_url and model id.
+# base_url and model id per LLM provider. OpenRouter's free tier needs a ":free" model id; Mistral is
+# OpenAI-compatible but has its own base_url.
 _PROVIDER_SETTINGS = {
     "MISTRAL_API_KEY": {
         "base_url": "https://api.mistral.ai/v1",
@@ -15,23 +13,13 @@ _PROVIDER_SETTINGS = {
     },
     "OPENROUTER_API_KEY": {
         "base_url": "https://openrouter.ai/api/v1",
-        # OpenRouter's free-tier catalog rotates, so this is a list tried in order (see
-        # FailoverLLM), and OPENROUTER_MODELS in .env replaces it. Two earlier choices have
-        # already been retired: "meta-llama/llama-3.3-70b-instruct:free" went paid-only and
-        # "deepseek/deepseek-v4-flash-0731:free" left the catalog. The ones below were checked
-        # on 2026-09-20 against openrouter.ai/api/v1/models and return correct tool_calls for
-        # our exact function-calling schema.
+        # OpenRouter's free catalog rotates, so models are tried in order (see FailoverLLM) and
+        # OPENROUTER_MODELS in .env overrides them.
         "models": ["nvidia/nemotron-3-ultra-550b-a55b:free", "nex-agi/nex-n2.5-pro:free"],
     },
 }
 
-# Preference order when more than one LLM key happens to be present.
-# OpenRouter is tried first: the configured Mistral account has been
-# confirmed (live, 2026-09-18) to return HTTP 429 with a 0 req/minute quota
-# on chat completions across two different API keys, while listing models
-# succeeds -- an account-level restriction, not a transient rate limit.
-# OpenRouter remains second so a working Mistral account still gets used
-# automatically if this ever changes.
+# Preference order when several LLM keys are present: OpenRouter first, Mistral as the fallback.
 _PROVIDER_PREFERENCE = ["OPENROUTER_API_KEY", "MISTRAL_API_KEY"]
 
 REQUIRED_VARS = [
@@ -51,8 +39,7 @@ LLM_KEY_VARS = ["OPENROUTER_API_KEY", "MISTRAL_API_KEY"]
 def load_config() -> dict:
     """Load required environment variables from .env / the environment.
 
-    Fails fast with a clear RuntimeError listing every missing variable if
-    any required variable (or none of the acceptable LLM API keys) is set.
+    Raises RuntimeError listing every missing variable, including the case where no LLM API key is set.
     """
     load_dotenv()
 

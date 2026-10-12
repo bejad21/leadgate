@@ -19,7 +19,7 @@ def talking(world, lead_id=71):
     say(world, f"/talk {lead_id}")
 
 
-# ---------------------------------------------------------------- starting
+# Starting
 
 def test_talk_starts_a_session_and_pauses_the_assistant_in_that_chat(world):
     talking(world)
@@ -57,7 +57,7 @@ def test_talk_with_no_number_and_no_session_says_so(world):
     assert "nobody" in world.rec.owner_texts[-1]["text"].lower() or "not talking" in world.rec.owner_texts[-1]["text"].lower()
 
 
-# ---------------------------------------------------------------- plain messages
+# Plain messages
 
 def test_a_plain_message_goes_to_the_customer_being_talked_to(world):
     talking(world)
@@ -135,7 +135,7 @@ def test_talking_to_a_won_lead_is_allowed_but_changes_nothing_in_the_crm(world):
     assert world.rec.statuses == []
 
 
-# ---------------------------------------------------------------- two customers
+# Two customers
 
 def test_switching_customers_sends_to_the_new_one_only(two):
     talking(two, 71)
@@ -170,7 +170,7 @@ def test_the_forwarded_message_offers_a_way_to_switch_to_that_customer(two):
     assert "Talk here" in labels
 
 
-# ---------------------------------------------------------------- ending
+# Ending
 
 def test_back_with_no_number_ends_the_current_session(world):
     talking(world)
@@ -205,7 +205,7 @@ def test_back_with_no_number_and_no_session_gives_the_usage_line(world):
     assert "/back" in world.rec.owner_texts[-1]["text"]
 
 
-# ---------------------------------------------------------------- who may use it
+# Who may use it
 
 def test_a_stranger_cannot_start_or_use_a_session(world):
     say(world, "/talk 71", chat=999, sender=999)

@@ -5,8 +5,9 @@ replying to that alert. Replying puts the chat in human mode: the assistant stay
 the customer's next messages are forwarded to the owner, until the owner hands the chat back
 or the time runs out.
 
-Nothing a customer writes can reach this code: it is fed only by the alert bot's own webhook,
-which checks a secret, and every update is ignored unless it comes from the owner's chat.
+`handle_update` is fed only by the alert bot's own webhook, which checks a secret, and ignores every
+update that does not come from the owner's chat. `forward_customer_message` is the one place customer
+text arrives, and it escapes it.
 Every dependency is passed in (OwnerDeps), so the whole thing can be tested without Telegram,
 Odoo or a database.
 
@@ -28,7 +29,7 @@ from engine.sweeper import tag_as_reminded
 logger = logging.getLogger(__name__)
 
 HANDOFF_HOURS = 6
-RELAY_MAX = 3500  # Telegram's limit is 4096 characters; leave room for nothing else to go wrong
+RELAY_MAX = 3500  # Telegram's limit is 4096 characters
 FORWARD_MAX = 600  # Telegram refuses messages over 4096 characters and escaping can make text five times longer
 
 HELP = (
@@ -56,7 +57,6 @@ class OwnerDeps:
     now: Callable[[], dt.datetime] = field(default=_utcnow)
 
 
-# ---------------------------------------------------------------- entry point
 
 def handle_update(update: dict, deps: OwnerDeps) -> None:
     """Handle one update from the alert bot. Never raises."""
@@ -79,7 +79,7 @@ def _is_owner(sender, chat, deps: OwnerDeps) -> bool:
     return sender.get("id") == deps.owner_chat_id and chat.get("id") == deps.owner_chat_id
 
 
-# ---------------------------------------------------------------- where a lead stands
+# Where a lead stands
 
 def _lead_state(deps: OwnerDeps, lead_id: int) -> dict | None:
     """The lead as Odoo has it, archived or not, or None if it does not exist."""
@@ -114,7 +114,7 @@ def _advance_from_new(deps: OwnerDeps, lead_id: int, state: dict | None) -> None
         followup.set_stage(deps.odoo, lead_id, "Qualified")
 
 
-# ---------------------------------------------------------------- buttons
+# Buttons
 
 def _handle_callback(callback: dict, deps: OwnerDeps) -> None:
     callback_id = str(callback.get("id") or "")
@@ -307,7 +307,7 @@ _ACTIONS = {
 }
 
 
-# ---------------------------------------------------------------- messages
+# Messages
 
 def _handle_message(message: dict, deps: OwnerDeps) -> None:
     text = message.get("text")
@@ -448,7 +448,7 @@ def _list_open(deps: OwnerDeps) -> None:
     deps.owner.send_owner_html("\n".join(lines))
 
 
-# ---------------------------------------------------------------- human mode
+# Human mode
 
 def forward_customer_message(deps: OwnerDeps, handoff: dict, text: str):
     """While a chat is in human mode, pass the customer's message to the owner instead of the

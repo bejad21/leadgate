@@ -63,7 +63,7 @@ def test_extract_message_returns_none_for_malformed_update():
     assert extract_message({"message": {"chat": "not-a-dict", "text": "hi"}}) is None
 
 
-# ---- formatting: the model writes Markdown, Telegram wants its own HTML -------
+# Formatting: the model writes Markdown, Telegram wants its own HTML
 
 @pytest.mark.parametrize(
     "markdown, html",

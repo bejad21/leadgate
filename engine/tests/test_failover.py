@@ -54,7 +54,7 @@ def test_a_timeout_or_network_error_hands_over_too():
 
 @pytest.mark.parametrize("code", [400, 401, 403])
 def test_a_request_the_provider_rejects_is_not_retried_elsewhere(code):
-    """A bad request or a bad key is our fault, and hiding it behind another model would mask it."""
+    """A bad request or a bad key is a caller error, and retrying on another model would hide it."""
     first, second = Model("a", status_error(code)), Model("b", OK)
     with pytest.raises(httpx.HTTPStatusError):
         FailoverLLM([first, second]).chat([], [])

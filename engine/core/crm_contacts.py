@@ -1,10 +1,8 @@
-"""Turn what a customer typed into real Odoo contact data.
+"""Turn what a customer typed into Odoo contact data.
 
-A lead used to carry the customer's name and email as a paragraph of text.
-Here the contact is parsed into an email and a phone number, linked to a
-res.partner (reused if one already has that email or number), and the lead is
-marked with its source and catalog. Every step is best-effort: a failure
-creating a helper record must never cost the customer their lead.
+The contact is parsed into an email and a phone number, linked to a res.partner (reused if one
+already has that email or number), and the lead is marked with its source and catalog. Every step
+is best-effort: a failure creating a helper record must never cost the customer their lead.
 
 Everything here treats the customer's text as hostile. An email is matched
 exactly (never with LIKE wildcards, which would let "%@gmail.com" grab a

@@ -46,7 +46,7 @@ def post_customer(text="hello", chat_id=31, update_id=1):
     return client.post("/webhook/telegram", json=body, headers={"X-Telegram-Bot-Api-Secret-Token": config["TELEGRAM_WEBHOOK_SECRET"]})
 
 
-# ---------------------------------------------------------------- the alert webhook
+# The alert webhook
 
 def test_the_alert_webhook_refuses_everything_when_no_secret_is_set(monkeypatch):
     monkeypatch.delenv("TELEGRAM_ALERTS_WEBHOOK_SECRET", raising=False)
@@ -89,7 +89,7 @@ def test_the_customer_secret_does_not_open_the_alert_webhook():
     assert post_alert({"update_id": 1}, secret=config["TELEGRAM_WEBHOOK_SECRET"]).status_code == 401
 
 
-# ---------------------------------------------------------------- lead bookkeeping
+# Lead bookkeeping
 
 def _lead_turn(kind_tool="create_lead", result=None):
     return AgentTurnResult(
@@ -128,7 +128,7 @@ def test_a_reservation_is_remembered_with_its_kind(monkeypatch):
     assert chat["kind"] == "reservation" and chat["detail"] == "Held for 24 hours" and chat["item_name"] == "2024 Corolla"
 
 
-# ---------------------------------------------------------------- human mode
+# Human mode
 
 def _handoff(chat_id=31, hours=5):
     store_module.get_store().set_handoff(chat_id, 71, until=dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=hours))
@@ -189,7 +189,7 @@ def test_a_message_in_human_mode_is_still_screened_before_it_reaches_the_owner(m
     assert "\x00" not in forwarded.call_args.args[2] and "‮" not in forwarded.call_args.args[2]
 
 
-# ---------------------------------------------------------------- the reminder task
+# The reminder task
 
 def test_the_reminder_task_only_starts_when_alerts_are_configured(monkeypatch):
     started = []

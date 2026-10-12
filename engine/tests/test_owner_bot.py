@@ -74,7 +74,7 @@ def say(world, text, *, reply_to=None, chat=OWNER, sender=OWNER):
     owner_bot.handle_update({"update_id": 2, "message": message}, world.deps)
 
 
-# ---------------------------------------------------------------- who may act
+# Who may act
 
 def test_a_stranger_pressing_a_button_changes_nothing(world):
     press(world, "l:71", chat=999, sender=999)
@@ -97,7 +97,7 @@ def test_junk_updates_are_ignored_without_error(world):
         owner_bot.handle_update(update, world.deps)
 
 
-# ---------------------------------------------------------------- buttons
+# Buttons
 
 def test_take_it_assigns_the_lead_and_says_so(world):
     press(world, "t:71")
@@ -175,7 +175,7 @@ def test_pressing_the_same_button_twice_is_harmless(world):
     assert world.rec.statuses[-2:] == [(71, "contacted"), (71, "contacted")]
 
 
-# ---------------------------------------------------------------- reply relay
+# Reply relay
 
 def test_the_reply_button_opens_a_reply_box_tied_to_that_lead(world):
     press(world, "r:71")
@@ -230,7 +230,7 @@ def test_a_reply_for_a_lead_whose_chat_is_unknown_says_so(world):
     assert world.rec.customer == [] and "chat" in world.rec.owner_texts[-1]["text"].lower()
 
 
-# ---------------------------------------------------------------- handing back
+# Handing back
 
 def test_hand_back_ends_human_mode(world):
     world.store.set_handoff(555, 71, until=NOW + dt.timedelta(hours=5))
@@ -249,7 +249,7 @@ def test_the_back_command_needs_a_lead_number(world):
     assert "/back" in world.rec.owner_texts[-1]["text"]
 
 
-# ---------------------------------------------------------------- forwarding while in human mode
+# Forwarding while in human mode
 
 def test_a_customer_message_in_human_mode_is_forwarded_to_the_owner(world):
     world.store.set_handoff(555, 71, until=NOW + dt.timedelta(hours=5))
@@ -274,7 +274,7 @@ def test_the_owner_can_reply_straight_to_a_forwarded_message(world):
     assert world.rec.customer[-1] == (555, "Yes, here")
 
 
-# ---------------------------------------------------------------- commands
+# Commands
 
 def test_help_lists_what_the_owner_can_do(world):
     say(world, "/help")

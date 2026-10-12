@@ -1,6 +1,6 @@
 # LeadGate
 
-An AI agent that talks to customers on Telegram, searches a real catalog, and hands serious buyers to a person by creating a lead in Odoo. The same engine runs on two unrelated catalogs: used cars and real estate.
+An AI agent that talks to customers on Telegram, searches a catalog, and hands serious buyers to a person by creating a lead in Odoo. The same engine runs on two unrelated catalogs: used cars and real estate.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
@@ -14,7 +14,7 @@ An AI agent that talks to customers on Telegram, searches a real catalog, and ha
 
 ![Odoo on the left, the dashboard on the right: a customer asks the assistant to hold a car, the hold appears on the Leads tab and the key flips to On hold, the owner's alert arrives with buttons, the owner replies and then marks it sold, and the key leaves its hook](docs/demo/leadgate-demo.gif)
 
-*About 110 seconds, real services throughout. A customer asks for a certified Toyota and then for a hold on the cheapest one. The owner's alert arrives in Telegram with buttons, the owner replies and taps Mark sold, the key leaves its hook, and Odoo shows the lead as Won. The customer's side of Telegram is simulated. [Watch the full-quality video](docs/demo/leadgate-demo.mp4).*
+*About 110 seconds, on live services throughout. A customer asks for a certified Toyota and then for a hold on the cheapest one. The owner's alert arrives in Telegram with buttons, the owner replies and taps Mark sold, the key leaves its hook, and Odoo shows the lead as Won. The customer's side of Telegram is simulated. [Watch the full-quality video](docs/demo/leadgate-demo.mp4).*
 
 ## How it works
 
@@ -54,7 +54,7 @@ Everything runs locally and every service has a free tier. You need Docker, Pyth
 |---|---|
 | Domain-agnostic agent | `engine/core/` has no car or property vocabulary. Each catalog is one small adapter that declares its tools and turns them into an Odoo query. |
 | Search | Cars filter by make, model, price, year, mileage, condition and location, and sort by price, mileage or year. Real estate filters by price. |
-| Real CRM integration | A lead is a real `crm.lead` with a linked contact, a Telegram source and a catalog tag. It is assigned to a salesperson with a call due the next day. Asking again about the same item within minutes returns the same lead. |
+| CRM integration | A lead is a `crm.lead` with a linked contact, a Telegram source and a catalog tag. It is assigned to a salesperson with a call due the next day. Asking again about the same item within minutes returns the same lead. |
 | Owner alerts | A separate Telegram bot tells the owner when a lead is created. Buttons take it, mark it contacted, win it or lose it. Replying to an alert writes to the customer, and `/talk` sends everything you type to one customer until `/back`. Customers with a public username get an Open chat link, and the others are asked once for a phone number. An untouched lead gets one reminder. |
 | Holds and viewings | A customer can ask for a 24 hour hold or a viewing on a day they choose. Both are requests: the owner confirms or releases them from Telegram, and a hold moves the key on the dashboard. |
 | Live dashboard | An Odoo status change reaches an open browser tab in about a second. A staff-only Leads tab shows each lead with the conversation behind it. It works on a phone and by keyboard. |
@@ -96,7 +96,7 @@ The assistant only handles the catalog. It declines anything else, never sends l
 
 > Got it, Sarah — I've submitted your request for the **2020 Toyota Camry** at **$21,834**. A human sales specialist has your contact info (sarah.connor@example.com) and will reach out to you this week to move things forward.
 
-These are real runs of the agent loop against live Odoo and the real model. The lead lands in Odoo's pipeline as a regular opportunity, with a real contact and a price the catalog actually has:
+These are runs of the agent loop against live Odoo and the live model. The lead lands in Odoo's pipeline as a regular opportunity, with a linked contact and a price from the catalog:
 
 ![Odoo lead form with the contact, email and phone filled in, the Cars tag, the expected revenue and the customer's note](docs/screenshots/odoo-lead-detail.png)
 
@@ -116,7 +116,7 @@ Prompt injection cannot be fully solved. At worst, a hijacked assistant can plac
 
 ## Results
 
-Scored on 93 hand-labeled cases (45 cars, 48 real estate) run end to end against the live system, with no mocking.
+Scored on 93 hand-labeled cases (45 cars, 48 real estate) run end to end against the live model and Odoo reads, with no mocking.
 
 | Domain | Tool selection | Argument extraction | Grounding | Task completion |
 |---|---|---|---|---|
@@ -125,14 +125,14 @@ Scored on 93 hand-labeled cases (45 cars, 48 real estate) run end to end against
 
 Grounding is the share of replies where every price the agent stated traced back to a tool result. The test cases are hand-written, not real customer data. They were scored on a free model that OpenRouter has since retired. The engine now defaults to other free models and has not been re-scored on them, and free models vary by a few cases from run to run, so read the last digit as noise.
 
-38 hand-written attacks were sent through the real webhook, model and Odoo reads, and the pass criteria are string and structure checks, not an LLM judge.
+38 hand-written attacks were sent through the webhook, with the live model and Odoo reads, and the pass criteria are string and structure checks, not an LLM judge.
 
 | Run | Passed |
 |---|---|
 | With guardrails | 38 of 38 |
 | Every guardrail and the prompt's safety section off | 26 of 38 |
 
-The test suite has 713 engine tests, 32 dashboard tests and 44 browser checks. It also has live scripts against real Odoo, Supabase and the model. [eval/REPORT.md](eval/REPORT.md) covers the methodology, what each metric means, the bugs found along the way, and the red-team run in detail.
+The test suite has 713 engine tests, 32 dashboard tests and 44 browser checks. It also has live scripts against Odoo, Supabase and the model. [eval/REPORT.md](eval/REPORT.md) covers the methodology, what each metric means, the bugs found along the way, and the red-team run in detail.
 
 ## Documentation
 
@@ -165,7 +165,6 @@ LeadGate/
 ├── dashboard/                    # React, Vite, Tailwind, Supabase Realtime
 ├── eval/                         # Test datasets, eval and red-team runners, metrics, results, REPORT.md
 ├── docs/                         # Setup guide, walkthrough, screenshots and the demo video
-├── .github/workflows/            # Deploys the dashboard to GitHub Pages
 └── docker-compose.yml            # Postgres, Odoo, n8n (all localhost-only)
 ```
 

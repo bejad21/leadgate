@@ -66,7 +66,7 @@ cleanup()
 with sync_playwright() as p:
     browser = p.chromium.launch()
 
-    # ---------- signed out: samples ----------
+    # Signed out: samples
     ctx, page, errors, private_requests = open_page(browser)
     check("signed out: sample leads are shown", page.locator(".slip").count() == 5)
     check("signed out: tallies match the samples", page.locator(".tape-count").all_inner_texts() == ["7", "5", "1"], str(page.locator(".tape-count").all_inner_texts()))
@@ -111,7 +111,7 @@ with sync_playwright() as p:
     check("wrong password shows a plain message", "do not match" in page.locator(".signin-error").inner_text())
     check("still signed out after a failed attempt", page.locator(".signin").count() == 1)
 
-    # ---------- sign in ----------
+    # Sign in
     page.fill("input[type=password]", PASSWORD)
     page.click("button.signin-button")
     page.wait_for_selector(".signout", timeout=15000)
@@ -120,7 +120,7 @@ with sync_playwright() as p:
     check("signed in: samples are gone", page.locator(".roll-sample").count() == 0)
     check("signed in: an empty table says so", "No conversations yet" in page.locator(".pad").inner_text() or page.locator(".slip").count() > 0)
 
-    # ---------- live inserts over Realtime ----------
+    # Live inserts over Realtime
     before = page.locator(".slip").count()
     chat = f"uitest-{int(time.time())}"
     insert("conversation_turns", {"chat_ref": chat, "domain_type": "cars", "user_message": "Any Honda under 20000?", "reply": "Here are **3 Hondas** I found.", "tool_calls": [{"name": "search_inventory", "arguments": {"make": "Honda", "price_max": 20000}}], "blocked": False})
@@ -144,7 +144,7 @@ with sync_playwright() as p:
     check("the live conversation is in the roll", "Any Honda under 20000?" in roll and "Searched the cars" in roll and "Honda · up to $20,000" in roll, roll[:120].replace("\n", " "))
     check("tallies count the live data", page.locator(".tape-count").all_inner_texts()[1] == str(before + 1), str(page.locator(".tape-count").all_inner_texts()))
 
-    # ---------- hostile text is inert ----------
+    # Hostile text is inert
     chat2 = f"uitest-x-{int(time.time())}"
     insert("conversation_turns", {"chat_ref": chat2, "domain_type": "cars", "user_message": "<img src=x onerror=window.__pwned=1> <script>window.__pwned=1</script>", "reply": "**<b>bold?</b>** and <a href='https://evil.example'>link</a>", "tool_calls": [{"name": "create_lead", "arguments": {"name": "<i>x</i>", "price": 1}}], "blocked": False})
     insert("leads", {"odoo_lead_id": 990002, "domain_type": "cars", "item_name": "<u>Injected</u> item", "customer_name": "<b>Boss</b>", "email": None, "phone": None, "price": None, "price_verified": True, "chat_ref": chat2})
@@ -155,7 +155,7 @@ with sync_playwright() as p:
     check("no script ran", page.evaluate("window.__pwned === undefined"))
     check("bold markers around markup do not create elements", page.locator(".roll b, .roll i, .slip b, .slip u").count() == 0)
 
-    # ---------- persistence and sign-out ----------
+    # Persistence and sign-out
     page.reload(wait_until="load")
     page.wait_for_selector(".signout", timeout=15000)
     try:
@@ -169,7 +169,7 @@ with sync_playwright() as p:
     check("sign-out returns to the samples", page.locator(".roll-sample").count() == 1 and page.locator(".slip").count() == 5)
     ctx.close()
 
-    # ---------- other views still work ----------
+    # Other views still work
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})
     page = ctx.new_page()
     page.goto("http://localhost:5173/#/leads", wait_until="load")
@@ -183,7 +183,7 @@ with sync_playwright() as p:
     check("the domain switch is hidden on Leads", page.locator(".switch").count() == 0)
     ctx.close()
 
-    # ---------- phone ----------
+    # Phone
     ctx, page, errors, _ = open_page(browser, 390, 844)
     overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
     check("phone: no horizontal scroll", overflow <= 0, f"{overflow}px")

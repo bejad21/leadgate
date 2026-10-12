@@ -19,7 +19,7 @@ class FakeOdoo:
         self.partner_phones = {}  # partner id -> phone, for the partners a test cares about
         self.holds_refused_with = None  # set to a reason to make action_reserve refuse
 
-    # ---- reads ---------------------------------------------------------------
+    # Reads
     def search_read(self, model, domain, fields, **kwargs):
         if model == "res.users":
             login = domain[0][2]
@@ -45,7 +45,7 @@ class FakeOdoo:
             return rows
         return []
 
-    # ---- writes --------------------------------------------------------------
+    # Writes
     def create(self, model, values):
         self.created.append((model, values))
         return 500 + len(self.created)

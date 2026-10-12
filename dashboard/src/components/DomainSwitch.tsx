@@ -8,7 +8,6 @@ interface DomainSwitchProps {
 
 const DOMAINS: DomainType[] = ['cars', 'real_estate']
 
-/** A two-position brass switch plate. */
 export function DomainSwitch({ value, onChange }: DomainSwitchProps) {
   return (
     <div className="switch" role="radiogroup" aria-label="Catalog" data-position={DOMAINS.indexOf(value)}>

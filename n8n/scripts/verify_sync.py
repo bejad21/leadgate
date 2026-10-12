@@ -1,11 +1,9 @@
-"""End-to-end verification for Task 3.2/3.3.
+"""End-to-end check of the Odoo to n8n to Supabase and MongoDB sync.
 
-Triggers a real status change on one `cars` and one `real_estate`
-leadgate.catalog.item via XML-RPC (which fires the existing
-"Catalog item status changed" Automated Action -> _notify_webhook -> the
-n8n webhook), waits briefly for the workflow to run, then independently
-queries Supabase (via its REST API) and MongoDB (via pymongo) to confirm
-the data actually landed -- not just that n8n reported success.
+Changes the status of one `cars` and one `real_estate` leadgate.catalog.item over XML-RPC, which
+fires the "Catalog item status changed" Automated Action, then _notify_webhook, then the n8n
+webhook. After a short wait it queries Supabase (REST) and MongoDB (pymongo) independently to
+confirm the data landed, not just that n8n reported success.
 """
 import os
 import time

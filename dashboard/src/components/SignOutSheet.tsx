@@ -6,7 +6,6 @@ interface SignOutSheetProps {
   loading: boolean
 }
 
-/** Paper sign-out sheet on a steel clip. Each row is stamped in ink. */
 export function SignOutSheet({ rows, loading }: SignOutSheetProps) {
   return (
     <section className="sheet" aria-label="Recent changes" aria-live="polite">

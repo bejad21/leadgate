@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Screens for the catalog. Without these the model exists but nobody can
-         see or edit an item in Odoo. Changing a status here fires the automated
-         action that tells n8n, which is what the dashboard listens to. -->
+    <!-- Changing a status here fires the automated action that notifies n8n, which mirrors it to Supabase. -->
 
     <record id="view_catalog_item_list" model="ir.ui.view">
         <field name="name">leadgate.catalog.item.list</field>

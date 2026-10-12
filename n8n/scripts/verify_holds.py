@@ -113,7 +113,7 @@ def main() -> int:
         row = call("leadgate.catalog.item", "read", [[d], ["status"]])[0]
         check("a status set by hand with no expiry is left alone", row["status"] == "reserved", str(row))
 
-        # ---- simultaneous customers ------------------------------------------------
+        # Simultaneous customers
         call("leadgate.catalog.item", "action_release", [[c, d]])
         call("ir.config_parameter", "set_param", ["leadgate.max_active_holds", "1"])
         racers = [call("leadgate.catalog.item", "create", [{"name": f"HOLD-PROBE race {n}", "domain_type": "cars", "price": 2000 + n}]) for n in range(6)]

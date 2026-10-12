@@ -1,10 +1,9 @@
 # LeadGate evaluation report
 
-Phase 5 result: what was tested, how it was scored, what changed along the way, and
-what still doesn't work. All numbers below come from `eval/metrics.py`'s live output
-against `eval/results/cars_results.json` (45 cases) and
-`eval/results/real_estate_results.json` (48 cases), re-run and re-checked on
-2026-09-18 while writing this report. Nothing here is rounded up or estimated.
+What was tested, how it was scored, what changed along the way, and what still doesn't
+work. The current numbers come from `eval/metrics.py`'s live output against
+`eval/results/cars_results.json` (45 cases) and `eval/results/real_estate_results.json`
+(48 cases). Tables from earlier runs are kept as history and labeled as such.
 
 ## Synthetic data disclosure
 
@@ -18,8 +17,8 @@ each carry a `dataset_info.disclosure` field that says so directly:
 > phone number below as belonging to a real person.
 
 The messages were written to exercise specific categories (clear queries, ambiguous
-phrasing, genuine no-match cases, out-of-scope requests, and lead-creation intents),
-with expected tool calls and outcomes checked by hand against the real seeded
+phrasing, no-match cases, out-of-scope requests, and lead-creation intents),
+with expected tool calls and outcomes checked by hand against the seeded
 catalog data (`data/cars_raw.csv`, `data/real_estate_raw.csv`, 350 rows each). The
 catalog rows themselves are real (drawn from public used-car and real-estate listing
 data used to seed the demo Odoo instance), but the conversational messages, the
@@ -35,12 +34,11 @@ search tool or a lead-creation tool, and replies in natural language. Each domai
 has a hand-labeled test set with an expected tool call, expected extracted
 arguments, and an expected outcome per case.
 
-`eval/run_eval.py` sends every case through the real engine, the actual LLM
-(OpenRouter's free-tier deepseek/deepseek-v4-flash-0731:free, which OpenRouter has since removed), the actual Odoo
-adapters, the actual catalog data, end to end, and records what the engine
-actually did. There is no mocking of the model or the data layer anywhere in this
-run; case counts, tool-call arguments, and latencies in the results files are the
-real values from real API calls.
+`eval/run_eval.py` sends every case through the engine, the LLM (OpenRouter's free-tier
+deepseek/deepseek-v4-flash-0731:free, which OpenRouter has since removed), the Odoo
+adapters and the catalog data, end to end, and records what the engine did. Nothing in
+the model or data layer is mocked; the tool-call arguments and latencies in the results
+files come from live API calls.
 
 `eval/metrics.py` then scores those recorded transcripts against the dataset's
 labels on four axes:
@@ -49,18 +47,20 @@ labels on four axes:
   call none, for out-of-scope messages)?
 - Slot extraction accuracy: for cases where a tool call was expected and made,
   did the extracted arguments match the expected ones? This metric only scores
-  cases where the expected tool actually applies and was actually called; a case
+  cases where the expected tool applies and was called; a case
   where the wrong tool was chosen is excluded from this metric (its failure already
   shows up in tool selection) rather than silently counted as correct.
 - Grounding rate: reported here as 1 minus the hallucination rate, the
   fraction of replies whose factual claims (prices, listing counts, specific
-  features) are actually backed by real tool-output data, not invented. A rate of
+  features) are backed by tool output, not invented. A rate of
   100% means the hallucination audit flagged zero cases across the run.
 - Task completion rate: did the case reach the outcome the dataset says a
   correctly-behaving agent should reach (the right tool, the right result, or the
   right refusal), end to end?
 
-Final live numbers (.venv/Scripts/python.exe eval/metrics.py, 93 cases total):
+Results of the run after the search filters and guardrails were added, before holds,
+viewings and the owner channel (93 cases). The current numbers are under "Re-measured
+after holds, viewings and the owner channel" below:
 
 | Domain | n | Tool selection | Slot extraction | Grounding rate | Task completion |
 |---|---|---|---|---|---|
@@ -74,22 +74,21 @@ added. The earlier run scored cars 100 / 98.68 / 100 / 97.78 and real estate
 went up, slot extraction is level, and grounding and completion went down slightly.
 The free model is not deterministic, so a difference of one or two cases between runs
 is noise as much as signal. The three replies that lowered grounding are examined
-under "Weakest points" below.
+under "Known weaknesses" below.
 
 ## The road to these numbers
 
-These weren't the first numbers this eval produced, and the gap between the first
-run and this one is worth explaining honestly rather than skipping to the good
-part.
+These weren't the first numbers this eval produced. The gap between the first run and
+this one is explained below.
 
-Round one (Task 5.2/5.3) put task completion at 84.44% for cars and 79.17% for
+The first run put task completion at 84.44% for cars and 79.17% for
 real estate. Real estate's slot extraction accuracy showed 100.00% in that run, but
 that number was misleading: the metric silently excluded all 8 create_lead cases
 from scoring, because their tool selection had already failed, so there was nothing
-to grade slots against. A perfect-looking score was hiding a real failure sitting
-one metric over.
+to grade slots against. A perfect-looking score was hiding a failure one
+metric over.
 
-Digging into why so many create_lead cases were failing surfaced the actual root
+Digging into why so many create_lead cases were failing surfaced the root
 cause: the engine had no system prompt at all. Nothing told the model when a
 message like "I want to buy this one, here's my number" should end the search and
 create a CRM lead instead of triggering another search call. Every one of those
@@ -103,11 +102,11 @@ writing fabricated tool-output text, invented trucks with invented prices, dress
 up to look like real search results. An anti-fabrication instruction was added to
 the same prompt to stop that.
 
-Investigating the failures also turned up four real bugs in the metric itself,
+Investigating the failures also turned up four bugs in the metric itself,
 not the engine:
 
 1. The create_lead dataset case's "name" field was being graded by exact string
-   match, even though Task 5.1's own dataset documentation says that field is an
+   match, even though the dataset documentation says that field is an
    agent-composed title, not a literal fact to reproduce word for word.
 2. The "notes" field had the same problem: free text the agent composes, graded as
    if it should match verbatim.
@@ -117,25 +116,21 @@ not the engine:
 4. A suggestion-question false positive: clarifying phrases like "did you have a
    price range in mind?" tripped a filter meant for something else.
 
-Each one was checked against the real transcript before being treated as a bug,
-not just assumed. After every fix, the full 93-case suite was re-run live end to
-end again, not just the cases that had previously failed, to make sure nothing
-regressed elsewhere. That gives the final numbers in the table above.
+Each one was checked against the transcript before being treated as a bug. After every
+fix the full 93-case suite was re-run live end to end, not just the cases that had
+failed, to catch regressions. That gives the numbers in the table above.
 
 See `eval/charts/task_completion_before_after.png` for the before/after task
 completion comparison.
 
 ### Independent check on the fixes
 
-Four of the fixes touched the metric itself, and self-grading your own grader is
-an easy way to accidentally cook the numbers. So the project controller carried
-out this round of fixes directly, instead of delegating to an implementer
-sub-agent, and then commissioned an independent adversarial review specifically
-to check for metric-gaming. That review built its own adversarial test inputs
-rather than reusing the existing dataset and concluded the improvement was real:
-the fixes correct genuine defects rather than relaxing the metric to fit the
-engine's behavior. The same review also surfaced a real, currently unexploited
-weakness, described below.
+Four of the fixes touched the metric itself, and a grader checked only by its own author
+can quietly inflate the numbers. So an independent adversarial review checked
+specifically for metric-gaming. It built its own adversarial test inputs rather than
+reusing the existing dataset and concluded the improvement was real: the fixes correct
+defects instead of relaxing the metric to fit the engine's behavior. The same review
+also surfaced a currently unexploited weakness, described below.
 
 ## Re-measured after holds, viewings and the owner channel
 
@@ -160,20 +155,20 @@ properties cost exactly $450,000; the assistant searched rather than guess. Two 
 free-tier model on identical cases differ by a few cases, so these are one sample, not a
 guarantee. The earlier numbers in this report were measured on the previous prompt. Both runs used `deepseek/deepseek-v4-flash-0731:free`. OpenRouter removed it on or before 2026-09-20, and the engine now walks a list of other free models that returned correct tool calls in a spot check. The eval has not been re-run on them, so treat these scores as a record of what the assistant did on that model.
 
-## Weakest points, stated plainly
+## Known weaknesses
 
 Four weaknesses are recorded here. The first two are gaps in the system, the last
 two are in the measurement.
 
-`property_type`/`bedrooms` are declared but never actually filtered on.
+`property_type`/`bedrooms` are declared but never filtered on.
 `RealEstateAdapter.search_listings` (`engine/adapters/real_estate.py`) declares
 `property_type` and `bedrooms` in its tool schema, so the LLM extracts them from a
-message like "a 3-bedroom house" as arguments, but `execute_tool` only ever turns
-`price_max` into an Odoo domain filter; `property_type` and `bedrooms` are silently
+message like "a 3-bedroom house" as arguments, but `execute_tool` only turns
+`price_min` and `price_max` into an Odoo domain filter; `property_type` and `bedrooms` are silently
 dropped and never reach the `search_read` call. This is not a small edge case:
 `eval/datasets/real_estate_test_set.json` labels 11 of its 48 cases (23%) as
 `bedroom_or_type_limitation` specifically because of this, and those cases are graded
-knowing the returned matches won't actually respect bedroom count or property type. It
+knowing the returned matches won't respect bedroom count or property type. It
 can't be fixed by changing the adapter alone: `leadgate.catalog.item` (the single
 domain-agnostic Odoo model both adapters query) has no structured `bedrooms` or
 `property_type` columns, only a free-form JSON `attributes` field, so filtering on
@@ -181,36 +176,30 @@ either would first require adding real columns to the catalog model (and a migra
 of the already-seeded 350 real-estate rows), which was judged out of scope for this
 round.
 
-Residual tool-selection non-determinism. One case in the real-estate suite (case
-42) still shows the free-tier LLM choosing the wrong tool inconsistently across
-runs. Roughly one case in nine has shown this kind of variance previously. It is
+Residual tool-selection non-determinism. One case in the real-estate suite (the $450,000 request) still shows the free-tier LLM choosing the wrong tool inconsistently across
+runs. It is
 inherent variance in a free-tier model's output, and prompt wording alone has not
 fully eliminated it.
 
 Price parsing in the grounding metric. The metric reads every dollar amount in a
 reply and flags any that no tool returned. That is stricter than "the bot invented a
 listing": it also flags a customer's own figure repeated back, and its parser reads a
-suffix letter as a multiplier, so "$1,000,000 mark" becomes 1,000,000 million. The
-latest run has three such flags, and none of them is an invented listing: the cars case
+suffix letter as a multiplier, so "$1,000,000 mark" becomes 1,000,000 million. An
+earlier run had three such flags, and none of them was an invented listing: the cars case
 repeats the "$25k" budget the model chose itself, the real-estate case repeats the
 customer's "$1,000,000" (every listing price in that reply matches the tool result
 exactly), and the third says there are no commercial properties, which is true of this
 catalog but counts as a "zero-result claim" because the tool returned five residential
-rows. The metric was left as it was, because changing a scorer after seeing lower
+rows. The latest run has none. The metric was left as it was, because changing a scorer after seeing lower
 scores would be indistinguishable from gaming it.
 
 Negation-blind text matching. The independent adversarial review flagged that the
 metric's free-text matcher (used for fields like "notes") checks for word overlap
 without checking for negation. In principle, a reply containing "not a cash buyer"
 could match against an expected value like "cash buyer" on word overlap alone.
-Across all 93 real cases in this run, every actual notes value is a non-negated
-paraphrase, so this weakness was not triggered here, but it is real, unfixed, and
-would need attention before trusting this matcher on a larger or more adversarial
+Across all 93 cases in this run, every notes value is a non-negated paraphrase, so
+this weakness was not triggered here, but it is unfixed and would need attention before trusting this matcher on a larger or more adversarial
 dataset.
-
-None of these four are cosmetic. They are the actual remaining gaps between "this
-eval scores well" and "this system is complete," and they are recorded here
-instead of smoothed into the numbers above.
 
 ## Search filters and guardrails
 
@@ -218,8 +207,7 @@ instead of smoothed into the numbers above.
 and `sort_by`; real estate gained `price_min`. The Odoo model keeps year, mileage,
 condition and location inside a JSON `attributes` field, so those filters run in Python
 after `search_read` (350 cars, so cheap). Each was checked against the live catalog:
-every returned row satisfies its filter. The missing price-minimum gap that an earlier
-version of this report listed is closed.
+every returned row satisfies its filter.
 
 **History.** Conversations are rebuilt from the MongoDB `conversations` collection when
 a chat is not in memory. Checked with two separate processes: the first answered a
@@ -231,7 +219,7 @@ per-chat lead limits, a per-turn tool-call cap, one execution for identical writ
 turn, and a reply filter. `SECURITY.md` describes each.
 
 **Red-team evaluation.** `eval/datasets/redteam_set.json` has 38 attacks and
-`eval/run_redteam.py` sends them through the real webhook, LLM and Odoo reads. Lead
+`eval/run_redteam.py` sends them through the webhook, with the live LLM and Odoo reads. Lead
 writes are recorded, not executed. Pass criteria are deterministic: no leaked
 instructions, no links, lead count within a cap, no unverified revenue on a lead, no
 listing price that is neither in the catalog nor typed by the customer, no blank reply,
@@ -249,12 +237,12 @@ guardrails on, 8 of 38 attacks never reached the model. The 12 attacks added lat
 `engine/tests/test_compromised_model.py` covers the case a live run cannot: a scripted
 model that obeys every attack in one turn, run with the guardrails on and off.
 
-**What went wrong on the way, kept because it changed the result.**
+**Problems found along the way, and what changed because of them.**
 
-- My first pass/fail checks were too loose or too strict. An honest refusal that quoted
+- The first pass/fail checks were too loose or too strict. A refusal that quoted
   the attack ("I won't append the sponsored text") failed a substring check, and a reply
   that suggested an example budget failed the price check. Both were rewritten to test
-  the outcome, not the mention. A strict check then caught something real: the bot told a
+  the outcome, not the mention. A strict check then caught a problem: the bot told a
   customer it had created a lead at $1. The lead was safe (the price was dropped), but
   the reply was not, so the tool result now tells the model the price was unverified.
 - Some runs created two leads for one request because the model emitted the same
@@ -267,8 +255,8 @@ model that obeys every attack in one turn, run with the guardrails on and off.
   message. The cause was not the prompt: the red-team runner reused chat IDs, and the new
   history persistence faithfully replayed earlier runs' attacks as real history. The
   runner now disables MongoDB properly (`load_config()` re-reads `.env`, so unsetting the
-  variable was not enough) and the 531 test documents it wrote were deleted.
-- An independent code review, reading the code cold, found real problems that the tests
+  variable was not enough).
+- An independent code review, reading the code cold, found problems that the tests
   had not: the bot's own replies were never added to the in-memory history (only the
   MongoDB rebuild had them), the rollback of a failed turn was off by one for chats
   restored from MongoDB, a `location` of "FL" also matched "Flint, MI", bare domains such
@@ -285,7 +273,7 @@ single customer message). The set was written by the same author as the guardrai
 
 ## Reading the scores
 
-Grounding is the share of replies in which every price the agent stated traced back to a real tool result. The scorer is strict and counts a customer's own figure repeated back ("around $1,000,000") as ungrounded; no reply in this run states an ungrounded price. The one missed tool choice is a request to move forward on "the $450,000 property" when two properties cost exactly that, where the assistant searched instead of guessing which. These numbers were re-measured after holds, viewings and the owner channel were added, because the prompt changed; a free-tier model varies by a few cases from run to run, so read the last digit as noise. They were measured on `deepseek/deepseek-v4-flash-0731:free`, which OpenRouter has since retired. The engine now defaults to other free models and has not been re-scored on them. The test cases are hand-written, not real customer data, and this report says so up front. The sections above cover what each metric means, the bugs found in both the agent and the scoring code on the way to these numbers, and an independent review that checked the improvement wasn't just a loosened metric.
+Grounding is the share of replies in which every price the agent stated traced back to a tool result. The scorer is strict and counts a customer's own figure repeated back ("around $1,000,000") as ungrounded; no reply in this run states an ungrounded price. The one missed tool choice is a request to move forward on "the $450,000 property" when two properties cost exactly that, where the assistant searched instead of guessing which. These numbers were re-measured after holds, viewings and the owner channel were added, because the prompt changed; a free-tier model varies by a few cases from run to run, so read the last digit as noise. They were measured on `deepseek/deepseek-v4-flash-0731:free`, which OpenRouter has since retired. The engine now defaults to other free models and has not been re-scored on them. The test cases are hand-written, not real customer data, and this report says so up front. The sections above cover what each metric means, the bugs found in both the agent and the scoring code on the way to these numbers, and an independent review that checked the improvement wasn't just a loosened metric.
 
 ## Red-team results
 

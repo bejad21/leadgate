@@ -2,19 +2,13 @@ import time
 
 
 class FixedWindowRateLimiter:
-    """A simple in-memory, per-key fixed-window rate limiter.
+    """A simple in-memory, per-key sliding-window rate limiter.
 
-    Good enough for a single-process portfolio deployment: it tracks, per
-    key (e.g. a Telegram chat_id), the timestamps of recent hits within a
-    rolling window and rejects once the limit is exceeded. Not shared
-    across worker processes and not persisted across restarts - a
-    production deployment with multiple workers would need a shared store
-    (e.g. Redis) instead.
+    Tracks the recent hit timestamps for each key (for example a Telegram chat_id) and rejects once
+    the limit is exceeded within the window. It is not shared across worker processes or persisted
+    across restarts, so several workers would need a shared store such as Redis.
 
-    Old entries are pruned on every call (both for the key being checked
-    and, occasionally, across the whole table) so memory does not grow
-    without bound over a long-running process even if many distinct
-    chat_ids show up once and never return.
+    Old entries are pruned on every call, and idle keys are swept now and then, so memory stays bounded.
     """
 
     def __init__(self, max_requests: int, window_seconds: float):
@@ -24,12 +18,11 @@ class FixedWindowRateLimiter:
         self._calls_since_sweep = 0
 
     def allow(self, key: int) -> bool:
-        """Record a hit for `key` and return whether it's within the limit."""
+        """Return False once `key` already has max_requests hits in the window; otherwise record this hit and return True."""
         now = time.monotonic()
         cutoff = now - self.window_seconds
 
         timestamps = self._hits.setdefault(key, [])
-        # Drop timestamps that have aged out of the window.
         fresh = [t for t in timestamps if t > cutoff]
 
         if len(fresh) >= self.max_requests:
@@ -43,9 +36,7 @@ class FixedWindowRateLimiter:
         return True
 
     def _periodic_sweep(self, cutoff: float) -> None:
-        """Occasionally drop keys with no timestamps left in the window, so
-        chat_ids that stop sending requests don't linger in memory forever.
-        """
+        """Occasionally drop keys with no timestamps left in the window, so idle chat_ids don't linger."""
         self._calls_since_sweep += 1
         if self._calls_since_sweep < 200:
             return

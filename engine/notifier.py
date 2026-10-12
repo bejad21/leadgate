@@ -80,7 +80,7 @@ def format_alert(lead: LeadInfo) -> str:
     return "\n".join(lines)
 
 
-# ---- buttons -----------------------------------------------------------------------
+# Buttons
 # callback_data is "<action>:<lead id>". Telegram allows 64 bytes, so a short code is used.
 ACTIONS = {
     "t": "Take it",
@@ -139,7 +139,7 @@ def number_keyboard(lead_id: int, phone: str, username: str | None, can_talk: bo
     return {"inline_keyboard": [row]}
 
 
-# ---- calls to the alert bot ----------------------------------------------------------
+# Calls to the alert bot
 
 def _credentials() -> tuple[str, str] | None:
     token = os.environ.get("TELEGRAM_ALERTS_BOT_TOKEN")

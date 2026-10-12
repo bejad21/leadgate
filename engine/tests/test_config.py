@@ -100,7 +100,7 @@ def test_openrouter_alone_gives_an_ordered_failover_of_its_models(monkeypatch):
     assert len(client.clients) >= 2
     assert all(c.base_url == "https://openrouter.ai/api/v1" and c.api_key == "test-openrouter-key" for c in client.clients)
     assert all(c.model.endswith(":free") for c in client.clients)
-    assert "deepseek/deepseek-v4-flash-0731:free" not in [c.model for c in client.clients]  # retired
+    assert "deepseek/deepseek-v4-flash-0731:free" not in [c.model for c in client.clients]  # model id removed from OpenRouter
 
 
 def test_the_model_list_can_be_overridden_from_the_environment(monkeypatch):

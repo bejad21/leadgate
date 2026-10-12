@@ -65,7 +65,7 @@ create index if not exists conversation_turns_created_at_idx
 alter table public.leads enable row level security;
 alter table public.conversation_turns enable row level security;
 
--- Replace the earlier "any authenticated user" policies, if they exist.
+-- Drop the superseded policies, if present.
 drop policy if exists leads_authenticated_read on public.leads;
 drop policy if exists turns_authenticated_read on public.conversation_turns;
 drop policy if exists leads_staff_read on public.leads;

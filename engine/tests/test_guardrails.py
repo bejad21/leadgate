@@ -33,7 +33,7 @@ LEAD_SCHEMA = {
 }
 
 
-# ---- sanitize_user_text ------------------------------------------------
+# sanitize_user_text
 
 def test_sanitize_removes_zero_width_and_control_characters():
     assert g.sanitize_user_text("Toy​ota\x00 under‮ 25000") == "Toyota under 25000"
@@ -53,7 +53,7 @@ def test_sanitize_collapses_whitespace_and_newlines():
     assert g.sanitize_user_text("a\n\n  b\t c") == "a b c"
 
 
-# ---- is_injection_attempt ---------------------------------------------
+# is_injection_attempt
 
 @pytest.mark.parametrize(
     "text",
@@ -91,7 +91,7 @@ def test_normal_messages_are_not_flagged(text):
     assert not g.is_injection_attempt(g.sanitize_user_text(text))
 
 
-# ---- validate_tool_args ------------------------------------------------
+# validate_tool_args
 
 def test_unknown_keys_are_dropped():
     assert g.validate_tool_args(SCHEMA, {"make": "Toyota", "is_admin": True, "__proto__": 1}) == {"make": "Toyota"}
@@ -137,7 +137,7 @@ def test_non_dict_arguments_raise():
         g.validate_tool_args(SCHEMA, ["make", "Toyota"])
 
 
-# ---- filter_reply ------------------------------------------------------
+# filter_reply
 
 PROMPT = "You are a sales assistant helping a customer browse a catalog of items and hand them off to a human."
 
@@ -166,7 +166,6 @@ def test_empty_reply_is_replaced_so_the_customer_never_gets_a_blank_message():
         assert g.filter_reply(blank, PROMPT) == g.EMPTY_REPLY
 
 
-# ---- review fixes -------------------------------------------------------------
 
 @pytest.mark.parametrize(
     "reply",

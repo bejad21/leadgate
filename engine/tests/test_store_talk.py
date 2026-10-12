@@ -14,7 +14,7 @@ def store():
     return InMemoryStore()
 
 
-# ---------------------------------------------------------------- talk session
+# Talk session
 
 def test_there_is_no_talk_session_to_start_with(store):
     assert store.get_talk(now=NOW) is None
@@ -38,7 +38,6 @@ def test_a_talk_session_can_be_cleared(store):
     assert store.get_talk(now=NOW) is None
 
 
-# ---------------------------------------------------------------- username and phone on a lead chat
 
 def test_a_lead_chat_remembers_the_username_and_starts_without_a_phone(store):
     store.save_lead_chat(71, chat_id=555, kind="lead", item_name="x", customer_name="Sarah", username="sarah_c")
@@ -64,7 +63,6 @@ def test_saving_the_chat_again_does_not_forget_the_phone(store):
     assert store.get_lead_chat(71)["phone"] == "+971501234567"
 
 
-# ---------------------------------------------------------------- the latest lead in a chat
 
 def test_the_latest_lead_of_a_chat_is_the_one_saved_last(store):
     store.save_lead_chat(71, chat_id=555, kind="lead", item_name="x", customer_name="Sarah")
@@ -77,7 +75,7 @@ def test_a_chat_with_no_lead_has_no_latest_lead(store):
     assert store.latest_lead_for_chat(555) is None
 
 
-# ---------------------------------------------------------------- once-only flags per chat
+# Once-only flags per chat
 
 def test_a_chat_flag_is_off_until_set_and_is_per_chat(store):
     assert store.has_chat_flag(555, "phone_asked") is False

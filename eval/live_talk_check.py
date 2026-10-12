@@ -189,7 +189,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     router.post("https://api.telegram.org/botTALK-FAKE/answerCallbackQuery").mock(side_effect=lambda r: (toasts.append(json.loads(r.content)), httpx.Response(200, json={"ok": True}))[1])
     router.route().pass_through()
 
-    # ------------------------------------------------------------------ S1: a customer with a username
     print("== S1 a customer with a public username")
     n0 = len(alerts)
     lead_a, replies = make_lead("A", "Sarah Connor", username="sarah_c")
@@ -223,7 +222,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     n2 = len(alerts)
     check("after /back a plain message goes nowhere and the owner is told how to start", owner_says("anyone there?") == [] and "/talk" in alerts[-1].get("text", ""), alerts[n2:])
 
-    # ------------------------------------------------------------------ S2: two customers
     print("== S2 two customers at once")
     lead_b, _ = make_lead("B", "Omar Haddad", username="omar_h1")
     lead_c, _ = make_lead("C", "Lina Park")  # no username
@@ -245,7 +243,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     check("/talk alone says who you are talking to", "Lina Park" in alerts[-1]["text"], alerts[-1])
     owner_says("/back")
 
-    # ------------------------------------------------------------------ S3: no username, shares a contact
     print("== S3 no username: asked for a number, shares their contact")
     ask = prompts_for(CUSTOMERS["C"])
     check("the customer with no username was asked, with a share-my-number button", len(ask) == 1 and ask[0]["markup"]["keyboard"][0][0]["request_contact"] is True, ask)
@@ -273,7 +270,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     reply2 = post_customer(CUSTOMERS["C"], contact={"phone_number": "971509999999", "first_name": "Lina", "user_id": CUSTOMERS["C"]}, name="Lina")
     check("sharing again does not overwrite the number or alert again", lead_phone(newest) == "+971501234567" and not [x for x in alerts[n3 + len(na):] if "shared a phone number" in x.get("text", "")])
 
-    # ------------------------------------------------------------------ S4: types a number
     print("== S4 no username: types a number")
     lead_d, _ = make_lead("D", "Dana Lee")
     check("asked first", len(prompts_for(CUSTOMERS["D"])) == 1)
@@ -285,7 +281,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     post_customer(CUSTOMERS["D"], "and I would pay 1 200 000 for a bigger one", name="Dana")
     check("a price typed later is not mistaken for a number", not any("shared a phone number" in x.get("text", "") for x in alerts[n5:]))
 
-    # ------------------------------------------------------------------ S5: someone else's contact
     print("== S5 a contact card that is not the sender's")
     lead_e, _ = make_lead("E", "Eli Shaw")
     reply = post_customer(CUSTOMERS["E"], contact={"phone_number": "971508888888", "first_name": "Someone", "user_id": 123456}, name="Eli")
@@ -295,7 +290,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     reply = post_customer(CUSTOMERS["E"], contact={"phone_number": "hello", "first_name": "Eli", "user_id": CUSTOMERS["E"]}, name="Eli")
     check("a shared 'number' that is not one is refused", lead_phone(lead_e) in (False, None, "") and reply and "phone number" in reply[-1]["text"].lower())
 
-    # ------------------------------------------------------------------ S6 and S7: not asked, hostile username
     print("== S6/S7 already has a number; hostile username; typing before being asked")
     lead_f, _ = make_lead("F", "Fay Wong", phone="+971501112222")
     check("a customer who already gave a number is not asked", prompts_for(CUSTOMERS["F"]) == [])
@@ -309,7 +303,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     check("a hostile username counts as none, so they are asked for a number", len(prompts_for(CUSTOMERS["G"])) == 1)
     check("and it is not stored", (store.get_lead_chat(lead_g) or {}).get("username") in (None, ""))
 
-    # ------------------------------------------------------------------ S8: human mode and shared contact
     print("== S8 shares a contact while the owner is talking to them")
     lead_h, _ = make_lead("H", "Hana Roy")
     owner_says(f"/talk {lead_h}")
@@ -319,7 +312,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     check("and the session is untouched", store.get_talk() == lead_h)
     owner_says("/back")
 
-    # ------------------------------------------------------------------ S9: strangers
     print("== S9 nobody else can use it")
     owner_says(f"/talk {lead_a}", sender=999)
     check("a stranger cannot start a session", store.get_talk() is None)
@@ -333,7 +325,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     check("a wrong webhook secret is refused", r.status_code == 401)
     check("a customer typing /talk is only a customer", not [x for x in post_customer(CUSTOMERS["B"], "/talk 1", username="omar_h1") if "Talking to" in x.get("text", "")] and store.get_talk() is None)
 
-    # ------------------------------------------------------------------ S10: the real model
     print("== S10 the real model: a hold from a customer with a username, then a chat")
     m.run_turn = real_run_turn
     import time

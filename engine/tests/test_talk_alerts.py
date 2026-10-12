@@ -1,4 +1,4 @@
-"""The alert's new buttons and the alert for a customer who shared a phone number."""
+"""The alert's buttons and the alert for a customer who shared a phone number."""
 import json
 
 import httpx
@@ -30,7 +30,7 @@ def labels(markup):
     return [b["text"] for b in buttons(markup)]
 
 
-# ---------------------------------------------------------------- usernames
+# Usernames
 
 @pytest.mark.parametrize("name", ["sarah_c", "Sarah_Connor1", "abcde", "a" * 32])
 def test_real_telegram_usernames_are_accepted(name):
@@ -46,7 +46,7 @@ def test_the_chat_link_is_a_plain_https_telegram_address():
     assert notifier.chat_link("sarah_c") == "https://t.me/sarah_c"
 
 
-# ---------------------------------------------------------------- the lead alert
+# The lead alert
 
 def test_talk_here_is_offered_when_replying_is_possible():
     assert "Talk here" in labels(notifier.alert_keyboard(lead()))
@@ -89,7 +89,7 @@ def test_a_hostile_username_is_not_printed_either():
     assert "evil" not in notifier.format_alert(lead(username="<b>evil</b>"))
 
 
-# ---------------------------------------------------------------- a customer who shared a number
+# A customer who shared a number
 
 def test_a_whatsapp_link_uses_digits_only():
     assert notifier.whatsapp_link("+971 50 123-4567") == "https://wa.me/971501234567"

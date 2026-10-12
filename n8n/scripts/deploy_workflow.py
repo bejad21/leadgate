@@ -1,19 +1,14 @@
-"""Deploy n8n/workflows/odoo-sync.json to a running n8n instance and
-activate it (Task 3.2/3.3).
+"""Deploy n8n/workflows/odoo-sync.json to a running n8n instance and activate it.
 
-n8n-mcp's live management tools (n8n_create_workflow / n8n_validate_workflow)
-are blocked in this environment by SSRF protection against localhost, so
-this deploys directly via n8n's REST + internal session API instead.
+Uses n8n's REST API and its internal session API directly.
 
-Two auth mechanisms are needed:
-  - N8N_API_KEY (X-N8N-API-KEY header) for the public API (create/read
-    workflows and credentials).
-  - N8N_OWNER_EMAIL/N8N_OWNER_PASSWORD (session cookie via /rest/login) for
-    activation: on this n8n version (2.35.7) the public API's
-    POST /api/v1/workflows/{id}/activate endpoint returns 403 for this API
-    key's scopes, but the internal /rest/workflows/{id}/activate endpoint
-    (what the editor UI itself calls) works once a session is established,
-    and requires the workflow's current versionId in the request body.
+Two kinds of auth are needed:
+  - N8N_API_KEY (X-N8N-API-KEY header) for the public API (create and read workflows and
+    credentials).
+  - N8N_OWNER_EMAIL / N8N_OWNER_PASSWORD (a session cookie from /rest/login) for activation. On
+    the n8n version tested (2.35.7) the public POST /api/v1/workflows/{id}/activate returns 403 for this API key's
+    scopes, but the internal /rest/workflows/{id}/activate endpoint (the one the editor calls)
+    works with a session and needs the workflow's current versionId in the body.
 
 Run: .venv/Scripts/python.exe n8n/scripts/deploy_workflow.py
 """

@@ -12,13 +12,7 @@ interface KeyTagProps {
   onSelect: (item: CatalogItem) => void
 }
 
-/**
- * One catalog item as a key on a hook.
- *  - available: the tag hangs straight
- *  - reserved: the tag is flipped up on its hook
- *  - sold: the key is gone and only the empty hook is left
- * Status is carried by pose and presence as well as colour.
- */
+/** One catalog item as a key on a hook. Status is carried by pose and presence as well as colour. */
 function KeyTagBase({ item, dropDelay, selected, focusable, onHover, onSelect }: KeyTagProps) {
   const status = normalizeStatus(item.status)
   const previous = useRef(status)

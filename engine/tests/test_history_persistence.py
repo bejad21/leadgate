@@ -49,7 +49,7 @@ def capture_run_turn(monkeypatch):
     return seen
 
 
-# ---- load_history ------------------------------------------------------
+# load_history
 
 def _fake_collection(docs_newest_first):
     collection = MagicMock()
@@ -81,7 +81,7 @@ def test_load_history_returns_oldest_first_user_assistant_pairs(monkeypatch):
     collection.find.return_value.sort.return_value.limit.assert_called_once_with(20)
 
 
-# ---- restart survival --------------------------------------------------
+# Restart survival
 
 def test_history_is_rebuilt_from_mongo_after_a_restart(monkeypatch):
     seen = capture_run_turn(monkeypatch)
@@ -127,7 +127,7 @@ def test_no_mongo_configured_means_no_load(monkeypatch):
     load.assert_not_called()
 
 
-# ---- retry dedupe ------------------------------------------------------
+# Retry dedupe
 
 def test_duplicate_update_id_is_acknowledged_without_reprocessing(monkeypatch):
     seen = capture_run_turn(monkeypatch)
@@ -159,7 +159,7 @@ def test_extract_update_id():
     assert extract_update_id({"update_id": "x"}) is None
 
 
-# ---- bounded chat memory -----------------------------------------------
+# Bounded chat memory
 
 def test_least_recently_used_chat_is_evicted(monkeypatch):
     capture_run_turn(monkeypatch)
@@ -175,7 +175,7 @@ def test_least_recently_used_chat_is_evicted(monkeypatch):
     assert set(conversation_history) == {1, 3, 4}
 
 
-# ---- a failed turn must not leave a dangling half-turn in history --------
+# A failed turn must not leave a dangling half-turn in history
 
 def test_failed_turn_rolls_history_back_so_a_retry_does_not_stack_duplicates(monkeypatch):
     monkeypatch.setattr(main_module, "load_history", MagicMock(return_value=[]))
@@ -199,7 +199,6 @@ def test_failed_turn_rolls_history_back_so_a_retry_does_not_stack_duplicates(mon
     assert roles.count("user") == 1
 
 
-# ---- review fixes ------------------------------------------------------------
 
 def test_rollback_is_exact_for_a_chat_restored_from_mongo(monkeypatch):
     restored = [{"role": "user", "content": "earlier q"}, {"role": "assistant", "content": "earlier a"}]

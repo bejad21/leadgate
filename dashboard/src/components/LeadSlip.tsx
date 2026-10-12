@@ -7,7 +7,6 @@ interface LeadSlipProps {
   onSelect: (key: string) => void
 }
 
-/** A lead as a message slip pinned to the pad. */
 export function LeadSlip({ conversation, selected, onSelect }: LeadSlipProps) {
   const lead = conversation.lead!
   const contact = [lead.email, lead.phone].filter(Boolean)

@@ -25,9 +25,9 @@ VALID_UPDATE = {
 
 @pytest.fixture(autouse=True)
 def fake_agent_dependencies(monkeypatch):
-    """Prevent the webhook handler's real adapter/LLM construction (which
-    would otherwise open a live Odoo XML-RPC connection and call a real LLM
-    API) from running during these fast, deterministic unit tests."""
+    """Keep the webhook handler from building a real adapter and LLM client, which would open a live
+    Odoo connection and call an LLM API.
+    """
     monkeypatch.setattr(main_module, "_get_adapter", lambda: object())
     monkeypatch.setattr(main_module, "_get_llm_client", lambda: object())
     monkeypatch.setattr(
@@ -39,10 +39,9 @@ def fake_agent_dependencies(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def mock_log_turn(monkeypatch):
-    """Replace the real MongoDB logging call with a MagicMock everywhere, so
-    unit tests never open a real connection to the live MongoDB Atlas
-    instance configured in .env. Tests that care about the call shape
-    request this fixture explicitly and assert on it."""
+    """Replace the MongoDB logging call with a MagicMock so tests never open a connection to the live
+    Atlas instance in .env. Tests that check the call shape request this fixture explicitly.
+    """
     mock = MagicMock()
     monkeypatch.setattr(main_module, "log_turn", mock)
     return mock
@@ -50,10 +49,9 @@ def mock_log_turn(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def fresh_rate_limiter(monkeypatch):
-    """Each test gets its own rate limiter instance so hits recorded in one
-    test (e.g. the rate-limit test itself, which deliberately exhausts the
-    limit) can't bleed into unrelated tests via the shared module-level
-    singleton."""
+    """Give each test its own rate limiter, so hits from one (such as the test that exhausts the limit)
+    cannot leak through the module-level singleton.
+    """
     monkeypatch.setattr(
         main_module,
         "_rate_limiter",
@@ -119,9 +117,9 @@ def test_webhook_ignores_non_text_updates_without_crashing():
 
 
 def test_webhook_rejects_bad_secret_even_with_malformed_body():
-    """The secret-token check must run before the body is ever parsed, so a
-    malformed/malicious body can't be used to skip or crash past auth. This
-    covers the non-happy-path: no valid JSON body AND no/wrong secret."""
+    """The secret check runs before the body is parsed, so a malformed body cannot skip or crash past
+    auth. Covers an invalid JSON body together with a wrong or missing secret.
+    """
     response = client.post(
         "/webhook/telegram",
         content=b"not valid json {{{",
@@ -154,7 +152,6 @@ def test_webhook_rate_limits_excess_requests_per_chat_id():
     headers = {"X-Telegram-Bot-Api-Secret-Token": config["TELEGRAM_WEBHOOK_SECRET"]}
     limit = main_module.RATE_LIMIT_MAX_REQUESTS
 
-    # Fire more requests than the limit allows from a single chat_id.
     statuses = [
         client.post("/webhook/telegram", json=VALID_UPDATE, headers=headers).status_code
         for _ in range(limit + 5)
@@ -183,7 +180,6 @@ def test_webhook_rate_limit_is_per_chat_id():
         },
     }
 
-    # Exhaust chat 12345's limit.
     for _ in range(limit):
         response = client.post("/webhook/telegram", json=VALID_UPDATE, headers=headers)
         assert response.status_code == 200
@@ -243,10 +239,9 @@ def test_webhook_leaves_short_message_untouched():
 
 @respx.mock
 def test_webhook_logs_turn_to_mongodb_with_correct_shape(monkeypatch, mock_log_turn):
-    """Task 3.4: after a real turn completes, log_turn must be called with
-    the chat_id, the active domain, the user's message, the agent's reply,
-    and the tool calls made -- mocking pymongo indirectly by mocking the
-    log_turn function itself, which is the only thing that touches pymongo."""
+    """After a turn, log_turn is called with the chat_id, active domain, user message, reply and tool
+    calls. It mocks log_turn itself, the only code that touches pymongo.
+    """
     conversation_history.clear()
     tool_call = ToolCall(name="search_inventory", arguments={"make": "Toyota"})
     monkeypatch.setattr(
@@ -280,9 +275,9 @@ def test_webhook_logs_turn_to_mongodb_with_correct_shape(monkeypatch, mock_log_t
 
 @respx.mock
 def test_webhook_returns_200_and_does_not_crash_when_run_turn_raises(monkeypatch, mock_log_turn):
-    """A fault in run_turn (Odoo down, LLM timeout/429, etc.) must not crash
-    the process or return a 500 that would make Telegram retry the same
-    update and re-run/re-bill the whole turn."""
+    """A fault in run_turn (Odoo down, LLM timeout or 429) must not crash the process or return a 500,
+    which would make Telegram redeliver the update and re-run the turn.
+    """
     conversation_history.clear()
 
     def _raise(history, adapter, llm):
@@ -322,9 +317,7 @@ def test_webhook_returns_200_and_does_not_crash_when_send_message_raises(monkeyp
 
 
 def test_trim_conversation_history_keeps_only_last_n_user_turns():
-    """Task 6.x fix: conversation_history must not grow forever. Confirms
-    old turns actually get dropped once the cap is exceeded, while the
-    system prompt (if present) is always preserved."""
+    """Old turns are dropped once the cap is exceeded, and the system prompt, if present, is always kept."""
     conversation_history.clear()
     chat_id = 424242
     max_turns = main_module.CONVERSATION_HISTORY_MAX_TURNS
@@ -340,14 +333,12 @@ def test_trim_conversation_history_keeps_only_last_n_user_turns():
     trimmed = conversation_history[chat_id]
     user_messages = [m for m in trimmed if m["role"] == "user"]
     assert len(user_messages) == max_turns
-    # The oldest turns were dropped, the most recent ones were kept.
     assert user_messages[0]["content"] == f"message {10}"
     assert user_messages[-1]["content"] == f"message {max_turns + 9}"
-    # The system prompt survives trimming and stays first.
     assert trimmed[0] == {"role": "system", "content": "system prompt"}
 
 
-# ---- v2 injection screening ------------------------------------------------
+# Injection screening
 
 def _post(text, chat_id=555, update_id=None):
     update = {"update_id": update_id or 9001, "message": {"message_id": 1, "chat": {"id": chat_id, "type": "private"}, "text": text}}

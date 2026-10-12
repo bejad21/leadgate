@@ -1,14 +1,10 @@
-"""Create n8n credentials for the Supabase and MongoDB nodes used by
-n8n/workflows/odoo-sync.json (Task 3.2/3.3).
+"""Create the n8n credentials for the Supabase and MongoDB nodes in n8n/workflows/odoo-sync.json.
 
-Uses n8n's REST API (X-N8N-API-KEY) instead of n8n-mcp's live management
-tools, which are blocked by SSRF protection against localhost in this
-environment. Credential schemas were confirmed live via
-GET /api/v1/credentials/schema/<type> rather than guessed.
+Uses n8n's REST API (X-N8N-API-KEY). Credential schemas come from
+GET /api/v1/credentials/schema/<type>.
 
-Run once per n8n instance. Re-running creates duplicate credentials (the
-API has no upsert-by-name); check the n8n UI/`GET /api/v1/credentials`
-first if re-running.
+Run once per n8n instance. The API has no upsert-by-name, so re-running creates duplicates; check
+the n8n UI or `GET /api/v1/credentials` first.
 """
 import json
 import os

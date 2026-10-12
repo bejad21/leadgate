@@ -46,7 +46,7 @@ def lead(**extra):
 CONTACT = {"phone_number": "971501234567", "first_name": "Sarah", "user_id": 555}
 
 
-# ---------------------------------------------------------------- normalising a number
+# Normalising a number
 
 @pytest.mark.parametrize(
     "raw,expected",
@@ -73,7 +73,7 @@ def test_the_shops_country_code_can_be_changed(monkeypatch):
     assert contact_share.normalise_phone("07911 123456") == "+447911123456"
 
 
-# ---------------------------------------------------------------- asking
+# Asking
 
 def test_a_customer_with_no_username_and_no_phone_is_asked_once_with_a_share_button(w):
     assert contact_share.maybe_ask_for_number(w.deps, 555, lead(), username=None) is True
@@ -107,7 +107,7 @@ def test_a_failed_send_does_not_mark_the_chat_as_asked(w):
     assert w.store.has_chat_flag(555, "phone_asked") is False
 
 
-# ---------------------------------------------------------------- a shared contact
+# A shared contact
 
 def test_a_shared_number_is_added_to_the_lead_the_partner_the_store_and_the_dashboard(w):
     contact_share.handle_shared_contact(w.deps, chat_id=555, sender_id=555, contact=CONTACT)
@@ -189,7 +189,7 @@ def test_the_number_goes_to_the_customers_latest_lead(w):
     assert w.owner.number_alerts[0]["lead_id"] == 72
 
 
-# ---------------------------------------------------------------- a typed number
+# A typed number
 
 def asked(w):
     w.store.set_chat_flag(555, "phone_asked")

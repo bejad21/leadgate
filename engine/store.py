@@ -178,7 +178,7 @@ class MongoStore:
         if username:
             fields["username"] = username
         else:
-            insert["username"] = None  # do not erase one we already know
+            insert["username"] = None  # keep a stored username when none is given
         self._db["lead_chats"].update_one({"lead_id": lead_id}, {"$set": fields, "$setOnInsert": insert}, upsert=True)
 
     def set_lead_phone(self, lead_id, phone):

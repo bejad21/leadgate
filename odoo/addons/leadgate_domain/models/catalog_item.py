@@ -1,4 +1,3 @@
-# odoo/addons/leadgate_domain/models/catalog_item.py
 from datetime import timedelta
 
 from odoo import api, fields, models
@@ -29,7 +28,7 @@ class CatalogItem(models.Model):
     reserved_for = fields.Char(help="Normalised email or phone of the customer holding the item.")
     reservation_lead_id = fields.Integer(help="The CRM lead created with this hold.")
 
-    # ------------------------------------------------------------------ holds
+    # Holds
     @api.model
     def _max_active_holds(self):
         raw = self.env["ir.config_parameter"].sudo().get_param(MAX_ACTIVE_HOLDS_PARAM)
@@ -41,15 +40,12 @@ class CatalogItem(models.Model):
     def action_reserve(self, hours=24, lead_id=0, holder=""):
         """Place a timed hold on one item. Returns {"ok": bool, "reason": str, ...}.
 
-        Everything that decides whether the hold is allowed happens here, in one transaction
-        under a global lock, so two customers asking at once cannot both get the same item
-        and a flood of requests cannot hold the whole catalog.
+        Everything that decides whether the hold is allowed happens here, in one transaction under a global
+        lock, so two customers asking at once cannot both get the same item and a flood of requests cannot
+        hold the whole catalog.
 
-        The checks read through a fresh connection, not through this transaction. Odoo
-        transactions see a snapshot of the database taken at their first statement, so a hold
-        committed by the request that held the lock just before us would be invisible to a
-        count made inside this transaction, and both requests would pass the cap. A fresh
-        connection opened after the lock is granted sees everything that request committed.
+        The checks read through a fresh connection: this transaction's snapshot would not see a hold the
+        previous lock holder just committed, and both requests would pass the cap.
         """
         self.ensure_one()
         self.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext('leadgate_reserve'))")

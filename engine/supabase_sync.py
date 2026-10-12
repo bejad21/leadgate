@@ -118,7 +118,7 @@ def record_turn(chat_id: int, domain_type: str, message: str, reply: str, tool_c
 
 
 def update_lead(odoo_lead_id: int, fields: dict) -> bool:
-    """Change a lead's status on the dashboard. Best-effort, like every call here."""
+    """Patch fields of a lead on the dashboard; a `status` must be one of STATUSES. Best-effort, like every call here."""
     status = fields.get("status")
     if status is not None and status not in STATUSES:
         logger.error("refusing to mirror an unknown status %r", status)

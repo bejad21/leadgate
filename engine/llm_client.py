@@ -46,7 +46,7 @@ def _parse_args(raw: str) -> dict:
 
 
 # Statuses that mean "this model cannot answer right now" (retired, rate limited, provider fault).
-# Anything else, such as 400, 401 or 403, is a problem with our request or key, and trying another
+# Anything else, such as 400, 401 or 403, is a problem with the request or key, and trying another
 # model would only hide it.
 _RETRYABLE = {404, 429} | set(range(500, 600))
 

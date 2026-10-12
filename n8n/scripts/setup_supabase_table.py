@@ -1,22 +1,15 @@
-"""Create the Supabase `catalog_items` table (Task 3.2).
+"""Create the Supabase `catalog_items` table, or apply another SQL file passed as an argument.
 
-The service_role REST API key alone (SUPABASE_URL + SUPABASE_SERVICE_KEY) is
-NOT enough to run DDL -- PostgREST intentionally has no "run arbitrary SQL"
-endpoint. This script needs ONE of the following additional secrets added to
-.env before it can run:
+The service_role REST key alone cannot run DDL, because PostgREST has no "run arbitrary SQL"
+endpoint. Add ONE of these to .env:
 
-  - SUPABASE_DB_PASSWORD: the project's direct Postgres password (Supabase
-    dashboard -> Project Settings -> Database -> Connection string). The
-    script then connects directly via psycopg2 to
-    db.<project-ref>.supabase.co:5432 and executes the DDL.
+  - SUPABASE_DB_PASSWORD: the project's Postgres password (Project Settings > Database >
+    Connection string). The script connects with psycopg2 to db.<project-ref>.supabase.co:5432
+    and runs the DDL.
+  - SUPABASE_ACCESS_TOKEN: a personal access token (starts with `sbp_`, from Account > Access
+    Tokens). The script calls the Management API's POST /v1/projects/{ref}/database/query.
 
-  - SUPABASE_ACCESS_TOKEN: a personal access token (starts with `sbp_`,
-    created in the Supabase dashboard under Account -> Access Tokens). The
-    script then calls the Management API's
-    POST /v1/projects/{ref}/database/query endpoint.
-
-Without either, this script prints a clear explanation and exits non-zero
-instead of guessing at credentials.
+With neither, it prints an explanation and exits non-zero.
 """
 import os
 import sys

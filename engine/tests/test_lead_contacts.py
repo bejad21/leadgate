@@ -64,7 +64,7 @@ def make(odoo, **overrides):
     return create_verified_lead(odoo, "cars", args)
 
 
-# ---- parsing ---------------------------------------------------------------------
+# Parsing
 
 @pytest.mark.parametrize(
     "text, email, phone",
@@ -87,7 +87,7 @@ def test_parse_contact(text, email, phone):
     assert parse_contact(text) == (email, phone)
 
 
-# ---- the partner -----------------------------------------------------------------
+# The partner
 
 def test_email_creates_a_partner_and_links_the_lead():
     odoo = FakeOdoo()
@@ -198,7 +198,7 @@ def test_an_absurdly_long_name_is_capped_before_it_becomes_a_partner():
     assert len(odoo.lead()["contact_name"]) == NAME_MAX
 
 
-# ---- source and tag -------------------------------------------------------------
+# Source and tag
 
 def test_the_lead_is_sourced_from_telegram_and_tagged_by_catalog():
     odoo = FakeOdoo()
@@ -239,7 +239,7 @@ def test_a_failure_creating_a_helper_record_never_loses_the_lead(failing):
     assert key not in lead
 
 
-# ---- the description -------------------------------------------------------------
+# The description
 
 def test_notes_and_price_verification_still_work():
     odoo = FakeOdoo()
@@ -273,7 +273,7 @@ def test_customer_text_in_the_description_cannot_become_markup():
     assert "&lt;a href=" in description and "&amp;" in description
 
 
-# ---- duplicates -----------------------------------------------------------------
+# Duplicates
 
 def test_the_same_customer_asking_again_within_minutes_gets_the_same_lead():
     odoo = FakeOdoo(existing_leads=[{"id": 4242}])
@@ -315,7 +315,7 @@ def test_a_failing_duplicate_check_never_blocks_a_new_lead():
     assert make(odoo)["lead_id"] == odoo.id_of("crm.lead")
 
 
-# ---- filling in what the model left out ------------------------------------------
+# Filling in what the model left out
 
 from engine.core.crm_contacts import merge_contact
 

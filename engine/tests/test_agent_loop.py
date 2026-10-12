@@ -62,25 +62,19 @@ def test_run_turn_executes_tool_and_grounds_reply():
 
     result = run_turn(history, adapter, llm)
 
-    # The adapter's tool was actually invoked with the LLM's requested args.
     assert adapter.executed_calls == [("search_inventory", {"make": "Toyota", "price_max": 30000})]
 
-    # Two LLM calls were made: the initial tool-selection call, and the
-    # follow-up call that turns the tool result into a natural-language reply.
     assert len(llm.calls) == 2
 
-    # Grounding mechanism: the second call's message history must include
-    # the actual tool result, not just the original user message - this is
-    # what prevents the reply from being a hallucination.
+    # The second call must see the tool result, not just the user message; that is what grounds the reply.
     second_call_messages = llm.calls[1]["messages"]
     tool_messages = [m for m in second_call_messages if m.get("role") == "tool"]
     assert len(tool_messages) == 1
     assert tool_messages[0]["name"] == "search_inventory"
     assert json.loads(tool_messages[0]["content"]) == tool_result
 
-    # Protocol compliance: the assistant message carrying the original
-    # tool_calls must be appended BEFORE the tool result message, and the
-    # tool message's tool_call_id must match the assistant's tool_calls id.
+    # The assistant message carrying the tool_calls comes before the tool result, and the tool message's
+    # tool_call_id matches it.
     assistant_messages = [m for m in second_call_messages if m.get("role") == "assistant"]
     assert len(assistant_messages) == 1
     assistant_tool_calls = assistant_messages[0]["tool_calls"]
@@ -97,8 +91,7 @@ def test_run_turn_executes_tool_and_grounds_reply():
     tool_index = second_call_messages.index(tool_messages[0])
     assert assistant_index < tool_index
 
-    # The second follow-up call must not offer tools (it's asked to
-    # summarize, not to call more tools).
+    # The follow-up call is asked to summarize, so it must not offer tools.
     assert llm.calls[1]["tools"] == []
 
     assert isinstance(result, AgentTurnResult)
@@ -108,9 +101,6 @@ def test_run_turn_executes_tool_and_grounds_reply():
 
 
 def test_run_turn_uses_real_tool_call_id_when_provided():
-    """When the LLM response includes a real tool_call id (as OpenRouter's
-    API actually does), that id -- not a generated fallback -- must be the
-    one used to link the assistant message to the tool result message."""
     tool_result = {"matches": [], "count": 0}
     tool_call = ToolCall(name="search_inventory", arguments={}, id="call_abc123")
 
@@ -130,7 +120,7 @@ def test_run_turn_uses_real_tool_call_id_when_provided():
     assert assistant_message["tool_calls"][0]["id"] == "call_abc123"
 
 
-# ---- v2 guardrails in the loop --------------------------------------------
+# Guardrails in the loop
 
 import pytest
 
@@ -287,7 +277,7 @@ def test_a_second_different_write_in_one_turn_is_refused_not_run():
     assert "one action" in result.tool_results[1]["error"]
 
 
-# ---- review fixes: the model must see its own earlier replies -------------
+# The model must see its own earlier replies
 
 def test_final_reply_is_appended_to_history_after_a_tool_call():
     adapter = FakeCarsAdapter({"ok": True})
@@ -303,7 +293,7 @@ def test_final_reply_is_appended_to_history_without_a_tool_call():
     assert history[-1] == {"role": "assistant", "content": result.reply} == {"role": "assistant", "content": "Hello there"}
 
 
-# ---- report tool calls as they happen ---------------------------------------------
+# Report tool calls as they happen
 
 class _FailsOnTheReply:
     """First call asks for a lead; the follow-up call that writes the reply blows up."""
@@ -337,7 +327,7 @@ def test_rejected_calls_are_reported_too_with_their_error():
     assert len(events) == 1 and "error" in events[0][1]
 
 
-# ---- the customer's own contact details are not lost --------------------------------
+# The customer's own contact details are not lost
 
 class ContactAdapter(FakeCarsAdapter):
     def tool_schemas(self):

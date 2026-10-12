@@ -77,61 +77,42 @@ app = FastAPI(title="LeadGate Engine", lifespan=lifespan)
 
 config = load_config()
 
-# Hot cache of conversation history, keyed by chat_id. MongoDB's
-# `conversations` collection is the durable copy: after a restart (or once a
-# chat has been evicted from this cache) the history is rebuilt from it on the
-# chat's next message. The cache holds at most MAX_TRACKED_CHATS chats, least
-# recently used first out, so memory stays bounded however many chats show up.
+# Hot cache of conversation history by chat_id. MongoDB's `conversations` is the durable copy and
+# rebuilds a chat's history on its next message. Past MAX_TRACKED_CHATS the least recently used goes.
 conversation_history: OrderedDict[int, list[dict]] = OrderedDict()
 MAX_TRACKED_CHATS = 1000
 
-# Recently seen Telegram update_ids. Telegram redelivers an update when it
-# does not get a 200 in time, and a redelivery must not run the agent (and its
-# lead-creating tool) a second time.
+# Recently seen update_ids. Telegram redelivers an update it didn't get a 200 for, and a redelivery
+# must not run the agent and its lead-creating tool again.
 _seen_updates: OrderedDict[int, None] = OrderedDict()
 SEEN_UPDATES_MAX = 2000
 _seen_owner_updates: OrderedDict[int, None] = OrderedDict()
 
-# Cap on how many user turns of history are kept per chat_id. Without a
-# cap, conversation_history grows forever for any chat_id that keeps
-# messaging, unlike the rate limiter (Task 6.1) which evicts old entries.
-# Every message in history is resent to the LLM on every subsequent call,
-# so unbounded growth means unbounded per-request token cost, not just
-# unbounded memory. 20 turns is generous enough for a real back-and-forth
-# sales conversation (the eval's longest real transcripts are far shorter)
-# while keeping a hard ceiling on both memory and LLM spend per chat_id.
+# User turns of history kept per chat_id. The whole history is resent to the LLM on every call, so
+# an unbounded history means unbounded token cost as well as memory.
 CONVERSATION_HISTORY_MAX_TURNS = 20
 
-# Per-chat_id rate limit for the webhook: 10 requests per 60-second rolling
-# window. Generous enough for a normal back-and-forth conversation but tight
-# enough to stop a single chat from hammering the LLM/Odoo backends and
-# running up API costs. In-memory only, matching conversation_history above
-# - fine for a single-process portfolio deployment, not for multiple workers.
+# Per-chat_id webhook limit, so one chat can't hammer the LLM and Odoo. In-memory like
+# conversation_history: fine for one process, not for several workers.
 RATE_LIMIT_MAX_REQUESTS = 10
 RATE_LIMIT_WINDOW_SECONDS = 60
 _rate_limiter = FixedWindowRateLimiter(RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_SECONDS)
 
-# Lead creation is the only tool that writes to Odoo, so it gets its own,
-# much tighter limit: 3 leads per chat per hour. A real customer needs one.
+# State-changing tools (lead, hold, viewing) get a tighter limit: 3 per chat per hour.
 WRITE_LIMIT_MAX = 3
 WRITE_LIMIT_WINDOW_SECONDS = 3600
 _write_limiter = FixedWindowRateLimiter(WRITE_LIMIT_MAX, WRITE_LIMIT_WINDOW_SECONDS)
 
-# Maximum length (in characters) of incoming Telegram text accepted into the
-# LLM conversation history. Long enough for genuine user messages, short
-# enough to stop a pathological huge message from bloating LLM context/cost.
-# Oversized messages are truncated (rather than rejected outright) so the
-# conversation still proceeds with whatever the user actually meant to say.
+# Longest incoming text kept in the conversation. Longer messages are truncated, not rejected, so
+# the conversation still proceeds.
 MAX_MESSAGE_LENGTH = 2000
 
 # What a customer sees if the assistant fails to produce an answer (the model
 # provider erred, Odoo was unreachable). Silence would read as "the bot is dead".
 ERROR_REPLY = "Sorry, I couldn't answer that just now. Please send it again in a moment."
 
-# Lazily-constructed singletons. Built on first use (not at import time) so
-# importing this module - e.g. under pytest - doesn't require a live Odoo
-# connection or LLM API key just to collect tests. Tests patch these two
-# factory functions directly to avoid real network calls.
+# Built on first use, not at import, so importing this module (for example under pytest) needs no
+# live Odoo connection or LLM key. Tests patch the two factory functions directly.
 _adapter = None
 _llm_client = None
 
@@ -185,7 +166,7 @@ def _share_deps() -> contact_share.ShareDeps:
 
 
 def _seen_before(update_id) -> bool:
-    """Telegram redelivers an update it did not get a 200 for. Remember recent ids so a redelivery is ignored."""
+    """Remember recent update ids; True if this one was already handled."""
     if update_id is None:
         return False
     if update_id in _seen_updates:
@@ -208,10 +189,7 @@ def _sweep_deps() -> sweeper.SweepDeps:
 
 
 def _clean_restored(messages: list[dict]) -> list[dict]:
-    """Run stored turns through the same screening as live ones. Turns logged
-    before the guardrails existed were never sanitised, and an old injection
-    attempt must not steer the chat again just because it came back from
-    MongoDB."""
+    """Re-screen stored turns like live ones, so an injection attempt logged earlier cannot steer the chat after a restart."""
     cleaned: list[dict] = []
     for user, assistant in zip(messages[0::2], messages[1::2]):
         text = sanitize_user_text(user["content"])
@@ -343,10 +321,7 @@ def _after_handoff(chat_id: int, text: str, handoff: dict, mongodb_uri: str | No
 
 
 def _trim_conversation_history(chat_id: int) -> None:
-    """Keep only the last CONVERSATION_HISTORY_MAX_TURNS user turns (and
-    their associated assistant/tool messages) for a given chat_id, always
-    preserving the leading system-prompt message if present.
-    """
+    """Keep only the last CONVERSATION_HISTORY_MAX_TURNS user turns with their assistant and tool messages, always keeping a leading system prompt."""
     history = conversation_history.get(chat_id)
     if not history:
         return
@@ -369,12 +344,7 @@ def health() -> dict:
 
 @app.post("/webhook/telegram")
 async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
-    # Verify the secret token before doing anything else, including
-    # parsing the request body, so a malformed/malicious body can't cause
-    # a crash before the auth check runs. Comparison is constant-time
-    # (hmac.compare_digest) rather than `!=` so a network attacker timing
-    # responses can't use early-exit string comparison to guess the secret
-    # one character at a time.
+    # Check the secret token before parsing the body, so a malformed body can't crash before auth.
     secret_header = request.headers.get("X-Telegram-Bot-Api-Secret-Token") or ""
     if not _secret_matches(secret_header, config["TELEGRAM_WEBHOOK_SECRET"]):
         return Response(status_code=401)
@@ -396,8 +366,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
 
     extracted = extract_message(body)
     if extracted is None:
-        # Non-text update (e.g. edited message, channel post, callback
-        # query) - nothing to reply to, acknowledge and move on.
+        # Non-text update (edited message, channel post, callback query): nothing to reply to.
         return {"ok": True}
 
     chat_id, text = extracted
@@ -417,7 +386,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
 
     sender = extract_sender(body)
     if _is_private(chat_id, sender) and contact_share.looks_like_phone(text):
-        # Someone we asked for a number may have typed it. Checked off the request path.
+        # Someone the bot asked for a number may have typed it. Checked off the request path.
         background_tasks.add_task(_after_typed_phone, chat_id, text)
 
     mongodb_uri = os.environ.get("MONGODB_URI")
@@ -433,9 +402,8 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
         return {"ok": True}
 
     if is_injection_attempt(text):
-        # Refuse without spending an LLM call, touching Odoo, or letting the
-        # message into the conversation history where it could keep steering
-        # later turns.
+        # Refuse without an LLM call or Odoo access, and keep the message out of the history where
+        # it could steer later turns.
         try:
             send_message(chat_id, INJECTION_REFUSAL)
         except Exception:
@@ -463,16 +431,9 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     history_before_turn = list(history)
     history.append({"role": "user", "content": text})
 
-    # Everything below this point talks to Odoo, the LLM provider, Telegram,
-    # and MongoDB -- any of which can fault (Odoo down, LLM timeout/429,
-    # Telegram API error, Mongo unreachable). None of those should crash this
-    # process or return a 500: Telegram retries a failed webhook delivery by
-    # re-sending the *same* update, which would re-run this whole handler
-    # (re-billing the LLM call and, worse, potentially re-executing a tool
-    # call that already wrote a crm.lead, if the fault happened after tool
-    # execution but before the reply was sent). Returning 200 here stops that
-    # retry storm. A redelivery that still arrives (the 200 got lost in
-    # transit) is recognised by its `update_id` above and ignored.
+    # Any backend can fault here (Odoo, LLM, Telegram, MongoDB). Never return a 500: Telegram would
+    # redeliver the same update and could re-run a lead-creating tool call. A redelivery that still
+    # arrives is dropped by its update_id.
     tool_events: list = []
     try:
         result = run_turn(
@@ -485,9 +446,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
         )
     except Exception:
         logger.exception("run_turn failed for chat_id=%s", chat_id)
-        # Drop the half-finished turn (the user message, the system prompt if
-        # run_turn just added it, and any tool messages) so the customer's
-        # retry doesn't stack a duplicate.
+        # Drop the half-finished turn (user message, system prompt, tool messages) so a retry doesn't duplicate it.
         history[:] = history_before_turn
         try:
             send_message(chat_id, ERROR_REPLY)

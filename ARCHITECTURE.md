@@ -82,7 +82,7 @@ flowchart LR
 ## After the lead
 
 Once a lead exists the owner can act on it from Telegram, and the assistant can do two more
-things for a customer. This is the loop.
+things for a customer.
 
 ```mermaid
 flowchart LR
@@ -136,7 +136,7 @@ flowchart LR
    alerted with a WhatsApp link and a Talk button. A number typed in a message is used only after
    the bot asked and only if it is long enough to be a phone.
 
-## What each piece actually does
+## What each piece does
 
 **Telegram to engine.** Telegram delivers updates to `POST /webhook/telegram`. The
 handler checks `X-Telegram-Bot-Api-Secret-Token` with a constant-time comparison before
@@ -152,9 +152,8 @@ system prompt, sends the conversation plus whatever tool schemas the active adap
 declares to the LLM, executes any tool call the model makes by calling
 `adapter.execute_tool(...)`, and, if the model called a tool, makes a second LLM call to
 turn the raw tool result into a grounded natural-language reply. `CarsAdapter` and
-`RealEstateAdapter` are the only two files that know their domain's vocabulary; each is
-about 40 lines translating a tool call into an Odoo `search_read` domain filter or a
-`crm.lead` create. Both read and write through `leadgate.catalog.item`, a single
+`RealEstateAdapter` are the only two files that know their domain's vocabulary; each
+translates a tool call into an Odoo `search_read` domain filter or a `crm.lead` create. Both read and write through `leadgate.catalog.item`, a single
 domain-agnostic model (`odoo/addons/leadgate_domain/models/catalog_item.py`) with a
 `domain_type` selection field distinguishing `cars` from `real_estate` rows.
 
@@ -162,11 +161,11 @@ domain-agnostic model (`odoo/addons/leadgate_domain/models/catalog_item.py`) wit
 knows nothing about cars or property. Each tool argument the model produces is checked
 against that tool's own JSON schema before an adapter sees it: unknown keys dropped,
 numbers coerced and range-checked, strings trimmed to one line and length-capped, enums
-enforced. A turn executes at most three tool calls, `create_lead` is limited to three per
-chat per hour, and a lead's price is only recorded when a catalog item really has it. The
+enforced. A turn executes at most three tool calls, state-changing tools (lead, hold, viewing) are
+limited to three per chat per hour, and a lead's price is only recorded when a catalog item really has it. The
 final reply has links removed and is replaced outright if it repeats a chunk of the system
 prompt. The system prompt itself tells the model to treat customer text and tool results
-as data. `eval/run_redteam.py` attacks all of this with 26 adversarial messages and checks
+as data. `eval/run_redteam.py` attacks all of this with 38 adversarial messages and checks
 the outcome deterministically.
 
 **Conversation memory.** The last 20 turns of each chat live in an in-memory cache limited
@@ -192,12 +191,12 @@ keeping one current row per catalog item. The MongoDB branch inserts a new docum
 
 **Supabase to dashboard.** The React dashboard (`dashboard/`) does an initial fetch of
 `catalog_items` and then subscribes to Postgres changes over Supabase Realtime, so the
-live-leads feed and per-domain status counts update within a second or two of a real
+key board, tallies and sign-out sheet update within a second or two of a
 change in Odoo, with no polling.
 
 ## Why two databases
 
-This isn't two databases for scalability as a box to check. They serve different jobs.
+The two databases do different jobs.
 Supabase's `catalog_items` table is a structured, current-state mirror: exactly one row
 per catalog item, upserted in place, with a schema (`bigint`, `numeric(12,2)`,
 `timestamptz`) built specifically so the dashboard's Realtime subscription and status
@@ -211,5 +210,4 @@ Odoo happened to send that day. It answers "what happened, in what order, with w
 payload," a question a structured mirror can't answer once it's overwritten a row.
 Forcing both jobs onto one database would mean either losing history (a mirror-only
 design) or making the live dashboard query an ever-growing, unindexed event stream on
-every render (an events-only design). Splitting them means each store is shaped for the
-one thing it's actually good at.
+every render (an events-only design).

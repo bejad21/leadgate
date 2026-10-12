@@ -151,7 +151,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     router.post("https://api.telegram.org/botLIVE-FAKE/answerCallbackQuery").mock(side_effect=lambda r: (toasts.append(json.loads(r.content)), httpx.Response(200, json={"ok": True}))[1])
     router.route().pass_through()
 
-    # ---------------------------------------------------------------- T3: a hold
     print("== reserve an item through the assistant")
     hold_chat = CHATS["hold"]
     reply = customer_says(hold_chat, "Show me certified Toyotas under 30000, cheapest first")
@@ -183,7 +182,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
         alert_msg_id = 1000 + alerts.index(sent[0]) + 1 if sent else None
         check("the customer was told it is a request, not a promise", any(("confirm" in t.lower() or "team" in t.lower() or "person" in t.lower()) for _, t in reply2), reply2)
 
-        # ------------------------------------------------------------ T5: owner loop on the reservation
         print("== the owner answers through the alert bot")
         owner_presses("t", lid)
         check("Take it: acknowledged and mirrored", toasts and "yours" in toasts[-1]["text"].lower() and wait_for(lambda: (lead_for(hold_chat) or {}).get("status") == "taken"))
@@ -215,7 +213,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
         check("Mark sold: the lead is Won and mirrored", odoo("crm.lead", "read", [lid], fields=["stage_id"])[0]["stage_id"][1] == "Won" and wait_for(lambda: (lead_for(hold_chat) or {}).get("status") == "won"))
         check("Mark sold: the key leaves the board", item and wait_for(lambda: catalog_status(item[0]["id"]) == "sold"), catalog_status(item[0]["id"]) if item else None)
 
-    # ---------------------------------------------------------------- T4: a viewing
     print("== request a viewing through the assistant")
     view_chat = CHATS["view"]
     day = (dt.date.today() + dt.timedelta(days=6)).isoformat()
@@ -239,7 +236,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
         check("Confirm viewing tells the customer the day and time of day", told and told[0][0] == view_chat and "confirmed" in told[0][1] and "afternoon" in told[0][1], told)
         check("the viewing is mirrored as confirmed", wait_for(lambda: (lead_for(view_chat) or {}).get("status") == "confirmed"))
 
-    # ---------------------------------------------------------------- release path
     print("== release a hold")
     rel_chat = CHATS["release"]
     customer_says(rel_chat, "Show me certified Toyotas under 30000, cheapest first")
@@ -257,7 +253,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
         check("Release hold: the dashboard shows the key back", held and wait_for(lambda: catalog_status(held[0]["id"]) == "available"))
         check("Release hold: the lead is closed and mirrored", wait_for(lambda: (lead_for(rel_chat) or {}).get("status") == "released"))
 
-    # ---------------------------------------------------------------- T7: the sweeper
     print("== nudge an untouched lead")
     sweep_chat = CHATS["release"]
     customer_says(sweep_chat, "Show me certified Toyota Corollas")
@@ -277,7 +272,6 @@ with respx.mock(assert_all_mocked=False, assert_all_called=False) as router:
     else:
         check("the sweep scenario produced a plain lead", False)
 
-    # ---------------------------------------------------------------- spoofing
     print("== the owner channel cannot be spoofed")
     o_before, c_before = len(owner_msgs), len(customer_msgs)
     r = client.post("/webhook/alerts", json={"update_id": 1, "message": {"chat": {"id": 777}, "from": {"id": 777}, "text": "/open"}}, headers={"X-Telegram-Bot-Api-Secret-Token": "guess"})

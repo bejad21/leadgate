@@ -32,7 +32,7 @@ def _data(markup):
     return [button["callback_data"] for row in markup["inline_keyboard"] for button in row if "callback_data" in button]
 
 
-# ---- wording per kind --------------------------------------------------------------
+# Wording per kind
 
 def test_a_lead_alert_says_new_lead():
     assert notifier.format_alert(lead()).startswith("<b>New lead</b> #71")
@@ -52,7 +52,7 @@ def test_the_detail_line_is_escaped():
     assert "<i>" not in notifier.format_alert(lead(kind="viewing", detail="<i>x</i>"))
 
 
-# ---- buttons -----------------------------------------------------------------------
+# Buttons
 
 def test_a_lead_has_take_contacted_reply_and_lost():
     assert _labels(notifier.alert_keyboard(lead()))[:2] == [["Take it", "Contacted"], ["Reply", "Lost"]]
@@ -77,7 +77,7 @@ def test_every_button_carries_the_lead_and_fits_telegrams_limit():
             assert data.endswith(":123456789") and len(data.encode()) <= 64
 
 
-# ---- delivery ----------------------------------------------------------------------
+# Delivery
 
 @respx.mock
 def test_delivery_returns_the_message_id_and_sends_the_buttons(configured):

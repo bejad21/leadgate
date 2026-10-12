@@ -94,7 +94,7 @@ def test_a_note_is_posted_as_plain_text_and_left_for_odoo_to_escape():
     assert kwargs["subtype_xmlid"] == "mail.mt_note"
 
 
-# --- wired into lead creation ------------------------------------------------
+# Wired into lead creation
 
 def _args(**extra):
     return {"name": "2024 Toyota Corolla", "customer_name": "Sarah Connor", "customer_contact": "sarah@example.com", **extra}

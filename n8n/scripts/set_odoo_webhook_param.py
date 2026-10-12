@@ -1,10 +1,8 @@
-"""Point Odoo's leadgate.sync_webhook_url System Parameter at the deployed
-n8n workflow's webhook (Task 3.2/3.3).
+"""Point Odoo's leadgate.sync_webhook_url system parameter at the deployed n8n workflow's webhook.
 
-Uses the container-network hostname (`n8n`, the docker-compose service
-name), not `localhost`, because Odoo's outbound webhook POST is made from
-inside the `leadgate-odoo` container, which cannot resolve the host's
-localhost/loopback-published port mapping.
+It uses the container-network hostname (`n8n`, the docker-compose service name), not `localhost`:
+Odoo's outbound POST is made from inside the `leadgate-odoo` container, which cannot reach the
+host's published loopback port.
 """
 import os
 import xmlrpc.client

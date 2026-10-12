@@ -92,7 +92,7 @@ button {
   padding: 22px clamp(16px, 3vw, 40px) 72px;
 }
 
-/* ---------- masthead ---------- */
+/* Masthead */
 
 .masthead {
   display: flex;
@@ -205,7 +205,7 @@ button {
   outline-offset: 1px;
 }
 
-/* ---------- intro ---------- */
+/* Intro */
 
 .intro {
   display: grid;
@@ -294,7 +294,7 @@ button {
   border-radius: 3px;
 }
 
-/* ---------- board ---------- */
+/* Board */
 
 .board {
   display: grid;
@@ -363,7 +363,7 @@ button {
   color: var(--chalk);
 }
 
-/* ---------- keys ---------- */
+/* Keys */
 
 .key-cell {
   position: relative;
@@ -512,7 +512,7 @@ button {
   100% { transform: rotate(var(--pose)); }
 }
 
-/* ---------- desk: reader + sheet ---------- */
+/* Desk: reader + sheet */
 
 .desk {
   position: sticky;
@@ -760,7 +760,7 @@ button {
   }
 }
 
-/* ---------- small screens ---------- */
+/* Small screens */
 
 @media (max-width: 1040px) {
   .intro {
@@ -878,7 +878,7 @@ button {
   }
 }
 
-/* ================= navigation, sign-out ================= */
+/* Navigation, sign-out */
 
 .masthead-left {
   display: flex;
@@ -939,7 +939,7 @@ button {
   padding-left: 18px;
 }
 
-/* ================= leads view ================= */
+/* Leads view */
 
 .leads-board {
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
@@ -1161,7 +1161,7 @@ button {
   font-weight: 650;
 }
 
-/* ---------- staff sign-in plate ---------- */
+/* Staff sign-in plate */
 
 .signin {
   position: relative;
@@ -1256,7 +1256,7 @@ button {
   outline-offset: 2px;
 }
 
-/* ---------- the conversation roll ---------- */
+/* The conversation roll */
 
 .roll-desk {
   position: sticky;

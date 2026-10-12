@@ -27,7 +27,7 @@ def archived(world, lead_id=71):
     world.odoo.leads = [lead_row(lead_id, active=False, probability=0), lead_row(72)]
 
 
-# ---------------------------------------------------------------- a finished lead stays finished
+# A finished lead stays finished
 
 def test_contacted_does_not_reopen_a_won_lead(world):
     won(world)
@@ -73,7 +73,7 @@ def test_a_button_for_a_lead_that_no_longer_exists_says_so(world):
     assert "no longer" in world.rec.toasts[-1][1].lower() and world.rec.statuses == []
 
 
-# ---------------------------------------------------------------- do not move the stage backwards
+# Do not move the stage backwards
 
 def test_contacted_leaves_a_lead_that_is_already_further_along(world):
     world.odoo.leads = [lead_row(71, stage="Proposition"), lead_row(72)]
@@ -96,7 +96,7 @@ def test_a_reply_moves_only_a_new_lead_to_qualified(world):
     assert stage_writes(world) == [("crm.lead", [71], {"stage_id": 2})]
 
 
-# ---------------------------------------------------------------- once is enough
+# Once is enough
 
 def test_confirming_a_viewing_twice_tells_the_customer_once(world):
     press(world, "v:72")
@@ -119,7 +119,7 @@ def test_pressing_contacted_twice_only_records_it_once(world):
     assert len(stage_writes(world)) == 1
 
 
-# ---------------------------------------------------------------- a failure half way must not leave a mess
+# A failure half way must not leave a mess
 
 def test_handoff_is_set_even_if_the_odoo_bookkeeping_fails(world):
     world.store.add_alert_message(71, 777)
@@ -144,7 +144,7 @@ def test_the_right_chat_with_the_wrong_sender_is_ignored_for_messages_too(world)
     assert world.rec.customer == []
 
 
-# ---------------------------------------------------------------- the hold survives a missing link
+# The hold survives a missing link
 
 def test_a_hold_whose_lead_link_was_lost_is_still_found_by_the_customer(world):
     world.odoo.items[7].update(reservation_lead_id=0, reserved_for="sarah@example.com")
@@ -153,7 +153,7 @@ def test_a_hold_whose_lead_link_was_lost_is_still_found_by_the_customer(world):
     assert world.odoo.items[7]["status"] == "available"
 
 
-# ---------------------------------------------------------------- taking a lead stops the nudge
+# Taking a lead stops the nudge
 
 def test_taking_a_lead_marks_it_so_the_sweeper_leaves_it_alone(world):
     press(world, "t:71")
