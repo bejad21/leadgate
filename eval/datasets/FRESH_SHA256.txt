@@ -1,0 +1,2 @@
+5fe981c5f1fcaab6a9576a1523aef93cf398dd4a6f6267e1f78e40cc536d071c  fresh_cars.json
+cd2b64f66387700e05c38b43c08255d52dcae75e9d792529c24971d4da1d8bea  fresh_real_estate.json
