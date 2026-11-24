@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- A hold placed through the assistant lapses on its own. Releasing an item is a
+             status change, so the sync workflow puts the key back on the dashboard. -->
+        <record id="cron_release_expired_holds" model="ir.cron">
+            <field name="name">LeadGate: release expired holds</field>
+            <field name="model_id" ref="model_leadgate_catalog_item"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_release_expired()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

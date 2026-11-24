@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16.15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Loopback only: only other containers and tools on this host (for example local psql) may reach it.
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?set POSTGRES_USER in .env}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  odoo:
+    # Pinned by digest because the 18.0 tag is rebuilt in place. This is the build the project was tested on.
+    image: odoo:18.0@sha256:478065867b945579649373aa4cca3b56f7b74daf0522e5fdf85e7d1262e11d39
+    environment:
+      HOST: postgres
+      USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      DB_FILTER: ${ODOO_DB:?set ODOO_DB in .env}
+    volumes:
+      - odoo_data:/var/lib/odoo
+      - ./odoo/addons:/mnt/extra-addons
+    # Loopback only: the Odoo admin UI and XML-RPC endpoint must not be reachable from the LAN or internet.
+    ports:
+      - "127.0.0.1:8069:8069"
+      - "127.0.0.1:8072:8072"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  engine:
+    build: .
+    # Opt-in, so a plain `docker compose up -d` leaves port 8000 free for `uvicorn engine.main:app`
+    # run on the host. `docker compose up -d engine` starts it (naming a service enables its profile).
+    profiles: ["engine"]
+    # Everything the engine reads comes from .env. Only the Odoo address changes: inside the Compose
+    # network Odoo is reached by its service name, not by localhost.
+    env_file: .env
+    environment:
+      ODOO_URL: http://odoo:8069
+    depends_on:
+      - odoo
+    # Loopback only: put a tunnel in front of it to give Telegram a public address (docs/SETUP.md, step 8).
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  odoo_data:
