@@ -1,0 +1,23 @@
+# The image only needs requirements.txt and engine/. Everything else stays out of the build context,
+# above all secrets (.env*) and local environments.
+.git
+.github
+.venv
+venv
+.env*
+node_modules
+dashboard
+docs
+eval
+data
+odoo
+scripts
+migrations
+engine/tests
+conftest.py
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.coverage
+*.md

@@ -1,0 +1,72 @@
+# Source of truth for what the project depends on. The exact versions that were tested are in
+# requirements.txt, requirements-dev.txt and requirements-tools.txt, which are generated from the
+# ranges below. Install with `pip install -r requirements-dev.txt`; this file is not built into a
+# package.
+[project]
+name = "leadgate-engine"
+version = "0.1.0"
+description = "Telegram sales agent that searches a catalog and creates leads in Odoo"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.162,<1",
+    "uvicorn>=0.54,<1",  # without [standard]: the engine needs no websockets, uvloop, httptools or watchfiles
+    "httpx>=0.28,<1",
+    "python-dotenv>=1.2,<2",
+    "pydantic>=2.14,<3",
+]
+
+[project.optional-dependencies]
+# Tests and linters.
+dev = [
+    "pytest>=9.2,<10",
+    "pytest-cov>=7.1,<8",
+    "respx>=0.23,<1",
+    "coverage>=7.17,<8",
+    "ruff>=0.17.3,<0.18",
+    "pyright>=1.1.414,<2",
+]
+# One-off scripts: data preparation, evaluation charts, applying the Supabase migrations, dashboard browser test.
+tools = [
+    "matplotlib>=3.11,<4",
+    "pandas>=3.1,<4",
+    "kaggle>=2.2,<3",
+    "psycopg2-binary>=2.9,<3",
+    "playwright>=1.64,<2",
+]
+
+[tool.pytest.ini_options]
+# Only the engine suite. dashboard/tests/leads_ui_test.py is a Playwright script against a live
+# stack, not a pytest test.
+testpaths = ["engine/tests"]
+
+[tool.coverage.run]
+source = ["engine"]
+omit = ["engine/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+# Only the Python this project maintains: not the dashboard or the Odoo addon.
+include = ["engine/**/*.py", "eval/**/*.py", "data/**/*.py", "scripts/**/*.py"]
+
+[tool.ruff.lint]
+# Pyflakes, the pycodestyle errors that are real bugs (not line length or style), bugbear, import order.
+select = ["F", "E4", "E7", "E9", "B", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# These scripts are run as `python path/to/script.py`, so each one puts the repo root on sys.path
+# before it imports `engine`. The imports after that line cannot move above it.
+"eval/*.py" = ["E402"]
+"scripts/*.py" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["engine", "eval"]
+
+[tool.pyright]
+include = ["engine"]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"

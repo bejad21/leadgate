@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.png binary
+*.gif binary
+*.mp4 binary
+# Frozen sets keep the exact bytes that were hashed, so a clone on any system passes the freeze check.
+eval/datasets/fresh6*.json -text
+eval/datasets/fresh7*.json -text

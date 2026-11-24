@@ -1,0 +1,47 @@
+# One-off scripts only: data preparation (data/), the evaluation charts (eval/make_chart.py), the
+# Supabase migrations and checks (scripts/) and the dashboard browser test. The engine does not
+# need any of this. Pinned from a fresh Python 3.11 venv; to change a version, edit pyproject.toml
+# and regenerate. After installing, run `playwright install chromium` once if you will run
+# dashboard/tests/leads_ui_test.py.
+-r requirements.txt
+attrs==26.1.0
+bleach==6.4.0
+charset-normalizer==3.5.2
+colorama==0.4.6 ; sys_platform == "win32"
+contourpy==1.3.3
+cycler==0.12.1
+fastjsonschema==2.22.3
+fonttools==4.68.0
+greenlet==3.5.6
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+jupyter_core==5.9.1
+jupytext==1.19.6
+kaggle==2.2.5
+kagglesdk==0.1.38
+kiwisolver==1.5.1
+markdown-it-py==4.2.0
+matplotlib==3.11.2
+mdit-py-plugins==0.6.1
+mdurl==0.1.2
+nbformat==5.11.1
+numpy==2.4.6
+pandas==3.1.0
+pillow==13.0.0
+platformdirs==4.14.3
+playwright==1.64.1
+protobuf==7.36.2
+psycopg2-binary==2.9.13
+pyee==13.0.1
+pyparsing==3.3.3
+python-dateutil==4.0.0
+python-slugify==9.1.3
+referencing==0.37.0
+requests==2.34.2
+rpds-py==2026.9.1
+text-unidecode==1.3
+tqdm==4.70.1
+traitlets==5.16.1
+tzdata==2026.6
+urllib3==2.8.0
+webencodings==0.6.1
