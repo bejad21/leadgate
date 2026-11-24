@@ -1,0 +1,351 @@
+property_type,bed,bath,price,acre_lot,city,state,zip_code,house_size
+residential,3,3,949900,0.18,Bourne,Massachusetts,2532,1697
+residential,6,3,515000,0.09,Paterson,New Jersey,7514,3267
+residential,4,4,1279000,0.71,Bryn Mawr,Pennsylvania,19010,3178
+residential,2,2,637000,0.07,East Haven,Connecticut,6512,1339
+residential,3,2,379000,1.0,Guilford,Maine,4443,1500
+residential,3,2,299900,1.28,Monroeville,New Jersey,8343,1882
+residential,3,3,579900,2.4,Houlton,Maine,4730,2992
+residential,3,2,199900,1.21,Marlborough,Connecticut,6447,1949
+residential,3,1,285000,0.17,Croydon,Pennsylvania,19021,990
+residential,5,3,299900,0.52,Winchester,Connecticut,6098,3117
+residential,2,2,469900,0.36,Tiverton,Rhode Island,2878,1141
+residential,8,6,649900,0.18,East Providence,Rhode Island,2915,4832
+residential,3,4,1299000,1.05,Westport,Connecticut,6880,2598
+residential,3,2,239000,0.04,Philadelphia,Pennsylvania,19136,1152
+residential,3,1,299900,0.04,Philadelphia,Pennsylvania,19128,1616
+residential,4,3,1599000,2.21,Dover,Massachusetts,2030,3649
+residential,4,2,549900,0.35,Trumbull,Connecticut,6611,2004
+residential,1,1,128000,0.01,Little Egg Harbor,New Jersey,8087,680
+residential,3,1,99000,0.02,Philadelphia,Pennsylvania,19143,1320
+residential,3,3,350000,0.72,Millinocket,Maine,4462,2268
+residential,3,1,450000,9.59,East Hampton,Connecticut,6424,2014
+residential,3,2,299900,0.23,West Warwick,Rhode Island,2893,1209
+residential,3,3,1374000,0.07,Newport,Rhode Island,2840,3846
+residential,5,2,2699000,0.15,Brooklyn,New York,11213,2400
+residential,6,3,449000,0.07,Elizabeth City,New Jersey,7206,4535
+residential,4,3,699900,0.28,Bensalem,Pennsylvania,19020,3088
+residential,4,3,375000,0.4,Mickleton,New Jersey,8056,2024
+residential,4,3,414900,0.17,South Amboy,New Jersey,8879,1584
+residential,6,6,379999,0.04,Philadelphia,Pennsylvania,19132,2072
+residential,5,5,550000,0.25,Philadelphia,Pennsylvania,19144,4170
+residential,4,3,374900,2.14,Seekonk,Massachusetts,2771,3402
+residential,3,1,459000,0.06,Yonkers,New York,10704,924
+residential,5,4,1299000,0.05,Brooklyn,New York,11223,2720
+residential,2,2,487500,0.21,Lakewood,New Jersey,8701,1726
+residential,3,3,269000,0.07,Swedesboro,New Jersey,8085,1848
+residential,9,3,420000,0.11,Fall River,Massachusetts,2720,2952
+residential,3,2,275000,3.5,Middletown,Connecticut,6457,1746
+residential,4,2,479900,0.29,Trumbull,Connecticut,6611,1229
+residential,1,1,209000,0.05,Pomona,New York,10970,934
+residential,3,2,399900,0.59,Lunenburg,Massachusetts,1462,1248
+residential,2,3,394900,0.02,Philadelphia,Pennsylvania,19146,1200
+residential,2,1,164000,0.17,New Haven,Connecticut,6513,906
+residential,3,2,549000,0.03,New Haven,Connecticut,6511,1316
+residential,5,3,699900,0.46,Marlboro,New Jersey,7746,2586
+residential,2,3,224900,0.02,Philadelphia,Pennsylvania,19146,1527
+residential,3,3,350000,0.07,Philadelphia,Pennsylvania,19128,1816
+residential,3,1,245000,0.1,Cranston,Rhode Island,2905,1133
+residential,4,2,500000,0.1,Clifton,New Jersey,7011,1500
+residential,10,6,3198000,0.07,Ocean City,New Jersey,8226,3459
+residential,3,3,549900,2.19,New Ipswich,New Hampshire,3071,1912
+residential,3,1,85500,0.8,Smyrna Mills,Maine,4780,858
+residential,4,3,499900,0.81,Washingtonville,New York,10992,2339
+residential,4,2,595000,2.01,Newtown,Connecticut,6470,2745
+residential,3,1,289000,0.29,Pittsfield,Maine,4967,1200
+residential,3,2,449900,0.15,Old Bridge,New Jersey,8857,1529
+residential,5,5,2200000,2.45,West Chester,Pennsylvania,19382,8348
+residential,2,2,699900,20.33,Woodbury,Connecticut,6798,2016
+residential,6,3,449900,0.1,Bridgeport,Connecticut,6604,3149
+residential,3,3,334900,0.11,Lansdowne,Pennsylvania,19050,1728
+residential,3,2,259900,0.6,Keeseville,New York,12944,2528
+residential,3,3,165000,0.43,Adams,Massachusetts,1220,2360
+residential,2,2,665000,0.18,Farmingdale,New Jersey,7727,2066
+residential,6,2,180000,0.11,Plainfield,Connecticut,6354,2237
+residential,3,3,760000,0.52,Sandwich,Massachusetts,2563,2500
+residential,3,2,421190,10.21,Cheshire,Massachusetts,1225,1248
+residential,4,3,600000,5.6,Acton,Massachusetts,1720,3546
+residential,3,1,475000,0.75,Stow,Massachusetts,1775,1500
+residential,6,8,3900000,1.3,Westport,Connecticut,6880,6955
+residential,8,3,450000,0.05,Paterson,New Jersey,7501,19998
+residential,3,2,370000,0.14,Wilmington,Delaware,19803,2195
+residential,3,2,2399000,0.27,Montauk,New York,11954,1742
+residential,5,2,169000,0.22,Bennington,Vermont,5201,2169
+residential,3,3,415000,0.19,Cherry Hill,New Jersey,8002,1829
+residential,3,3,339990,0.07,Burlington,New Jersey,8016,1500
+residential,4,3,399900,0.3,Johnston,Rhode Island,2919,1912
+residential,3,1,115900,0.02,Philadelphia,Pennsylvania,19138,960
+residential,4,3,489000,0.3,Piscataway,New Jersey,8854,2022
+residential,2,2,1975000,0.49,New York City,New York,11201,1056
+residential,3,3,899000,0.36,Sagamore Beach,Massachusetts,2562,3006
+residential,3,1,124600,5.01,Saint Johnsbury,Vermont,5819,1152
+residential,1,2,1099000,0.02,Boston,Massachusetts,2109,923
+residential,5,6,4995000,11.8,West Barnstable,Massachusetts,2668,5316
+residential,3,1,625000,0.38,Northwood,New Hampshire,3261,1620
+residential,8,3,415000,0.53,Walpole,New Hampshire,3608,3828
+residential,2,1,250000,0.11,Fitzwilliam,New Hampshire,3447,820
+residential,5,6,1750000,1.04,Belle Terre,New York,11777,4150
+residential,6,3,650000,0.12,Lodi,New Jersey,7644,2000
+residential,3,3,335000,0.02,Philadelphia,Pennsylvania,19134,1221
+residential,2,1,294000,0.17,Toms River,New Jersey,8757,11000
+residential,2,2,429900,0.01,Staten Island,New York,10312,980
+residential,4,1,265000,0.19,Newark,Delaware,19713,2185
+residential,4,4,928000,0.19,Staten Island,New York,10310,3000
+residential,3,2,299900,0.2,New Britain,Connecticut,6052,2240
+residential,3,2,400000,0.17,Freehold,New Jersey,7728,1591
+residential,3,2,345000,0.05,Wilmington,Delaware,19806,1150
+residential,6,3,425000,0.11,Wallingford,Connecticut,6492,3229
+residential,2,2,385000,0.11,Milford,Connecticut,6460,1856
+residential,3,2,124000,0.09,San Juan,Puerto Rico,924,1532
+residential,3,1,265000,0.68,Sparrow Bush,New York,12780,1352
+residential,2,1,195000,0.06,Trenton,New Jersey,8648,514
+residential,3,3,295000,0.03,Philadelphia,Pennsylvania,19138,1826
+residential,3,2,210000,0.21,New Britain,Connecticut,6053,1374
+residential,4,3,620000,0.15,Havertown,Pennsylvania,19083,2350
+residential,3,1,300000,0.07,Warwick,Rhode Island,2889,1236
+residential,5,4,689900,0.76,New Castle,Delaware,19720,4780
+residential,10,4,680000,0.1,Newark,New Jersey,7106,4973
+residential,2,2,200000,0.05,Philadelphia,Pennsylvania,19137,960
+residential,4,2,269900,0.29,Browns Mills,New Jersey,8015,2036
+residential,4,4,520000,0.6,Broomall,Pennsylvania,19008,2550
+residential,3,2,179900,0.6,Keeseville,New York,12944,1754
+residential,7,4,2400000,0.04,New York City,New York,11238,2700
+residential,5,4,375000,0.22,Cabo Rojo,Puerto Rico,623,2700
+residential,3,2,515000,3.28,Poughquag,New York,12570,2060
+residential,1,1,1313760,0.49,New York City,New York,11201,792
+residential,2,1,114000,0.02,Philadelphia,Pennsylvania,19134,896
+residential,3,3,825000,0.12,Yonkers,New York,10705,2030
+residential,2,1,240000,0.31,Bakersfield,Vermont,5441,3448
+residential,1,1,61000,0.2,Bridgeton,New Jersey,8302,696
+residential,6,2,294900,0.13,Chicopee,Massachusetts,1020,2288
+residential,4,4,1350000,0.24,Staten Island,New York,10309,3550
+residential,2,2,449000,0.52,Warwick,Rhode Island,2886,1654
+residential,2,1,370000,0.87,Windham,New Hampshire,3087,1668
+residential,3,3,879000,1.99,Biddeford,Maine,4005,2000
+residential,3,3,349900,0.06,Philadelphia,Pennsylvania,19136,1592
+residential,6,10,4500000,3.1,Ridgefield,Connecticut,6877,10180
+residential,3,3,629900,3.5,Woodstock,Connecticut,6281,2952
+residential,3,2,295000,5.19,Vernon,Connecticut,6066,2248
+residential,5,2,135000,0.09,Morovis,Puerto Rico,687,1414
+residential,3,2,333000,0.28,Wilmington,Delaware,19808,2047
+residential,5,3,1100000,0.56,Quebradillas,Puerto Rico,678,3000
+residential,3,2,275000,0.7,Lebanon,New Jersey,7882,1668
+residential,3,2,389900,0.85,Southington,Connecticut,6489,1304
+residential,4,4,795000,0.98,Columbus,New Jersey,8022,3614
+residential,3,2,225000,0.13,Newington,Connecticut,6111,1064
+residential,3,3,399900,4.14,New Milford,Connecticut,6776,2418
+residential,8,3,674900,0.13,Haverhill,Massachusetts,1835,3409
+residential,3,2,305000,0.04,Philadelphia,Pennsylvania,19114,1804
+residential,4,3,699999,2.99,Leicester,Massachusetts,1542,4000
+residential,3,1,399900,0.1,Rahway,New Jersey,7065,1008
+residential,3,2,122000,0.09,Las Piedras,Puerto Rico,771,1170
+residential,3,1,315000,0.07,East Providence,Rhode Island,2915,943
+residential,3,4,949900,13.0,Ossining,New York,10562,3680
+residential,2,1,115000,0.02,Philadelphia,Pennsylvania,19139,996
+residential,4,3,649000,0.46,Spring Valley,New York,10977,2188
+residential,4,2,299900,0.14,Pennsauken,New Jersey,8109,2010
+residential,2,2,649900,0.27,Westerly,Rhode Island,2891,1292
+residential,9,6,5950000,0.14,Nantucket,Massachusetts,2554,2881
+residential,5,4,1995000,0.65,Madison,Connecticut,6443,3697
+residential,2,1,439000,0.03,Huguenot,New York,10312,1008
+residential,3,2,599900,0.18,Yonkers,New York,10710,1416
+residential,3,1,449900,0.22,Neptune Township,New Jersey,7753,1265
+residential,4,2,349900,0.21,Manahawkin,New Jersey,8050,1461
+residential,3,2,449900,0.41,Longmeadow,Massachusetts,1106,1817
+residential,4,4,879900,0.39,Toms River,New Jersey,8753,3864
+residential,2,2,265000,0.9,Woodstock,Connecticut,6281,1300
+residential,3,3,249900,0.08,Wilmington,Delaware,19802,1669
+residential,3,2,199900,0.07,New Castle,Delaware,19720,1225
+residential,2,2,384990,0.05,Coram,New York,11727,1186
+residential,3,3,644900,3.75,Mattapoisett,Massachusetts,2739,2000
+residential,3,4,355000,0.02,Philadelphia,Pennsylvania,19145,1920
+residential,4,2,325000,0.18,Troy,New Hampshire,3465,2274
+residential,3,4,430000,2.55,Monroeville,New Jersey,8343,2282
+residential,4,4,929000,33.83,Mullica Hill,New Jersey,8062,3912
+residential,4,3,329900,1.23,Tolland,Connecticut,6084,1400
+residential,3,2,80000,0.04,Trenton,New Jersey,8611,1288
+residential,3,3,819000,0.18,Lenox,Massachusetts,1240,2402
+residential,3,2,350000,0.73,Lords Valley,Pennsylvania,18428,1856
+residential,2,2,279900,0.24,Woonsocket,Rhode Island,2895,1216
+residential,3,2,489000,38.75,Acworth,New Hampshire,3607,2850
+residential,4,4,839900,2.13,Londonderry,New Hampshire,3053,4147
+residential,3,1,234900,0.18,Winthrop,Maine,4364,1418
+residential,3,1,309000,0.17,Bensalem,Pennsylvania,19020,1068
+residential,2,1,157900,0.16,Southington,Connecticut,6489,800
+residential,2,1,259999,0.06,Philadelphia,Pennsylvania,19111,1168
+residential,3,1,169900,1.8,Granville,Vermont,5747,875
+residential,3,2,439900,0.27,Danbury,Connecticut,6810,1816
+residential,5,3,549900,0.1,Linden,New Jersey,7036,1998
+residential,4,3,975000,2.96,North Andover,Massachusetts,1845,2951
+residential,3,1,80000,0.02,Philadelphia,Pennsylvania,19131,972
+residential,4,2,639900,0.18,Dedham,Massachusetts,2026,1638
+residential,4,3,366990,0.3,Mays Landing,New Jersey,8330,1906
+residential,4,3,299900,0.08,Philadelphia,Pennsylvania,19136,1161
+residential,3,2,575000,0.57,Fairfield,Connecticut,6825,1568
+residential,3,4,599000,1.1,Brewster,New York,10509,3351
+residential,4,3,399000,1.08,Hartford,Vermont,5059,2606
+residential,3,2,800000,0.26,West Long Branch,New Jersey,7764,1762
+residential,3,1,160000,0.02,Philadelphia,Pennsylvania,19124,1261
+residential,4,3,1375000,0.48,Winchester,Massachusetts,1890,2847
+residential,3,2,260000,0.09,Gurabo,Puerto Rico,778,2100
+residential,6,8,239900,4.44,Granville,New York,12832,5420
+residential,3,2,949900,0.38,Andover,Massachusetts,1810,2230
+residential,3,4,2870000,0.07,Nantucket,Massachusetts,2554,1944
+residential,3,1,339000,0.46,Goshen,Connecticut,6756,1536
+residential,3,2,264900,0.09,Providence,Rhode Island,2909,952
+residential,4,3,535000,0.57,Leonardo,New Jersey,7737,2672
+residential,3,2,665000,0.04,Bronx,New York,10465,1998
+residential,2,1,64500,0.14,Stratford,Connecticut,6615,870
+residential,4,3,725000,0.26,Edison,New Jersey,8820,2408
+residential,3,2,325000,0.31,Stratford,Connecticut,6614,1661
+residential,3,2,249900,0.23,Naugatuck,Connecticut,6770,1412
+residential,4,2,3495000,1.32,Greenwich,Connecticut,6830,2540
+residential,3,2,230000,0.02,Philadelphia,Pennsylvania,19143,1140
+residential,4,3,899000,1.01,Montgomery Twp,New Jersey,8502,3162
+residential,4,3,568000,0.34,Edison,New Jersey,8837,1506
+residential,3,2,425000,3.71,Boscawen,New Hampshire,3303,1900
+residential,2,2,269900,0.05,Philadelphia,Pennsylvania,19137,1524
+residential,4,2,675000,0.74,Westford,Massachusetts,1886,1836
+residential,4,3,525000,2.46,Southampton,New Jersey,8088,2404
+residential,1,1,115000,0.07,Warwick,Rhode Island,2889,436
+residential,8,7,3000000,0.28,Quincy,Massachusetts,2169,4738
+residential,8,2,339000,1.0,Keene,New Hampshire,3431,3396
+residential,3,2,345000,0.34,Laconia,New Hampshire,3246,1326
+residential,3,1,168900,0.03,Philadelphia,Pennsylvania,19136,1200
+residential,3,1,109000,0.03,Philadelphia,Pennsylvania,19142,960
+residential,3,1,140000,0.03,Philadelphia,Pennsylvania,19140,1302
+residential,4,2,320000,0.13,Manchester,New Hampshire,3102,3381
+residential,3,3,579000,2.35,New Milford,Connecticut,6776,2978
+residential,4,2,349900,0.15,Providence,Rhode Island,2904,1028
+residential,2,2,520500,8.2,Lakeville,Massachusetts,2347,1418
+residential,3,1,165000,0.03,Philadelphia,Pennsylvania,19142,960
+residential,6,5,2500000,5.01,Chester Twp,New Jersey,7930,7370
+residential,4,3,849000,0.41,Fairfield,Connecticut,6824,2852
+residential,2,2,1299000,0.03,Boston,Massachusetts,2113,1328
+residential,3,3,684900,9.38,Northborough,Massachusetts,1532,2784
+residential,5,3,134567,0.09,Bangor,Maine,4401,2698
+residential,9,3,480000,0.06,Central Falls,Rhode Island,2863,5060
+residential,4,3,295000,0.28,Egg Harbor City,New Jersey,8215,1760
+residential,3,2,299900,0.02,Philadelphia,Pennsylvania,19134,2000
+residential,4,5,1170000,1.0,Stamford,Connecticut,6902,4899
+residential,2,1,255900,0.17,Long Branch,New Jersey,7740,1223
+residential,2,2,499900,0.14,West Yarmouth,Massachusetts,2673,1080
+residential,3,4,899000,0.07,Jersey City,New Jersey,7302,2204
+residential,3,3,665000,0.42,Berwyn,Pennsylvania,19312,1911
+residential,5,2,695000,1.01,Yarmouth Port,Massachusetts,2675,1705
+residential,5,3,649000,0.14,Glen Ridge Boro Township,New Jersey,7028,1680
+residential,4,2,699000,0.88,Lincoln Park,New Jersey,7035,2322
+residential,5,2,337000,1.6,Hampden,Maine,4444,2465
+residential,3,2,595000,5.02,Egg Harbor Township,New Jersey,8234,1908
+residential,3,2,299900,0.17,Laconia,New Hampshire,3246,2404
+residential,1,1,575000,0.02,Brooklyn,New York,11201,720
+residential,3,3,250000,0.11,Burlington,New Jersey,8016,1636
+residential,4,3,435000,1.06,West Brookfield,Massachusetts,1585,2736
+residential,5,5,850000,0.95,Eliot,Maine,3903,3116
+residential,3,2,499900,0.46,Parsippany Troy Hills Township,New Jersey,7054,20038
+residential,3,1,225000,0.3,Bridgeton,New Jersey,8302,1184
+residential,5,3,725000,1.03,Freehold,New Jersey,7728,3000
+residential,3,2,549900,0.31,Shrewsbury,Massachusetts,1545,1400
+residential,4,4,1099000,0.11,Staten Island,New York,10304,2840
+residential,6,4,679900,1.82,Cromwell,Connecticut,6416,3184
+residential,3,2,489277,1.09,Easton,Connecticut,6612,1812
+residential,3,3,379900,0.07,Philadelphia,Pennsylvania,19150,1738
+residential,2,2,615000,0.49,Shelburne,Massachusetts,1370,1146
+residential,3,3,574999,0.09,New Rochelle,New York,10805,1574
+residential,5,7,1899000,2.01,Weston,Connecticut,6883,6207
+residential,3,2,349900,3.0,Lubec,Maine,4652,1480
+residential,3,2,119900,0.01,Philadelphia,Pennsylvania,19121,850
+residential,3,2,410000,0.17,Piscataway,New Jersey,8854,1008
+residential,4,3,370000,0.23,Middletown,Delaware,19709,4846
+residential,4,2,285000,0.3,Athol,Massachusetts,1331,3180
+residential,2,3,499000,0.01,Philadelphia,Pennsylvania,19130,1600
+residential,3,3,589000,1.15,Windham,Maine,4062,2088
+residential,3,1,184000,0.02,Wilmington,Delaware,19805,1225
+residential,3,3,599000,0.04,Bronx,New York,10466,1088
+residential,3,1,94900,0.05,Darby,Pennsylvania,19023,1622
+residential,2,3,399900,1.46,Smithfield,Rhode Island,2917,1591
+residential,4,3,439900,0.22,Flemington,New Jersey,8822,2022
+residential,6,8,1550000,56.62,Elizaville,New York,12523,5170
+residential,8,8,16800000,4.0,Barnstable,Massachusetts,2655,10063
+residential,3,3,845900,0.49,Portsmouth,Rhode Island,2871,2423
+residential,1,1,100000,0.34,Westville,New Jersey,8093,544
+residential,3,3,708000,0.5,Berlin,Massachusetts,1503,2000
+residential,5,5,1195000,0.54,Scarsdale,New York,10583,4722
+residential,3,2,995000,0.28,Morris,Connecticut,6763,1764
+residential,5,4,539900,1.5,Southington,Connecticut,6489,2627
+residential,2,2,135000,0.28,Holland,Massachusetts,1521,600
+residential,4,4,749900,0.71,Warwick,New York,10990,2518
+residential,4,2,225000,0.24,Copake,New York,12521,1239
+residential,3,3,430000,0.27,Sicklerville,New Jersey,8081,1487
+residential,4,2,289900,0.07,Providence,Rhode Island,2905,1344
+residential,5,2,220000,0.09,Waterbury,Connecticut,6710,1886
+residential,3,2,339900,0.46,Wallingford,Connecticut,6492,1164
+residential,3,2,530000,0.13,Iselin,New Jersey,8830,5758
+residential,3,3,366300,0.08,Middletown,Delaware,19709,2300
+residential,3,4,645000,0.35,Stonington,Connecticut,6379,2400
+residential,6,6,869000,0.76,Longmeadow,Massachusetts,1106,3902
+residential,3,3,349900,2.14,Hamden,Connecticut,6514,1478
+residential,5,3,369900,0.36,Wethersfield,Connecticut,6109,2345
+residential,12,12,5500000,0.05,Brooklyn,New York,11220,8800
+residential,4,4,799900,0.11,Wynnewood,Pennsylvania,19096,2958
+residential,3,3,349000,0.02,Philadelphia,Pennsylvania,19146,1308
+residential,6,5,649900,0.06,Newark,New Jersey,7103,2500
+residential,4,3,1499000,0.24,Darien,Connecticut,6820,2405
+residential,4,3,469900,0.02,Philadelphia,Pennsylvania,19104,2200
+residential,7,7,2350000,4.76,Wilton,Connecticut,6897,5952
+residential,3,2,1299000,0.2,Newton,Massachusetts,2465,1853
+residential,4,3,825000,1.51,North Kingstown,Rhode Island,2852,3018
+residential,4,3,699999,1.01,Manchester,New Jersey,8759,3416
+residential,6,4,1900000,0.37,Melrose,Massachusetts,2176,5392
+residential,4,3,365000,0.91,Bristol,Connecticut,6010,2231
+residential,3,1,675000,1.03,Wellfleet,Massachusetts,2667,606
+residential,3,1,359000,0.11,Philadelphia,Pennsylvania,19114,1684
+residential,4,4,1199000,0.57,Berkeley Heights Twp,New Jersey,7922,3350
+residential,4,4,425000,0.21,Sharon,Connecticut,6069,1680
+residential,3,1,154500,0.11,Winchester,Connecticut,6098,1156
+residential,3,2,292500,0.62,Walpole,New Hampshire,3608,1872
+residential,4,1,239900,0.28,Springfield,Massachusetts,1104,1200
+residential,3,2,750000,0.09,Medford,Massachusetts,2155,1315
+residential,5,3,150000,0.32,Naguabo,Puerto Rico,716,1604
+residential,2,1,345000,0.02,Staten Island,New York,10301,900
+residential,3,1,525000,1.09,Bear,Delaware,19701,1100
+residential,1,1,194900,0.03,Parsippany Troy Hills Township,New Jersey,7034,776
+residential,5,5,1295000,0.48,Robbinsville,New Jersey,8691,5264
+residential,3,3,1389000,2.7,Pearl River,New York,10965,2800
+residential,5,2,289900,0.41,Plattsburgh,New York,12901,2440
+residential,3,2,525000,0.11,Edison,New Jersey,8837,1163
+residential,3,3,269900,0.17,Mount Ephraim,New Jersey,8059,2037
+residential,3,1,289900,0.46,Waterford,Connecticut,6385,1338
+residential,3,1,124900,0.03,Philadelphia,Pennsylvania,19142,960
+residential,4,2,465000,0.35,Rocky Point,New York,11778,2800
+residential,4,3,1095000,10.0,Goshen,Connecticut,6756,3735
+residential,2,3,699000,2.5,Portsmouth,Rhode Island,2871,2200
+residential,2,2,385000,0.11,Mount Laurel,New Jersey,8054,1521
+residential,4,4,599000,2.22,Southbury,Connecticut,6488,3024
+residential,3,3,439900,1.75,Peru,New York,12972,2542
+residential,3,2,299900,0.06,Philadelphia,Pennsylvania,19153,860
+residential,5,5,460000,0.32,Cheltenham,Pennsylvania,19012,5440
+residential,3,1,219900,0.26,Pitman,New Jersey,8071,1454
+residential,4,3,399000,0.25,Egg Harbor Township,New Jersey,8234,2220
+residential,3,2,199900,0.02,Philadelphia,Pennsylvania,19134,1016
+residential,5,3,849999,0.52,Jackson,New Jersey,8527,2473
+residential,4,3,268000,0.07,San Juan,Puerto Rico,956,1800
+residential,2,1,199000,0.14,Wethersfield,Connecticut,6109,792
+residential,6,8,5325000,1.22,Greenwich,Connecticut,6831,6380
+residential,3,2,1350000,0.11,Staten Island,New York,10312,2800
+residential,8,4,580000,0.15,Cranston,Rhode Island,2920,6506
+residential,6,2,269000,1.03,Swanzey,New Hampshire,3446,1716
+residential,4,5,625000,3.0,Rio Grande,Puerto Rico,745,7000
+residential,4,2,214999,0.17,Meriden,Connecticut,6451,1568
+residential,3,2,285000,0.1,Philadelphia,Pennsylvania,19152,1452
+residential,3,2,170000,0.03,Philadelphia,Pennsylvania,19142,960
+residential,4,2,365000,0.07,Philadelphia,Pennsylvania,19119,1646
+residential,4,3,779000,0.3,Paoli,Pennsylvania,19301,2829
+residential,4,4,1600000,0.57,Falmouth,Massachusetts,2556,2746
+residential,4,3,2699000,0.29,Vineyard Haven,Massachusetts,2568,2200
+residential,9,3,520000,0.06,Newark,New Jersey,7103,2700
+residential,4,3,1260000,0.21,Milford,Connecticut,6460,2516
+residential,1,1,84900,0.06,Manchester,New Jersey,8759,738
+residential,3,2,499000,0.21,Norwalk,Connecticut,6851,1216
+residential,3,1,169900,0.05,Trenton,New Jersey,8629,1117
+residential,2,1,184900,0.34,Franklinville,New Jersey,8322,1008
