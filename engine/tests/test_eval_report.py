@@ -1,8 +1,13 @@
+import importlib.util
 import json
 
 import pytest
 
 from eval import report, results_io
+
+needs_matplotlib = pytest.mark.skipif(
+    importlib.util.find_spec("matplotlib") is None, reason="matplotlib is in requirements-tools.txt, not the engine's"
+)
 
 
 def header(kind="agent", domain="cars", dataset="heldout_cars.json", repeats=2, **extra):
@@ -123,12 +128,14 @@ def test_markers_are_replaced_and_missing_markers_are_an_error():
         report.update_markers(text, {"t2": "x"})
 
 
+@needs_matplotlib
 def test_the_chart_is_written_from_the_summaries(results_root, tmp_path):
     out = tmp_path / "charts"
     paths = report.write_charts(report.load_runs(results_root), out)
     assert paths and all(p.exists() and p.stat().st_size > 1000 for p in paths)
 
 
+@needs_matplotlib
 def test_the_command_rewrites_report_md_from_stored_files_only(results_root, tmp_path):
     md = tmp_path / "REPORT.md"
     markers = "".join(f"<!-- BEGIN:{n} -->\nx\n<!-- END:{n} -->\n" for n in report.TABLE_NAMES)
@@ -177,6 +184,7 @@ def test_all_off_is_compared_with_guardrails_on_runs_of_the_same_attacks_from_an
     assert "no guardrails-on run" not in table and "100.0% [" in table and "0.0% [" in table
 
 
+@needs_matplotlib
 def test_the_chart_survives_a_zero_rate_whose_interval_touches_the_rate(tmp_path):
     day = tmp_path / "2026-11-04-redteam"
     day.mkdir()
