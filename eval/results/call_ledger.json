@@ -1,0 +1,24 @@
+{
+ "calls": 3446,
+ "by_label": {
+  "probe": 6,
+  "cars-heldout": 561,
+  "probe-mistral": 11,
+  "real_estate-heldout": 429,
+  "cars-dev": 819,
+  "real_estate-dev": 679,
+  "redteam-on": 367,
+  "redteam-all_off": 172,
+  "redteam-off:injection_screen": 101,
+  "redteam-off:argument_validation": 28,
+  "redteam-off:tool_call_cap": 23,
+  "redteam-off:write_limits": 38,
+  "redteam-off:hold_guard": 29,
+  "redteam-off:reply_filter": 68,
+  "redteam-off:price_verification": 55,
+  "redteam-off:prompt_rules": 16,
+  "redteam-off:tool_result_sanitizing": 14,
+  "redteam-off:contact_provenance": 30
+ },
+ "cap": 3850
+}

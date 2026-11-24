@@ -1,0 +1,2412 @@
+[
+  {
+    "message": "Do you have anything under $300,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 300000
+      },
+      "outcome": "price_max is a genuinely applied filter. real_estate_raw.csv has many rows under 300000 (e.g. 299900, 285000, 265000), so this should correctly return real matches end-to-end."
+    },
+    "actual": {
+      "reply": " We sure do \u2014 I found several residential properties under $300,000. Here are a few that stand out:\n\n- **3bd/2ba residential in Monroeville, NJ** \u2013 $299,900 \u2192 1.28 acres, 1,882 sq ft\n- **3bd/2ba residential in Marlborough, CT** \u2013 $199,900 \u2192 1.21 acres, 1,949 sq ft\n- **3bd/1ba residential in Croydon, PA** \u2013 $285,000 \u2192 0.17 acres, 990 sq ft\n- **5bd/3ba residential in Winchester, CT** \u2013 $299,900 \u2192 0.52 acres, 3,117 sq ft\n- **3bd/2ba residential in Philadelphia, PA** \u2013 $239,000 \u2192 0.04 acres, 1,152 sq ft\n\nThere are actually over 100 matches under $300k total, so if you'd like to narrow it down by location, number of bedrooms/bathrooms, or price range, just let me know. I'm happy to pull more specific results for you!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 300000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            },
+            {
+              "id": 359,
+              "name": "3bd/2ba residential - Marlborough, Connecticut",
+              "price": 199900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.21\", \"city\": \"Marlborough\", \"state\": \"Connecticut\", \"zip_code\": \"6447\", \"house_size\": \"1949\"}"
+            },
+            {
+              "id": 360,
+              "name": "3bd/1ba residential - Croydon, Pennsylvania",
+              "price": 285000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.17\", \"city\": \"Croydon\", \"state\": \"Pennsylvania\", \"zip_code\": \"19021\", \"house_size\": \"990\"}"
+            },
+            {
+              "id": 361,
+              "name": "5bd/3ba residential - Winchester, Connecticut",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"5\", \"bath\": \"3\", \"acre_lot\": \"0.52\", \"city\": \"Winchester\", \"state\": \"Connecticut\", \"zip_code\": \"6098\", \"house_size\": \"3117\"}"
+            },
+            {
+              "id": 365,
+              "name": "3bd/2ba residential - Philadelphia, Pennsylvania",
+              "price": 239000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19136\", \"house_size\": \"1152\"}"
+            }
+          ],
+          "count": 108
+        }
+      ]
+    },
+    "latency_ms": 18702.9999999977
+  },
+  {
+    "message": "Show me listings under $500,000",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 500000
+      },
+      "outcome": "price_max filtering is real and reliable; plenty of rows in real_estate_raw.csv fall under 500000."
+    },
+    "actual": {
+      "reply": "Here are some listings under $500,000:\n\n1. **3bd/2ba residential - Guilford, Maine** \u2014 $379,000\n   - 3 bed, 2 bath, 1.0 acre lot, 1,500 sq ft\n\n2. **3bd/2ba residential - Monroeville, New Jersey** \u2014 $299,900\n   - 3 bed, 2 bath, 1.28 acre lot, 1,882 sq ft\n\n3. **3bd/2ba residential - Marlborough, Connecticut** \u2014 $199,900\n   - 3 bed, 2 bath, 1.21 acre lot, 1,949 sq ft\n\n4. **3bd/1ba residential - Croydon, Pennsylvania** \u2014 $285,000\n   - 3 bed, 1 bath, 0.17 acre lot, 990 sq ft\n\n5. **5bd/3ba residential - Winchester, Connecticut** \u2014 $299,900\n   - 5 bed, 3 bath, 0.52 acre lot, 3,117 sq ft\n\nThere are quite a few more matching results (207 total). Would you like to narrow things down by location, number of bedrooms, price range, or any other feature? I'm happy to help you find the perfect fit!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 500000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            },
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            },
+            {
+              "id": 359,
+              "name": "3bd/2ba residential - Marlborough, Connecticut",
+              "price": 199900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.21\", \"city\": \"Marlborough\", \"state\": \"Connecticut\", \"zip_code\": \"6447\", \"house_size\": \"1949\"}"
+            },
+            {
+              "id": 360,
+              "name": "3bd/1ba residential - Croydon, Pennsylvania",
+              "price": 285000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.17\", \"city\": \"Croydon\", \"state\": \"Pennsylvania\", \"zip_code\": \"19021\", \"house_size\": \"990\"}"
+            },
+            {
+              "id": 361,
+              "name": "5bd/3ba residential - Winchester, Connecticut",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"5\", \"bath\": \"3\", \"acre_lot\": \"0.52\", \"city\": \"Winchester\", \"state\": \"Connecticut\", \"zip_code\": \"6098\", \"house_size\": \"3117\"}"
+            }
+          ],
+          "count": 207
+        }
+      ]
+    },
+    "latency_ms": 19531.000000002678
+  },
+  {
+    "message": "What properties do you have for around $1,000,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 1000000
+      },
+      "outcome": "Several rows are near or under 1,000,000 (e.g. 949900, 899000, 975000). price_max filtering is genuinely applied."
+    },
+    "actual": {
+      "reply": "We have quite a few options around that price point. From what came back, the closest to your $1,000,000 target is:\n\n- **3bd/3ba residential** in **Bourne, Massachusetts** \u2014 **$949,900** (1,697 sq ft, 0.18 acre)\n\nThe other results are all well below that range:\n\n- 6bd/3ba in Paterson, NJ \u2014 $515,000\n- 2bd/2ba in East Haven, CT \u2014 $637,000\n- 3bd/2ba in Guilford, ME \u2014 $379,000\n- 3bd/2ba in Monroeville, NJ \u2014 $299,900\n\nIf you'd like, I can narrow the search for homes closer to your $1,000,000 budget. Are you looking in a particular state or region, or do you have a preference on the number of bedrooms/bathrooms?",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 1000000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            },
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            }
+          ],
+          "count": 303
+        }
+      ]
+    },
+    "latency_ms": 33093.99999999732
+  },
+  {
+    "message": "I have a budget of $650,000, what's available?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 650000
+      },
+      "outcome": "Multiple rows are at or under 650000 (e.g. 637000, 649900, 649000). Reliable end-to-end since only price_max is genuinely filtered."
+    },
+    "actual": {
+      "reply": " I found several properties within your $650,000 budget. Here's what's available:\n\n**In New Jersey:**\n- **6bd/3ba residential** \u2013 Paterson, NJ | $515,000 | 3,267 sq ft | 0.09-acre lot\n- **3bd/2ba residential** \u2013 Monroeville, NJ | $299,900 | 1,882 sq ft | 1.28-acre lot\n\n**In Connecticut:**\n- **2bd/2ba residential** \u2013 East Haven, CT | $637,000 | 1,339 sq ft | 0.07-acre lot\n\n**In Maine:**\n- **3bd/3ba residential** \u2013 Houlton, ME | $579,900 | 2,992 sq ft | 2.4-acre lot\n- **3bd/2ba residential** \u2013 Guilford, ME | $379,000 | 1,500 sq ft | 1.0-acre lot\n\nWould you like to narrow this down further? For example, do you have a preferred state, number of bedrooms, or other must-haves? I'm happy to help you find the right fit.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 650000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            },
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            },
+            {
+              "id": 358,
+              "name": "3bd/3ba residential - Houlton, Maine",
+              "price": 579900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"2.4\", \"city\": \"Houlton\", \"state\": \"Maine\", \"zip_code\": \"4730\", \"house_size\": \"2992\"}"
+            }
+          ],
+          "count": 254
+        }
+      ]
+    },
+    "latency_ms": 24639.999999999418
+  },
+  {
+    "message": "Anything below $150,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 150000
+      },
+      "outcome": "Several inexpensive rows exist under 150000 (e.g. 128000, 134567, 135000, 122000). price_max filtering is genuine and reliable."
+    },
+    "actual": {
+      "reply": "Here are a few options I found under $150,000:\n\n- **1bd/1ba residential** \u2013 Little Egg Harbor, New Jersey \u2013 $128,000  \n- **3bd/1ba residential** \u2013 Philadelphia, Pennsylvania \u2013 $99,000  \n- **3bd/1ba residential** \u2013 Smyrna Mills, Maine \u2013 $85,500  \n- **3bd/1ba residential** \u2013 Philadelphia, Pennsylvania \u2013 $115,900  \n- **3bd/1ba residential** \u2013 Saint Johnsbury, Vermont \u2013 $124,600  \n\nWould you like to narrow these down by location, number of bedrooms, or any other feature? I can also help you get in touch with a human agent if you'd like more details on any of these.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 150000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 369,
+              "name": "1bd/1ba residential - Little Egg Harbor, New Jersey",
+              "price": 128000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.01\", \"city\": \"Little Egg Harbor\", \"state\": \"New Jersey\", \"zip_code\": \"8087\", \"house_size\": \"680\"}"
+            },
+            {
+              "id": 370,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 99000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19143\", \"house_size\": \"1320\"}"
+            },
+            {
+              "id": 402,
+              "name": "3bd/1ba residential - Smyrna Mills, Maine",
+              "price": 85500.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.8\", \"city\": \"Smyrna Mills\", \"state\": \"Maine\", \"zip_code\": \"4780\", \"house_size\": \"858\"}"
+            },
+            {
+              "id": 427,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 115900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19138\", \"house_size\": \"960\"}"
+            },
+            {
+              "id": 431,
+              "name": "3bd/1ba residential - Saint Johnsbury, Vermont",
+              "price": 124600.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"5.01\", \"city\": \"Saint Johnsbury\", \"state\": \"Vermont\", \"zip_code\": \"5819\", \"house_size\": \"1152\"}"
+            }
+          ],
+          "count": 25
+        }
+      ]
+    },
+    "latency_ms": 17860.000000000582
+  },
+  {
+    "message": "What's the cheapest thing you have around $100,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 100000
+      },
+      "outcome": "Rows exist near/under 100000 (e.g. 99000, 85500, 94900, 84900, 80000). price_max filtering is reliable."
+    },
+    "actual": {
+      "reply": "Here are the options I found closest to $100,000, with the cheapest one listed first:\n\n- **1bd/1ba residential \u2013 Bridgeton, New Jersey** \u2013 **$61,000** (696 sq ft, 0.2 acres)\n- **3bd/1ba residential \u2013 Smyrna Mills, Maine** \u2013 $85,500 (858 sq ft, 0.8 acres)\n- **3bd/2ba residential \u2013 Trenton, New Jersey** \u2013 $80,000 (1,288 sq ft, 0.04 acres)\n- **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $80,000 (972 sq ft, 0.02 acres)\n- **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $99,000 (1,320 sq ft, 0.02 acres)\n\nThe cheapest item overall is the **Bridgeton, New Jersey condo at $61,000**. If you want the cheapest single-family style option, the **Smyrna Mills, Maine home at $85,500** is a good low-price pick with more land (0.8 acres).\n\nWould you like more details on any of these, or are you looking for a specific location or size?",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 100000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 370,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 99000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19143\", \"house_size\": \"1320\"}"
+            },
+            {
+              "id": 402,
+              "name": "3bd/1ba residential - Smyrna Mills, Maine",
+              "price": 85500.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.8\", \"city\": \"Smyrna Mills\", \"state\": \"Maine\", \"zip_code\": \"4780\", \"house_size\": \"858\"}"
+            },
+            {
+              "id": 469,
+              "name": "1bd/1ba residential - Bridgeton, New Jersey",
+              "price": 61000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.2\", \"city\": \"Bridgeton\", \"state\": \"New Jersey\", \"zip_code\": \"8302\", \"house_size\": \"696\"}"
+            },
+            {
+              "id": 516,
+              "name": "3bd/2ba residential - Trenton, New Jersey",
+              "price": 80000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Trenton\", \"state\": \"New Jersey\", \"zip_code\": \"8611\", \"house_size\": \"1288\"}"
+            },
+            {
+              "id": 530,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 80000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19131\", \"house_size\": \"972\"}"
+            }
+          ],
+          "count": 9
+        }
+      ]
+    },
+    "latency_ms": 21500.0
+  },
+  {
+    "message": "Do you have anything for under $2,000,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 2000000
+      },
+      "outcome": "Many rows fall under 2,000,000. price_max filtering is genuine."
+    },
+    "actual": {
+      "reply": " Yes, we have quite a few properties under $2,000,000! Here are a few listings that came up:\n\n1. **3bd/3ba residential - Bourne, Massachusetts** \u2014 $949,900  \n   - 3 bed, 3 bath, 1,697 sq ft, 0.18 acre lot\n\n2. **6bd/3ba residential - Paterson, New Jersey** \u2014 $515,000  \n   - 6 bed, 3 bath, 3,267 sq ft, 0.09 acre lot\n\n3. **4bd/4ba residential - Bryn Mawr, Pennsylvania** \u2014 $1,279,000  \n   - 4 bed, 4 bath, 3,178 sq ft, 0.71 acre lot\n\n4. **2bd/2ba residential - East Haven, Connecticut** \u2014 $637,000  \n   - 2 bed, 2 bath, 1,339 sq ft, 0.07 acre lot\n\n5. **3bd/2ba residential - Guilford, Maine** \u2014 $379,000  \n   - 3 bed, 2 bath, 1,500 sq ft, 1.0 acre lot\n\nThere are actually **332 properties** under $2M in our catalog, so this is just a small sample. Do you have a particular location, number of bedrooms/bathrooms, or any other must-haves I can narrow the search down for you?",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 2000000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 332
+        }
+      ]
+    },
+    "latency_ms": 25328.00000000134
+  },
+  {
+    "message": "I'm looking to spend no more than $450,000",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 450000
+      },
+      "outcome": "Many rows are at/under 450000. price_max filtering is genuine and reliable."
+    },
+    "actual": {
+      "reply": " It sounds like you're shopping in a comfortable range \u2014 all of the properties I'm seeing right now are under $450,000. Here are a few options that came up in the search:\n\n1. **3bd/2ba residential \u2013 Guilford, Maine**  \n   $379,000 \u00b7 1.0 acre \u00b7 1,500 sq ft\n\n2. **3bd/2ba residential \u2013 Monroeville, New Jersey**  \n   $299,900 \u00b7 1.28 acres \u00b7 1,882 sq ft\n\n3. **3bd/2ba residential \u2013 Marlborough, Connecticut**  \n   $199,900 \u00b7 1.21 acres \u00b7 1,949 sq ft\n\n4. **3bd/1ba residential \u2013 Croydon, Pennsylvania**  \n   $285,000 \u00b7 0.17 acre \u00b7 990 sq ft\n\n5. **5bd/3ba residential \u2013 Winchester, Connecticut**  \n   $299,900 \u00b7 0.52 acre \u00b7 3,117 sq ft\n\nWould you like to narrow this down further? For example:\n- Do you have a preferred state or city?\n- How many bedrooms/bathrooms do you need?\n- Any minimum lot size or home square footage?\n- Are you looking for a single-family home, condo, or something else?\n\nLet me know what matters most and I can refine the search for you.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 450000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            },
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            },
+            {
+              "id": 359,
+              "name": "3bd/2ba residential - Marlborough, Connecticut",
+              "price": 199900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.21\", \"city\": \"Marlborough\", \"state\": \"Connecticut\", \"zip_code\": \"6447\", \"house_size\": \"1949\"}"
+            },
+            {
+              "id": 360,
+              "name": "3bd/1ba residential - Croydon, Pennsylvania",
+              "price": 285000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.17\", \"city\": \"Croydon\", \"state\": \"Pennsylvania\", \"zip_code\": \"19021\", \"house_size\": \"990\"}"
+            },
+            {
+              "id": 361,
+              "name": "5bd/3ba residential - Winchester, Connecticut",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"5\", \"bath\": \"3\", \"acre_lot\": \"0.52\", \"city\": \"Winchester\", \"state\": \"Connecticut\", \"zip_code\": \"6098\", \"house_size\": \"3117\"}"
+            }
+          ],
+          "count": 189
+        }
+      ]
+    },
+    "latency_ms": 27296.99999999866
+  },
+  {
+    "message": "I need a 3-bedroom house under $400,000",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "bedrooms": 3,
+        "price_max": 400000
+      },
+      "outcome": "LLM should extract bedrooms=3 and price_max=400000. real_estate_raw.csv does have 3-bed rows under 400000, so a correct implementation could satisfy this. HOWEVER the adapter does not actually filter on bedrooms (known limitation) -- the real returned matches will only respect price_max and may include listings with a different bed count. Grade the tool call/args extraction as correct; do not require the actual matches to all have 3 bedrooms."
+    },
+    "actual": {
+      "reply": "I found several 3-bedroom homes under $400,000 that might be a good fit. Here are a few options:\n\n- **3bd/2ba residential \u2013 Guilford, Maine** \u2013 $379,000  \n  1.0-acre lot, 1,500 sq ft\n\n- **3bd/2ba residential \u2013 Monroeville, New Jersey** \u2013 $299,900  \n  1.28-acre lot, 1,882 sq ft\n\n- **3bd/2ba residential \u2013 Marlborough, Connecticut** \u2013 $199,900  \n  1.21-acre lot, 1,949 sq ft\n\n- **3bd/1ba residential \u2013 Croydon, Pennsylvania** \u2013 $285,000  \n  0.17-acre lot, 990 sq ft\n\nWould you like to narrow these down by location, price, or other features? I'm happy to help you find the right fit.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "house",
+            "bedrooms": 3,
+            "price_max": 400000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            },
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            },
+            {
+              "id": 359,
+              "name": "3bd/2ba residential - Marlborough, Connecticut",
+              "price": 199900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.21\", \"city\": \"Marlborough\", \"state\": \"Connecticut\", \"zip_code\": \"6447\", \"house_size\": \"1949\"}"
+            },
+            {
+              "id": 360,
+              "name": "3bd/1ba residential - Croydon, Pennsylvania",
+              "price": 285000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.17\", \"city\": \"Croydon\", \"state\": \"Pennsylvania\", \"zip_code\": \"19021\", \"house_size\": \"990\"}"
+            },
+            {
+              "id": 361,
+              "name": "5bd/3ba residential - Winchester, Connecticut",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"5\", \"bath\": \"3\", \"acre_lot\": \"0.52\", \"city\": \"Winchester\", \"state\": \"Connecticut\", \"zip_code\": \"6098\", \"house_size\": \"3117\"}"
+            }
+          ],
+          "count": 164
+        }
+      ]
+    },
+    "latency_ms": 18344.00000000096
+  },
+  {
+    "message": "Looking for a 5-bedroom home, budget up to $700,000",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "bedrooms": 5,
+        "price_max": 700000
+      },
+      "outcome": "bedrooms=5 and price_max=700000 should be extracted. 5-bed rows exist under 700000 in the data, but since bedrooms isn't actually filtered server-side, the returned matches may include non-5-bed listings. This is expected and not a failure of tool-call correctness."
+    },
+    "actual": {
+      "reply": "I couldn't find any 5-bedroom homes in the initial search results. Here's what did come back:\n\n- **6bd/3ba** residential in Paterson, New Jersey \u2014 $515,000 (the only listing with close to that many bedrooms)\n- The other results were 2-bedroom or 3-bedroom homes, which don't match your criteria.\n\nWould you like more information about the 6-bedroom property in Paterson, or would you prefer to adjust your search (for example, a different number of bedrooms or a different price range)? I'm happy to look again.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "house",
+            "bedrooms": 5,
+            "price_max": 700000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            },
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            },
+            {
+              "id": 358,
+              "name": "3bd/3ba residential - Houlton, Maine",
+              "price": 579900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"2.4\", \"city\": \"Houlton\", \"state\": \"Maine\", \"zip_code\": \"4730\", \"house_size\": \"2992\"}"
+            }
+          ],
+          "count": 272
+        }
+      ]
+    },
+    "latency_ms": 24984.00000000038
+  },
+  {
+    "message": "Do you have any condos available?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "property_type": "condo"
+      },
+      "outcome": "Every row in real_estate_raw.csv has property_type == 'residential' -- there are no condos labeled as such in the seeded data, and the adapter does not filter on property_type at all. The LLM should still extract property_type='condo' (or similar) from the message. The real downstream result will be whatever the unfiltered/price-only query returns (likely all 'residential' rows), not an honest empty result and not actually condos -- this case exists specifically to document that double limitation (no condo data + no property_type filtering)."
+    },
+    "actual": {
+      "reply": "I searched for condos, but it looks like the results I got back are all listed as **residential** properties rather than condos. Here's what actually came back:\n\n- 3bd/3ba residential \u2013 Bourne, MA \u2026 $949,900\n- 6bd/3ba residential \u2013 Paterson, NJ \u2026 $515,000\n- 4bd/4ba residential \u2013 Bryn Mawr, PA \u2026 $1,279,000\n- 2bd/2ba residential \u2013 East Haven, CT \u2026 $637,000\n- 3bd/2ba residential \u2013 Guilford, ME \u2026 $379,000\n\nSo I don't have confirmed condo listings to show you from that search. Would you like me to look for a specific type of property, or would you like to see more residential listings in a certain area or price range? Let me know how you'd like to narrow it down.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "condo"
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 19186.99999999808
+  },
+  {
+    "message": "I need a 2-bedroom apartment under $250,000",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "bedrooms": 2,
+        "property_type": "apartment",
+        "price_max": 250000
+      },
+      "outcome": "bedrooms/property_type should be extracted from the message even though neither is actually filtered by the adapter. 2-bed rows under 250000 do exist in the data, but returned matches are not guaranteed to be 2-bed or apartments specifically -- known limitation, not a tool-selection failure."
+    },
+    "actual": {
+      "reply": " Thanks for your patience! I ran a search for apartments under $250,000, but unfortunately the results that came back don't include any 2-bedroom units \u2014 the listings shown are all either 1-bedroom or 3-bedroom.\n\nHere\u2019s what came up in the current results:\n\n- **3bd/2ba** \u2013 Marlborough, CT \u2013 $199,900\n- **3bd/2ba** \u2013 Philadelphia, PA \u2013 $239,000\n- **1bd/1ba** \u2013 Little Egg Harbor, NJ \u2013 $128,000\n- **3bd/1ba** \u2013 Philadelphia, PA \u2013 $99,000\n- **1bd/1ba** \u2013 Pomona, NY \u2013 $209,000\n\nSince none of these match your exact request for a 2-bedroom under $250K, I want to make sure I get you the right options. Would you like me to:\n\n1. Expand the search to include 3-bedroom homes (some are actually under your budget), or\n2. Refine the search specifically for 2-bedroom apartments in a particular area/state?\n\nJust let me know how you'd like to proceed and I'll find something that fits!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "apartment",
+            "bedrooms": 2,
+            "price_max": 250000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 359,
+              "name": "3bd/2ba residential - Marlborough, Connecticut",
+              "price": 199900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.21\", \"city\": \"Marlborough\", \"state\": \"Connecticut\", \"zip_code\": \"6447\", \"house_size\": \"1949\"}"
+            },
+            {
+              "id": 365,
+              "name": "3bd/2ba residential - Philadelphia, Pennsylvania",
+              "price": 239000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19136\", \"house_size\": \"1152\"}"
+            },
+            {
+              "id": 369,
+              "name": "1bd/1ba residential - Little Egg Harbor, New Jersey",
+              "price": 128000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.01\", \"city\": \"Little Egg Harbor\", \"state\": \"New Jersey\", \"zip_code\": \"8087\", \"house_size\": \"680\"}"
+            },
+            {
+              "id": 370,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 99000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19143\", \"house_size\": \"1320\"}"
+            },
+            {
+              "id": 390,
+              "name": "1bd/1ba residential - Pomona, New York",
+              "price": 209000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.05\", \"city\": \"Pomona\", \"state\": \"New York\", \"zip_code\": \"10970\", \"house_size\": \"934\"}"
+            }
+          ],
+          "count": 67
+        }
+      ]
+    },
+    "latency_ms": 30937.999999998283
+  },
+  {
+    "message": "Any commercial properties for sale?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "property_type": "commercial"
+      },
+      "outcome": "real_estate_raw.csv contains zero commercial listings (every row is 'residential'). A correct, fully-filtering implementation would return zero matches. The current adapter ignores property_type entirely, so it will instead return whatever unfiltered residential rows exist -- this is the known limitation, not a hallucination by the LLM if it extracts property_type='commercial' correctly."
+    },
+    "actual": {
+      "reply": "I searched our current catalog for commercial properties, but the listings that came back are all residential \u2014 for example, a 3bd/3ba in Bourne, MA for $949,900 and a 6bd/3ba in Paterson, NJ for $515,000. None of the results are marked as commercial.\n\nCould you tell me a bit more about what you're looking for? For instance:\n- What type of commercial property (retail, office, industrial, mixed-use, etc.)?\n- Any particular location or budget?\n\nThat way I can see what might be available or clarify whether our current catalog has what you need.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "commercial"
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 26139.999999999418
+  },
+  {
+    "message": "I want a 4-bedroom, 3-bathroom house, nothing over $600,000",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "bedrooms": 4,
+        "price_max": 600000
+      },
+      "outcome": "bedrooms=4 and price_max=600000 should be extracted (bathroom count has no schema field and may reasonably be dropped or folded into notes-style context, but there is no notes field on search_listings so it's fine for the LLM to simply omit it). 4-bed rows under 600000 exist, but the bedroom count won't actually be enforced -- known limitation."
+    },
+    "actual": {
+      "reply": " Thanks for your patience \u2014 I ran a search for homes under $600,000, but the results that came back don\u2019t include exactly what you described. I see 4- and 5-bedroom options in the broader catalog, but nothing that currently matches a 4-bed / 3-bath specifically.\n\nHere are the closest real listings from what the search returned:\n\n- 3bd/3ba residential \u2013 Houlton, Maine \u2013 $579,900\n- 6bd/3ba residential \u2013 Paterson, New Jersey \u2013 $515,000\n\nNeither is exactly 4 bedrooms, though both are under your budget.\n\nWould you like me to:\n1. Look for 4-bedroom homes specifically by relaxing the bathroom count,\n2. Consider one of the above as a possibility, or\n3. Adjust another detail like location or price range?\n\nJust let me know how you'd like to proceed and I'll keep helping you narrow it down.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "house",
+            "bedrooms": 4,
+            "price_max": 600000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            },
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            },
+            {
+              "id": 358,
+              "name": "3bd/3ba residential - Houlton, Maine",
+              "price": 579900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"2.4\", \"city\": \"Houlton\", \"state\": \"Maine\", \"zip_code\": \"4730\", \"house_size\": \"2992\"}"
+            },
+            {
+              "id": 359,
+              "name": "3bd/2ba residential - Marlborough, Connecticut",
+              "price": 199900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.21\", \"city\": \"Marlborough\", \"state\": \"Connecticut\", \"zip_code\": \"6447\", \"house_size\": \"1949\"}"
+            }
+          ],
+          "count": 239
+        }
+      ]
+    },
+    "latency_ms": 41203.00000000134
+  },
+  {
+    "message": "Do you have any land or lots for sale?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "property_type": "land"
+      },
+      "outcome": "No 'land' property_type exists anywhere in real_estate_raw.csv (all rows are 'residential' single properties with house_size values, i.e. built homes). A correct implementation returns zero matches; the current adapter will not enforce that due to the property_type limitation."
+    },
+    "actual": {
+      "reply": "I see you're looking for land or lots. I ran a search, but the results that came back are all residential home listings rather than vacant land. Here's what showed up:\n\n- **3bd/3ba - Bourne, Massachusetts** - $949,900 (0.18 acre lot)\n- **6bd/3ba - Paterson, New Jersey** - $515,000 (0.09 acre lot)\n- **4bd/4ba - Bryn Mawr, Pennsylvania** - $1,279,000 (0.71 acre lot)\n- **2bd/2ba - East Haven, Connecticut** - $637,000 (0.07 acre lot)\n- **3bd/2ba - Guilford, Maine** - $379,000 (1.0 acre lot)\n\nSo these are houses on their lots, not undeveloped land for sale. If you're specifically looking for vacant land, could you tell me a bit more \u2014 for example, a state or region you're interested in, or a target price range? I'd be happy to help narrow things down or clarify what's available.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "land"
+          }
+        },
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "lot"
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        },
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 22328.00000000134
+  },
+  {
+    "message": "Looking for a townhouse with at least 3 bedrooms",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "property_type": "townhouse",
+        "bedrooms": 3
+      },
+      "outcome": "No 'townhouse' property_type exists in the data (only 'residential'). property_type/bedrooms extraction should still happen correctly on the LLM side; downstream filtering limitation applies as documented."
+    },
+    "actual": {
+      "reply": " I found some properties with at least 3 bedrooms, but unfortunately none of the search results came back as townhouses \u2014 they're all listed as \"residential.\" Here are the ones that match your bedroom count:\n\n- **3bd/3ba residential** \u2013 Bourne, MA \u2014 $949,900 (1,697 sq ft)\n- **6bd/3ba residential** \u2013 Paterson, NJ \u2014 $515,000 (3,267 sq ft)\n- **4bd/4ba residential** \u2013 Bryn Mawr, PA \u2014 $1,279,000 (3,178 sq ft)\n- **3bd/2ba residential** \u2013 Guilford, ME \u2014 $379,000 (1,500 sq ft)\n\nIf you're specifically set on a townhouse, it doesn't look like my search is filtering for that property type. Could you tell me a little more about what you're looking for \u2014 for example, a location or price range? Or would any of these residential options be of interest?",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "townhouse",
+            "bedrooms": 3
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 32375.0
+  },
+  {
+    "message": "I'd like a multi-family property, 2 units or more",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "property_type": "multi-family"
+      },
+      "outcome": "No 'multi-family' property_type exists in the data (only 'residential'). Correct behavior would be zero matches; adapter limitation prevents that from being enforced."
+    },
+    "actual": {
+      "reply": " Thanks for your patience. I ran a search, but I want to be upfront: the results I got are all labeled **residential** and the listing data doesn't explicitly indicate whether a property is multi-family (like a duplex/triplex) or how many separate units it has. I don't want to guess and mislead you.\n\nHere are a few of the residential listings that came back, in case any happen to be close to what you're picturing:\n\n- **3bd/3ba** \u2013 Bourne, MA \u2014 $949,900  \n- **6bd/3ba** \u2013 Paterson, NJ \u2014 $515,000  \n- **4bd/4ba** \u2013 Bryn Mawr, PA \u2014 $1,279,000  \n- **2bd/2ba** \u2013 East Haven, CT \u2014 $637,000  \n- **3bd/2ba** \u2013 Guilford, ME \u2014 $379,000  \n\nTo help me find the right multi-family property for you, could you share a bit more detail? For example:\n\n- Which area/state are you looking in?\n- What's your budget range?\n- Do you have a target number of units (duplex, triplex, 4+)?\n- Any must-haves like parking, condition, or rental income?\n\nOnce I know that, I can look again and point you only at listings that actually match.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "multi-family"
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 34655.99999999904
+  },
+  {
+    "message": "Any single-family homes with 6 bedrooms under $1,000,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "bedrooms": 6,
+        "price_max": 1000000
+      },
+      "outcome": "6-bedroom rows under 1,000,000 do exist in the data (e.g. 515000, 449000, 420000, 294900, 379999). price_max is genuinely applied; bedrooms is not (known limitation), so returned matches aren't guaranteed to all be 6-bed."
+    },
+    "actual": {
+      "reply": "I found a few options under $1,000,000, but only one matches your 6-bedroom requirement:\n\n- **6bd/3ba residential - Paterson, New Jersey** \u2014 $515,000\n  - 6 bedrooms, 3 bathrooms, 3,267 sq ft, lot size 0.09 acre\n\nThe other results are 2\u20133 bedroom homes, so they won't work for your 6-bedroom need. Also, the listing is labeled as \"residential\" rather than explicitly \"single-family,\" so I'd recommend confirming the exact property type with the listing agent if that's important to you.\n\nWould you like more details on the Paterson home, or would you like to broaden your search (for example, by location or price range)?",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "single-family",
+            "bedrooms": 6,
+            "price_max": 1000000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            },
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            }
+          ],
+          "count": 303
+        }
+      ]
+    },
+    "latency_ms": 22452.9999999977
+  },
+  {
+    "message": "I want something affordable",
+    "expected": {
+      "tool": "search_listings",
+      "args": {},
+      "outcome": "No concrete price or type given. search_listings with empty args (or a clarifying question first) is acceptable; exact args are not strictly graded for this ambiguous case."
+    },
+    "actual": {
+      "reply": " I found some affordable options for you! Here are a few of the lower-priced listings from what came up:\n\n1. **3bd/2ba residential in Guilford, Maine** \u2013 **$379,000** (1.0 acre lot, 1,500 sq ft)\n2. **6bd/3ba residential in Paterson, New Jersey** \u2013 **$515,000** (0.09 acre lot, 3,267 sq ft)\n3. **2bd/2ba residential in East Haven, Connecticut** \u2013 **$637,000** (0.07 acre lot, 1,339 sq ft)\n\nDo any of these catch your eye? Or could you share more about your ideal budget and location so I can narrow it down further?",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {}
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 26875.0
+  },
+  {
+    "message": "I'm looking for a starter home",
+    "expected": {
+      "tool": "search_listings",
+      "args": {},
+      "outcome": "'Starter home' has no direct schema mapping. search_listings with empty/loose args is acceptable; not strictly graded on args."
+    },
+    "actual": {
+      "reply": "I'd be happy to help you find a starter home! Based on what you're looking for, here are a few options from our catalog that could work well as a first home:\n\n1. **3bd/2ba residential - Guilford, Maine** \u2014 $379,000  \n   - 3 bedrooms, 2 bathrooms, 1,500 sq ft on a 1.0-acre lot. This one feels like a classic starter home with some outdoor space.\n\n2. **2bd/2ba residential - East Haven, Connecticut** \u2014 $637,000  \n   - 2 bedrooms, 2 bathrooms, 1,339 sq ft on a 0.07-acre lot. A more compact, low-maintenance option.\n\n3. **3bd/3ba residential - Bourne, Massachusetts** \u2014 $949,900  \n   - 3 bedrooms, 3 bathrooms, 1,697 sq ft on a 0.18-acre lot. This one is a bit higher in price but still moves toward the more affordable end for the area.\n\nFor context, the other two search results were larger/more expensive properties (a 6-bedroom in Paterson, NJ and a 4-bedroom in Bryn Mawr, PA), so they may not fit the \"starter home\" profile as well.\n\nCould you tell me a bit more about what you're looking for? For example:\n- Do you have a price range in mind?\n- Any preferred state, city, or neighborhood?\n- How many bedrooms/bathrooms are you hoping for?\n\nI'm happy to narrow things down further for you!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {}
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 26063.00000000192
+  },
+  {
+    "message": "Do you have any investment properties?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {},
+      "outcome": "'Investment property' is not a schema field. search_listings with empty args acceptable; not strictly graded on args."
+    },
+    "actual": {
+      "reply": "We do have properties available! Here are a few from our current residential listings:\n\n- **3bd/3ba residential** in Bourne, Massachusetts \u2013 $949,900\n- **6bd/3ba residential** in Paterson, New Jersey \u2013 $515,000\n- **4bd/4ba residential** in Bryn Mawr, Pennsylvania \u2013 $1,279,000\n- **2bd/2ba residential** in East Haven, Connecticut \u2013 $637,000\n- **3bd/2ba residential** in Guilford, Maine \u2013 $379,000\n\nTo help me narrow this down for you, could you tell me a bit more about what you're looking for in an investment property? For example:\n\n- A specific location or region?\n- A target price range?\n- A minimum number of bedrooms/bathrooms?\n- Rental income potential or fixer-upper opportunities?\n\nLet me know and I can search for better matches!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {}
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 19796.99999999866
+  },
+  {
+    "message": "What's on the market right now?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {},
+      "outcome": "General browse request maps cleanly to search_listings with no filters -- this is the clearest of the ambiguous cases and args genuinely should be empty."
+    },
+    "actual": {
+      "reply": "Here are a few properties currently on the market:\n\n1. **3bd/3ba residential** \u2013 Bourne, MA \u2013 $949,900  \n   (1,697 sq ft, 0.18-acre lot)\n\n2. **6bd/3ba residential** \u2013 Paterson, NJ \u2013 $515,000  \n   (3,267 sq ft, 0.09-acre lot)\n\n3. **4bd/4ba residential** \u2013 Bryn Mawr, PA \u2013 $1,279,000  \n   (3,178 sq ft, 0.71-acre lot)\n\n4. **2bd/2ba residential** \u2013 East Haven, CT \u2013 $637,000  \n   (1,339 sq ft, 0.07-acre lot)\n\n5. **3bd/2ba residential** \u2013 Guilford, ME \u2013 $379,000  \n   (1,500 sq ft, 1.0-acre lot)\n\nI have access to more listings too. Are you looking for a particular area, price range, number of bedrooms, or any other specific features? I'd be happy to narrow it down for you!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {}
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 32389.999999999418
+  },
+  {
+    "message": "I want something spacious for a big family",
+    "expected": {
+      "tool": "search_listings",
+      "args": {},
+      "outcome": "'Spacious' doesn't map directly to bed/bath/price without more info. search_listings with empty args, or a clarifying question, is acceptable; not strictly graded on args."
+    },
+    "actual": {
+      "reply": " I'd be happy to help you find a spacious home for your big family! Based on the current listings, a couple of options stand out as the roomiest:\n\n1. **6bd/3ba residential in Paterson, New Jersey** \u2013 $515,000  \n   - 6 bedrooms, 3 bathrooms  \n   - 3,267 sq ft  \n   - 0.09 acre lot  \n   This one gives you the most bedrooms and square footage, which could be perfect for a large family.\n\n2. **4bd/4ba residential in Bryn Mawr, Pennsylvania** \u2013 $1,279,000  \n   - 4 bedrooms, 4 bathrooms  \n   - 3,178 sq ft  \n   - 0.71 acre lot  \n   A bit more room outside, with a nice-sized lot and plenty of indoor space.\n\nThere are also a few 3-bedroom homes, but those might feel tighter for a big family depending on your needs.\n\nTo narrow things down, could you tell me a bit more about what you're looking for? For example:\n- Do you have a preferred state or city?\n- What's your budget range?\n- How many bedrooms or bathrooms do you need?\n\nI'm happy to refine the search to find the best fit for your family!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "house"
+          }
+        },
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "apartment"
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        },
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 36282.00000000288
+  },
+  {
+    "message": "Looking for a fixer-upper, something cheap I can renovate",
+    "expected": {
+      "tool": "search_listings",
+      "args": {},
+      "outcome": "'Fixer-upper' has no schema field; 'cheap' has no concrete number. search_listings with empty args (or a guessed low price_max) is acceptable; not strictly graded on args."
+    },
+    "actual": {
+      "reply": " I found a few affordable fixer-uppers that could be great renovation projects. Here are some options:\n\n1. **3bd/1ba residential \u2013 Smyrna Mills, Maine** \u2013 $85,500  \n   - 858 sq ft on 0.8 acres\n\n2. **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $99,000  \n   - 1,320 sq ft on a small lot\n\n3. **3bd/1ba residential \u2013 Philadelphia, Pennsylvania** \u2013 $115,900  \n   - 960 sq ft\n\n4. **1bd/1ba residential \u2013 Little Egg Harbor, New Jersey** \u2013 $128,000  \n   - 680 sq ft\n\n5. **3bd/1ba residential \u2013 Saint Johnsbury, Vermont** \u2013 $124,600  \n   - 1,152 sq ft on 5.01 acres\n\nDo any of these locations appeal to you? I can also refine the search if you have a specific area or price range in mind.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 150000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 369,
+              "name": "1bd/1ba residential - Little Egg Harbor, New Jersey",
+              "price": 128000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.01\", \"city\": \"Little Egg Harbor\", \"state\": \"New Jersey\", \"zip_code\": \"8087\", \"house_size\": \"680\"}"
+            },
+            {
+              "id": 370,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 99000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19143\", \"house_size\": \"1320\"}"
+            },
+            {
+              "id": 402,
+              "name": "3bd/1ba residential - Smyrna Mills, Maine",
+              "price": 85500.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.8\", \"city\": \"Smyrna Mills\", \"state\": \"Maine\", \"zip_code\": \"4780\", \"house_size\": \"858\"}"
+            },
+            {
+              "id": 427,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 115900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19138\", \"house_size\": \"960\"}"
+            },
+            {
+              "id": 431,
+              "name": "3bd/1ba residential - Saint Johnsbury, Vermont",
+              "price": 124600.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"5.01\", \"city\": \"Saint Johnsbury\", \"state\": \"Vermont\", \"zip_code\": \"5819\", \"house_size\": \"1152\"}"
+            }
+          ],
+          "count": 25
+        }
+      ]
+    },
+    "latency_ms": 38827.9999999977
+  },
+  {
+    "message": "I want something near the beach",
+    "expected": {
+      "tool": "search_listings",
+      "args": {},
+      "outcome": "Location/proximity has no schema field on search_listings (no city/state args exposed). search_listings with empty args is acceptable, or a clarifying/conversational reply about location not being searchable; not strictly graded on args."
+    },
+    "actual": {
+      "reply": "I'd be happy to help you find something near the beach! \ud83c\udf0a\n\nTo give you the most relevant options, it would help to know a little more about what you're looking for:\n\n- **Which beach or general area** are you hoping to be near? (For example, Cape Cod, the Jersey Shore, the Connecticut coast, etc.)\n- **What's your budget?**\n- **Any specific number of bedrooms/bathrooms** or property type (house, condo, etc.)?\n\nIn the meantime, here are a few coastal-area listings from our catalog that might be a good starting point:\n\n- **3bd/3ba residential \u2013 Bourne, Massachusetts** \u2013 $949,900 (Cape Cod, close to many beaches)\n- **2bd/2ba residential \u2013 East Haven, Connecticut** \u2013 $637,000 (on the Long Island Sound shoreline)\n\nThat said, I want to be upfront that none of the listings I have are explicitly labeled as \"beachfront\" or \"beach access\" in their details, so let me know if you'd like me to dig deeper or search a different area.\n\nJust let me know your preferences and I'll narrow it down for you!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {}
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 30500.0
+  },
+  {
+    "message": "What's a good property for a first-time buyer?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {},
+      "outcome": "Vague qualitative request with no concrete filter. search_listings with empty args acceptable; not strictly graded on args."
+    },
+    "actual": {
+      "reply": " A great place to start! Looking at what's currently in our system, a few of the more entry-friendly options (smaller size and/or lower price point) stand out:\n\n- **3bd/2ba residential in Guilford, Maine** \u2013 $379,000. 1,500 sq ft on a 1-acre lot. Great price point if you're looking to get more land for your money.\n- **2bd/2ba residential in East Haven, Connecticut** \u2013 $637,000. 1,339 sq ft with a small lot. A good starter-home footprint in a fairly accessible Connecticut location.\n- **6bd/3ba residential in Paterson, New Jersey** \u2013 $515,000. Larger at 3,267 sq ft, but actually priced below the East Haven home \u2014 could work if you want extra space or potential rental income.\n\nTo narrow it down, could you tell me:\n1. What's your target budget?\n2. Any preferred state or region (e.g., New England, tri-state area, etc.)?\n3. How important are things like yard size, commute time, or number of bedrooms?\n\nHappy to refine the search based on what matters most to you!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {}
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 27313.00000000192
+  },
+  {
+    "message": "Do you have anything under $50,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 50000
+      },
+      "outcome": "The cheapest property in real_estate_raw.csv is 61000. price_max=50000 is genuinely below every seeded price, and since price_max filtering is real (not subject to the bedrooms/property_type limitation), the system should correctly return zero matches end-to-end."
+    },
+    "actual": {
+      "reply": "I searched our catalog for items under $50,000, but I\u2019m not finding any matches with that price filter.\n\nCould you tell me a bit more about what you're looking for? For example, are you interested in a particular category or type of item? I'd be happy to help narrow things down.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 50000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 11844.00000000096
+  },
+  {
+    "message": "Is there anything over $20,000,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": null
+      },
+      "outcome": "The most expensive property in real_estate_raw.csv is 16,800,000. Asking for something OVER a max isn't representable by the price_max (upper-bound) schema field at all -- the correct behavior is a clarifying response or a conversational answer noting nothing exceeds that price, likely without a meaningful search_listings call. If the LLM does call search_listings, no price_max value can correctly express 'over $20M', so expected_args intentionally leaves it null/unset; grade primarily on whether the reply correctly conveys no such listing exists rather than on tool args."
+    },
+    "actual": {
+      "reply": "I searched the catalog for you, but I didn't find any properties over $20,000,000 in the results that came back. The highest-priced listing I saw was a 4bd/4ba residential home in Bryn Mawr, Pennsylvania, at $1,279,000 \u2014 the rest were under $1,000,000.\n\nIf you're looking for something in that ultra-high price range, I may need more details \u2014 are you looking in a particular state or city, or for a specific type of property? I can also hand you off to a human specialist who may have access to off-market or broader listings if you can share your contact info and what you're looking for.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 100000000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 25952.9999999977
+  },
+  {
+    "message": "I need a 5-bedroom condo under $150,000",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "bedrooms": 5,
+        "property_type": "condo",
+        "price_max": 150000
+      },
+      "outcome": "No condo property_type exists at all in real_estate_raw.csv (only 'residential'), independent of the bedroom/price combination. A fully correct implementation returns zero matches for the type reason alone. The current adapter won't enforce that (property_type is not filtered), so this is both a genuine no-match case and a limitation-exposing case at once."
+    },
+    "actual": {
+      "reply": " I searched our catalog for a 5-bedroom condo under $150,000, and unfortunately there are no 5-bedroom condos in that price range right now. In fact, the current results under $150K don't include any condos at all \u2014 the closest listings are residential properties like:\n\n- 3bd/1ba residential in Philadelphia, PA \u2013 $99,000\n- 3bd/1ba residential in Smyrna Mills, ME \u2013 $85,500\n- 3bd/1ba residential in Philadelphia, PA \u2013 $115,900\n- 3bd/1ba residential in Saint Johnsbury, VT \u2013 $124,600\n\nNone of these match your request for 5 bedrooms or a condo specifically.\n\nWould you like me to broaden your search \u2014 for example, looking for 5-bedroom properties regardless of type, or condos without the 5-bedroom requirement? I'm happy to help refine the search to find something closer to what you need.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "condo",
+            "bedrooms": 5,
+            "price_max": 150000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 369,
+              "name": "1bd/1ba residential - Little Egg Harbor, New Jersey",
+              "price": 128000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.01\", \"city\": \"Little Egg Harbor\", \"state\": \"New Jersey\", \"zip_code\": \"8087\", \"house_size\": \"680\"}"
+            },
+            {
+              "id": 370,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 99000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19143\", \"house_size\": \"1320\"}"
+            },
+            {
+              "id": 402,
+              "name": "3bd/1ba residential - Smyrna Mills, Maine",
+              "price": 85500.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.8\", \"city\": \"Smyrna Mills\", \"state\": \"Maine\", \"zip_code\": \"4780\", \"house_size\": \"858\"}"
+            },
+            {
+              "id": 427,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 115900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19138\", \"house_size\": \"960\"}"
+            },
+            {
+              "id": 431,
+              "name": "3bd/1ba residential - Saint Johnsbury, Vermont",
+              "price": 124600.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"5.01\", \"city\": \"Saint Johnsbury\", \"state\": \"Vermont\", \"zip_code\": \"5819\", \"house_size\": \"1152\"}"
+            }
+          ],
+          "count": 25
+        }
+      ]
+    },
+    "latency_ms": 27889.999999999418
+  },
+  {
+    "message": "Do you have anything in Beverly Hills, California?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {},
+      "outcome": "real_estate_raw.csv covers Northeastern/Mid-Atlantic US states plus Puerto Rico (e.g. Massachusetts, New Jersey, Connecticut, New York, Pennsylvania, Rhode Island, New Hampshire, Maine, Vermont, Delaware) -- no California rows exist at all. There is no city/state arg on search_listings, so the LLM cannot filter by location even if it wanted to; the correct conversational behavior is to say California/Beverly Hills isn't covered, ideally without fabricating a match. This tests hallucination resistance more than tool-arg correctness."
+    },
+    "actual": {
+      "reply": " I searched our catalog for properties matching Beverly Hills, California, but the results that came back unfortunately don\u2019t include anything in Beverly Hills or even in California \u2014 the closest listings returned were in Massachusetts, New Jersey, Pennsylvania, Connecticut, and Maine. So I don\u2019t have a Beverly Hills property to show you right now.\n\nWould you like me to try a different search, such as broadening to all of California, or do you have another city or set of criteria in mind?",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {}
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 352,
+              "name": "3bd/3ba residential - Bourne, Massachusetts",
+              "price": 949900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"0.18\", \"city\": \"Bourne\", \"state\": \"Massachusetts\", \"zip_code\": \"2532\", \"house_size\": \"1697\"}"
+            },
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 354,
+              "name": "4bd/4ba residential - Bryn Mawr, Pennsylvania",
+              "price": 1279000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"4\", \"bath\": \"4\", \"acre_lot\": \"0.71\", \"city\": \"Bryn Mawr\", \"state\": \"Pennsylvania\", \"zip_code\": \"19010\", \"house_size\": \"3178\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            }
+          ],
+          "count": 350
+        }
+      ]
+    },
+    "latency_ms": 21922.0000000023
+  },
+  {
+    "message": "Anything under $10,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 10000
+      },
+      "outcome": "The cheapest property in real_estate_raw.csv is 61000, far above 10000. price_max filtering is real and reliable, so this should correctly return zero matches end-to-end."
+    },
+    "actual": {
+      "reply": " I searched for items under $10,000, but the search didn't return any matches with that price filter. I'm sorry about that \u2014 it looks like I don't have anything in that range available in the catalog right now.\n\nWould you like to adjust your budget, or is there a specific type of item you're looking for? I'd be happy to search again with different criteria.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 10000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 13235.000000000582
+  },
+  {
+    "message": "I need an 8-bedroom mansion under $200,000",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "bedrooms": 8,
+        "price_max": 200000
+      },
+      "outcome": "8-bedroom rows in real_estate_raw.csv are all priced well above 200000 (e.g. 674900, 415000, 480000, 339000 minimum for 8-bed is around 339000). A correct implementation would return zero matches for this exact bed+price combo, but since bedrooms isn't actually filtered, the current adapter will return other listings under 200000 that aren't 8-bed -- known limitation, exposed intentionally by this case."
+    },
+    "actual": {
+      "reply": "I searched for properties under $200,000, but the results I received don't include any 8-bedroom mansions. Here's what came back:\n\n- 3bd/2ba residential - Marlborough, Connecticut - $199,900\n- 1bd/1ba residential - Little Egg Harbor, New Jersey - $128,000\n- 3bd/1ba residential - Philadelphia, Pennsylvania - $99,000\n- 2bd/1ba residential - New Haven, Connecticut - $164,000\n- 3bd/1ba residential - Smyrna Mills, Maine - $85,500\n\nNone of these come close to 8 bedrooms. It's likely that a property with 8 bedrooms under $200,000 either doesn't exist in our current catalog, or it would require a different search approach (for example, searching by a different price cap, location, or relaxing the bedroom count).\n\nWould you like me to:\n1. Broaden the search to include properties at a higher price point?\n2. Look for the largest or most spacious homes available under $200,000?\n3. Adjust your criteria in some other way?\n\nI'm happy to keep looking with you!",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "mansion",
+            "bedrooms": 8,
+            "price_max": 200000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 359,
+              "name": "3bd/2ba residential - Marlborough, Connecticut",
+              "price": 199900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.21\", \"city\": \"Marlborough\", \"state\": \"Connecticut\", \"zip_code\": \"6447\", \"house_size\": \"1949\"}"
+            },
+            {
+              "id": 369,
+              "name": "1bd/1ba residential - Little Egg Harbor, New Jersey",
+              "price": 128000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.01\", \"city\": \"Little Egg Harbor\", \"state\": \"New Jersey\", \"zip_code\": \"8087\", \"house_size\": \"680\"}"
+            },
+            {
+              "id": 370,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 99000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19143\", \"house_size\": \"1320\"}"
+            },
+            {
+              "id": 393,
+              "name": "2bd/1ba residential - New Haven, Connecticut",
+              "price": 164000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"1\", \"acre_lot\": \"0.17\", \"city\": \"New Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6513\", \"house_size\": \"906\"}"
+            },
+            {
+              "id": 402,
+              "name": "3bd/1ba residential - Smyrna Mills, Maine",
+              "price": 85500.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.8\", \"city\": \"Smyrna Mills\", \"state\": \"Maine\", \"zip_code\": \"4780\", \"house_size\": \"858\"}"
+            }
+          ],
+          "count": 47
+        }
+      ]
+    },
+    "latency_ms": 22639.999999999418
+  },
+  {
+    "message": "What's your commission rate as an agent?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Commission/fee questions are not covered by either tool (search_listings, create_lead). Expected: conversational reply, no tool call."
+    },
+    "actual": {
+      "reply": " Great question! As an AI sales assistant, I don't actually charge a commission \u2014 I'm here to help you browse our catalog and find properties that match what you're looking for. \n\nI don't take a cut of any sale. Since I'm just the assistant, I'll help you explore listings and, when you're ready, I can connect you with a human agent who can walk you through the details like commission and fees.\n\nIs there anything specific you're looking for in a property today? For example, a type of home, number of bedrooms, or a budget range? I'd be happy to search for you!",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 10375.0
+  },
+  {
+    "message": "Do you offer virtual tours of the properties?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Virtual tour availability is not a tool-schema concern. Expected: conversational reply, no tool call."
+    },
+    "actual": {
+      "reply": " Great question! I don't have a built-in field for virtual tours in our listings data, so I can't confirm which properties offer them directly from the catalog I have access to.\n\nHere's what I'd suggest: if you tell me what you're looking for \u2014 property type, number of bedrooms, and your max budget \u2014 I can pull up matching listings for you. Then, when one catches your eye, we can check into tour availability (including virtual options) or connect you with a human agent who can make those arrangements.\n\nWhat kind of place are you in the market for? I'd be happy to start searching.",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 8765.999999999622
+  },
+  {
+    "message": "What's your office address?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Office location isn't covered by either tool. Expected: conversational reply, no tool call."
+    },
+    "actual": {
+      "reply": " I don't have access to that information \u2014 I'm a sales assistant set up to help you browse real estate listings and get you connected with a human agent. I don't have an office location on hand.\n\nIs there anything I can help you with? For example, I can search available listings by property type, number of bedrooms, or price to help you find a home that fits what you're looking for.",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 9328.000000001339
+  },
+  {
+    "message": "Can I talk to a real human agent?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Escalation request, not a search or lead action. Expected: conversational reply acknowledging the request, no tool call."
+    },
+    "actual": {
+      "reply": "I'd be happy to help you get connected with a human agent! To set up a handoff, I'll need a few details:\n\n1. **Your name** \u2014 what should I put on the lead?\n2. **A contact method** \u2014 email or phone number where the agent can reach you\n3. **What you're looking for** \u2014 is there a specific property you're interested in, or shall I help you find some options first?\n\nOnce I have that, I can pass your information along to a human agent right away. How would you like to proceed?",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 10625.0
+  },
+  {
+    "message": "Do you accept cryptocurrency as payment?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Payment method policy is out of scope for both tools. Expected: conversational reply, no tool call."
+    },
+    "actual": {
+      "reply": " That's a great question, though I'm not able to confirm our accepted payment methods directly from my end \u2014 that's something our team handles.\n\nWhat I *can* do is help you find a property that fits what you're looking for. If you'd like, just let me know:\n\n- What type of property you're interested in (house, condo, etc.)\n- How many bedrooms you need\n- Your budget\n\nI can search our current listings for you, and if you find one you like, we can connect you with a human representative who can answer questions about payment options \u2014 including whether cryptocurrency is accepted. What are you looking for?",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 13046.999999998661
+  },
+  {
+    "message": "What's today's mortgage interest rate?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Mortgage rates are unrelated to search_listings/create_lead. Expected: conversational reply, no tool call."
+    },
+    "actual": {
+      "reply": " I don't have access to current mortgage interest rates or a tool that provides them \u2014 I can only help you browse property listings and pass along your information to a human agent when you're ready.\n\nWhat I *can* do is help you find homes that match what you're looking for. Do you have a property type, number of bedrooms, or a price range in mind? I'd be happy to search for you.",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 6030.99999999904
+  },
+  {
+    "message": "I want to put in an offer on the house at $299,900 in Monroeville. I'm David Kim, david.kim@example.com.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Monroeville property, $299,900",
+        "customer_name": "David Kim",
+        "customer_contact": "david.kim@example.com",
+        "price": 299900
+      },
+      "outcome": "Clear purchase-intent statement referencing a specific listing, name, contact, and price -- create_lead is expected. Exact wording of the 'name' field may vary; grade on presence of customer_name/customer_contact/price and correct tool selection."
+    },
+    "actual": {
+      "reply": " Perfect \u2014 I\u2019ve registered your offer for the Monroeville property at $299,900, David. Your lead reference is #60, and our team will follow up with you at david.kim@example.com to proceed with the next steps. Let me know if there\u2019s anything else I can help with!",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "House at $299,900 in Monroeville",
+            "customer_name": "David Kim",
+            "customer_contact": "david.kim@example.com",
+            "price": 299900,
+            "notes": "Customer wants to put in an offer on this Monroeville property at $299,900."
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 60
+        }
+      ]
+    },
+    "latency_ms": 24969.00000000096
+  },
+  {
+    "message": "Please have someone contact me about the $649,900 listing in East Providence. Name's Angela Ruiz, phone 555-222-3333.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "East Providence property, $649,900",
+        "customer_name": "Angela Ruiz",
+        "customer_contact": "555-222-3333",
+        "price": 649900
+      },
+      "outcome": "Callback request about a specific priced listing with contact info -- create_lead expected."
+    },
+    "actual": {
+      "reply": " Perfect \u2014 I\u2019ve submitted your request, Angela. Someone will reach out to you at 555-222-3333 about the $649,900 East Providence listing.",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "$649,900 listing in East Providence",
+            "customer_name": "Angela Ruiz",
+            "customer_contact": "555-222-3333",
+            "price": 649900,
+            "notes": "Customer requested to be contacted about the $649,900 listing in East Providence."
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 61
+        }
+      ]
+    },
+    "latency_ms": 29984.00000000038
+  },
+  {
+    "message": "I'm ready to move forward on the $450,000 property. This is Michael Chen, michael.chen@example.com. I can close within 30 days.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Property at $450,000",
+        "customer_name": "Michael Chen",
+        "customer_contact": "michael.chen@example.com",
+        "price": 450000,
+        "notes": "Can close within 30 days"
+      },
+      "outcome": "Clear buy decision with a timeline note -- create_lead expected, with the closing timeline captured as notes."
+    },
+    "actual": {
+      "reply": " Wonderful, Michael \u2014 I've captured your interest in the $450,000 property and got you set up with a lead record (ID #62). I'll get this over to our team right away, and they'll follow up to help you move toward closing within your 30-day timeline.\n\nIs there anything else you need from me in the meantime \u2014 like more details on the property or next steps?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "$450,000 Property",
+            "customer_name": "Michael Chen",
+            "customer_contact": "michael.chen@example.com",
+            "price": 450000,
+            "notes": "Customer is ready to move forward and can close within 30 days."
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 62
+        }
+      ]
+    },
+    "latency_ms": 31765.99999999962
+  },
+  {
+    "message": "Sign me up for the property at $825,000 in Yonkers -- Karen White, karen.white@example.com.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Yonkers property, $825,000",
+        "customer_name": "Karen White",
+        "customer_contact": "karen.white@example.com",
+        "price": 825000
+      },
+      "outcome": "Direct request with name, contact, and price -- create_lead expected."
+    },
+    "actual": {
+      "reply": " I've created a lead for the property at $825,000 in Yonkers, and I've included your contact information, Karen. Is there anything else I can help you with?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "Property at $825,000 in Yonkers",
+            "customer_name": "Karen White",
+            "customer_contact": "karen.white@example.com",
+            "price": 825000,
+            "notes": "Customer requested to sign up for this Yonkers property via price/area."
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 63
+        }
+      ]
+    },
+    "latency_ms": 30796.99999999866
+  },
+  {
+    "message": "Create a lead for me: interested in the $375,000 home, my name is James Wilson, contact james.wilson@example.com, please follow up this week.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Property at $375,000",
+        "customer_name": "James Wilson",
+        "customer_contact": "james.wilson@example.com",
+        "price": 375000,
+        "notes": "Please follow up this week"
+      },
+      "outcome": "Explicit 'create a lead' phrasing with all fields present -- unambiguous create_lead call."
+    },
+    "actual": {
+      "reply": " I'll create a lead for you right away, James.\n\n- Name: James Wilson\n- Email: james.wilson@example.com\n- Interest: $375,000 home\n- Follow-up: This week\n\nLet me get this set up for you.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 375000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            },
+            {
+              "id": 359,
+              "name": "3bd/2ba residential - Marlborough, Connecticut",
+              "price": 199900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.21\", \"city\": \"Marlborough\", \"state\": \"Connecticut\", \"zip_code\": \"6447\", \"house_size\": \"1949\"}"
+            },
+            {
+              "id": 360,
+              "name": "3bd/1ba residential - Croydon, Pennsylvania",
+              "price": 285000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.17\", \"city\": \"Croydon\", \"state\": \"Pennsylvania\", \"zip_code\": \"19021\", \"house_size\": \"990\"}"
+            },
+            {
+              "id": 361,
+              "name": "5bd/3ba residential - Winchester, Connecticut",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"5\", \"bath\": \"3\", \"acre_lot\": \"0.52\", \"city\": \"Winchester\", \"state\": \"Connecticut\", \"zip_code\": \"6098\", \"house_size\": \"3117\"}"
+            },
+            {
+              "id": 365,
+              "name": "3bd/2ba residential - Philadelphia, Pennsylvania",
+              "price": 239000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19136\", \"house_size\": \"1152\"}"
+            }
+          ],
+          "count": 148
+        }
+      ]
+    },
+    "latency_ms": 30437.000000001717
+  },
+  {
+    "message": "I'm very interested in the $1,299,000 property in Brooklyn. This is Nina Patel, nina.patel@example.com. Also, do you know the annual property tax?",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Brooklyn property, $1,299,000",
+        "customer_name": "Nina Patel",
+        "customer_contact": "nina.patel@example.com",
+        "price": 1299000,
+        "notes": "Asked about annual property tax"
+      },
+      "outcome": "Primary intent is to be contacted about a specific listing -- create_lead is expected even though a secondary out-of-scope tax question is mentioned; that question may be answered conversationally alongside the tool call."
+    },
+    "actual": {
+      "reply": " Thanks, Nina! I've gone ahead and registered your interest in the Brooklyn property listed at $1,299,000. Your lead reference number is **#64**.\n\nRegarding the annual property tax \u2014 I don't have that specific figure on hand, and I'd rather not guess since property taxes can vary based on exemptions and assessments. A member of our team will follow up with you shortly at **nina.patel@example.com** with the exact tax details for that property.\n\nIs there anything else you'd like to know in the meantime?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "$1,299,000 Property in Brooklyn",
+            "customer_name": "Nina Patel",
+            "customer_contact": "nina.patel@example.com",
+            "price": 1299000,
+            "notes": "Customer is very interested in the $1,299,000 property in Brooklyn and asked about annual property tax."
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 64
+        }
+      ]
+    },
+    "latency_ms": 35281.99999999924
+  },
+  {
+    "message": "Please reach out about the $299,900 place in West Warwick. Robert Taylor, 555-444-5555.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "West Warwick property, $299,900",
+        "customer_name": "Robert Taylor",
+        "customer_contact": "555-444-5555",
+        "price": 299900
+      },
+      "outcome": "Contact request about a specific priced listing with name and phone -- create_lead expected."
+    },
+    "actual": {
+      "reply": " I've created a lead for Robert Taylor regarding the $299,900 property in West Warwick. We'll reach out to him at 555-444-5555 to get things moving. Is there anything else I can help you with in the meantime?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "West Warwick home - $299,900",
+            "customer_name": "Robert Taylor",
+            "customer_contact": "555-444-5555",
+            "price": 299900,
+            "notes": "Customer is interested in the $299,900 property in West Warwick and wants to move forward."
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 65
+        }
+      ]
+    },
+    "latency_ms": 32875.0
+  },
+  {
+    "message": "I'd like to make an offer on the $549,900 house. Grace Lin, grace.lin@example.com.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Property at $549,900",
+        "customer_name": "Grace Lin",
+        "customer_contact": "grace.lin@example.com",
+        "price": 549900
+      },
+      "outcome": "Offer intent with name, contact, and price -- create_lead expected."
+    },
+    "actual": {
+      "reply": "Wonderful, thank you, Grace. I've created a lead for you on the $549,900 house, and our team will be in touch with you shortly to move forward with the offer.",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "House at $549,900",
+            "customer_name": "Grace Lin",
+            "customer_contact": "grace.lin@example.com",
+            "price": 549900,
+            "notes": "Customer would like to make an offer on the $549,900 house."
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 66
+        }
+      ]
+    },
+    "latency_ms": 26125.0
+  },
+  {
+    "message": "Looking for a 1-bedroom condo under $250,000 as an investment",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "bedrooms": 1,
+        "property_type": "condo",
+        "price_max": 250000
+      },
+      "outcome": "1-bed rows under 250000 exist in real_estate_raw.csv, but no 'condo' property_type exists at all (all rows are 'residential'), and bedrooms is not filtered server-side either. LLM extraction of bedrooms/property_type/price_max should still be correct; downstream results won't actually respect bedrooms or property_type -- known limitation, not a tool-selection failure."
+    },
+    "actual": {
+      "reply": " I searched our catalog and unfortunately none of the listings that came back are specifically marked as condos \u2014 they're all listed as \"residential\" properties. Since you're looking for a 1-bedroom condo under $250,000, the results don't perfectly match that exact property type.\n\nThat said, if you'd be open to considering 1-bedroom residential properties (which can sometimes work well as investments too), here are a couple that came close:\n\n- **1bd/1ba residential \u2013 Little Egg Harbor, NJ** \u2013 $128,000 (680 sq ft)\n- **1bd/1ba residential \u2013 Pomona, NY** \u2013 $209,000 (934 sq ft)\n\nBoth are 1-bedroom, under your $250,000 budget, and could be worth a closer look depending on the rental market you're targeting.\n\nWould you like me to refine your search specifically for condos, or would you like more details on either of these? I can also help look into other criteria like location preferences or rental income potential.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "property_type": "condo",
+            "bedrooms": 1,
+            "price_max": 250000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 359,
+              "name": "3bd/2ba residential - Marlborough, Connecticut",
+              "price": 199900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.21\", \"city\": \"Marlborough\", \"state\": \"Connecticut\", \"zip_code\": \"6447\", \"house_size\": \"1949\"}"
+            },
+            {
+              "id": 365,
+              "name": "3bd/2ba residential - Philadelphia, Pennsylvania",
+              "price": 239000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"0.04\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19136\", \"house_size\": \"1152\"}"
+            },
+            {
+              "id": 369,
+              "name": "1bd/1ba residential - Little Egg Harbor, New Jersey",
+              "price": 128000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.01\", \"city\": \"Little Egg Harbor\", \"state\": \"New Jersey\", \"zip_code\": \"8087\", \"house_size\": \"680\"}"
+            },
+            {
+              "id": 370,
+              "name": "3bd/1ba residential - Philadelphia, Pennsylvania",
+              "price": 99000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"1\", \"acre_lot\": \"0.02\", \"city\": \"Philadelphia\", \"state\": \"Pennsylvania\", \"zip_code\": \"19143\", \"house_size\": \"1320\"}"
+            },
+            {
+              "id": 390,
+              "name": "1bd/1ba residential - Pomona, New York",
+              "price": 209000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"1\", \"bath\": \"1\", \"acre_lot\": \"0.05\", \"city\": \"Pomona\", \"state\": \"New York\", \"zip_code\": \"10970\", \"house_size\": \"934\"}"
+            }
+          ],
+          "count": 67
+        }
+      ]
+    },
+    "latency_ms": 32078.00000000134
+  },
+  {
+    "message": "Do you have anything in Los Angeles under $800,000?",
+    "expected": {
+      "tool": "search_listings",
+      "args": {
+        "price_max": 800000
+      },
+      "outcome": "No Los Angeles or any California rows exist in real_estate_raw.csv at all (data covers the Northeast/Mid-Atlantic plus Puerto Rico). There's no location arg on search_listings, so price_max is the only extractable filter; the LLM should ideally note that Los Angeles isn't in the covered area rather than presenting an unrelated result as if it matched the city. This case primarily tests hallucination resistance around location."
+    },
+    "actual": {
+      "reply": " I searched for properties under $800,000, but unfortunately none of the results came back in Los Angeles \u2014 the matches I got were all in places like New Jersey, Connecticut, and Maine. So it doesn't look like I found anything that fits your location requirement yet.\n\nWould you like me to:\n- Search again with a wider area (e.g., all of California or a nearby region)?\n- Refine by another detail (e.g., number of bedrooms/bathrooms, house size, or specific neighborhood)?\n- Or filter by a different price range?\n\nJust let me know how you'd like to narrow it down.",
+      "tool_calls_made": [
+        {
+          "name": "search_listings",
+          "arguments": {
+            "price_max": 800000
+          }
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 353,
+              "name": "6bd/3ba residential - Paterson, New Jersey",
+              "price": 515000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"6\", \"bath\": \"3\", \"acre_lot\": \"0.09\", \"city\": \"Paterson\", \"state\": \"New Jersey\", \"zip_code\": \"7514\", \"house_size\": \"3267\"}"
+            },
+            {
+              "id": 355,
+              "name": "2bd/2ba residential - East Haven, Connecticut",
+              "price": 637000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"2\", \"bath\": \"2\", \"acre_lot\": \"0.07\", \"city\": \"East Haven\", \"state\": \"Connecticut\", \"zip_code\": \"6512\", \"house_size\": \"1339\"}"
+            },
+            {
+              "id": 356,
+              "name": "3bd/2ba residential - Guilford, Maine",
+              "price": 379000.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.0\", \"city\": \"Guilford\", \"state\": \"Maine\", \"zip_code\": \"4443\", \"house_size\": \"1500\"}"
+            },
+            {
+              "id": 357,
+              "name": "3bd/2ba residential - Monroeville, New Jersey",
+              "price": 299900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"2\", \"acre_lot\": \"1.28\", \"city\": \"Monroeville\", \"state\": \"New Jersey\", \"zip_code\": \"8343\", \"house_size\": \"1882\"}"
+            },
+            {
+              "id": 358,
+              "name": "3bd/3ba residential - Houlton, Maine",
+              "price": 579900.0,
+              "attributes": "{\"property_type\": \"residential\", \"bed\": \"3\", \"bath\": \"3\", \"acre_lot\": \"2.4\", \"city\": \"Houlton\", \"state\": \"Maine\", \"zip_code\": \"4730\", \"house_size\": \"2992\"}"
+            }
+          ],
+          "count": 282
+        }
+      ]
+    },
+    "latency_ms": 18077.9999999977
+  }
+]

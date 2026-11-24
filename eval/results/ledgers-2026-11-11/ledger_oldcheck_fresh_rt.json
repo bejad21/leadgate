@@ -1,0 +1,8 @@
+{
+ "calls": 536,
+ "by_label": {
+  "redteam-on": 241,
+  "redteam-all_off": 295
+ },
+ "cap": 900
+}

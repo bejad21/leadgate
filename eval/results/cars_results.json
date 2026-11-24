@@ -1,0 +1,1842 @@
+[
+  {
+    "message": "Do you have any Mazda CX-5 under $30,000?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "MAZDA",
+        "model": "CX-5",
+        "price_max": 30000
+      },
+      "outcome": "Correct tool call with make/model/price_max extracted. cars_raw.csv has two CX-5 rows (28510, 18615), both under 30000. The adapter now applies make/model as (name, ilike, value) filters in addition to price_max, so the real result correctly returns only Mazda CX-5 records priced <= 30000, with no other makes leaking in."
+    },
+    "actual": {
+      "reply": "We do have one Mazda CX-5 in your price range:\n\n- **2020 Mazda CX-5** \u2013 $18,615 (used, 85,555 miles, located in Hyannis, MA)\n\nWould you like to take a closer look at this one, or are you open to seeing other options if this doesn\u2019t quite fit?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Mazda",
+            "model": "CX-5",
+            "price_max": 30000
+          },
+          "id": "chatcmpl-tool-b3da2f4c8af9e811"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 135,
+              "name": "2020 MAZDA CX-5",
+              "price": 18615.0,
+              "attributes": "{\"make\": \"MAZDA\", \"model\": \"CX-5\", \"year\": \"2020\", \"mileage\": \"85555\", \"condition\": \"Used\", \"location\": \"Hyannis, MA\"}"
+            }
+          ],
+          "count": 1
+        }
+      ]
+    },
+    "latency_ms": 10014.999999999418
+  },
+  {
+    "message": "Looking for a Ford Mustang under 35000",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Ford",
+        "model": "Mustang",
+        "price_max": 35000
+      },
+      "outcome": "Ford Mustang rows in cars_raw.csv: 46160, 33440, 16960 -- two of three are under 35000. price_max, make, and model are all genuinely applied by the adapter, so the real result correctly returns only the Ford Mustang rows priced under 35000, with no other makes/models leaking in."
+    },
+    "actual": {
+      "reply": "I found a few Ford Mustangs under $35,000 for you:\n\n1. **2022 Ford Mustang** \u2013 $33,440  \n   - 1,378 miles, Used, Covington, KY\n\n2. **2024 Ford Mustang Mach-E** \u2013 $27,630  \n   - 25,221 miles, Used, Vero Beach, FL\n\n3. **2021 Ford Mustang** \u2013 $16,960  \n   - 97,365 miles, Used, Buckner, KY\n\nWould you like more details on any of these, or are you interested in a specific one?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Ford",
+            "model": "Mustang",
+            "price_max": 35000
+          },
+          "id": "chatcmpl-tool-a803d3b76efd2e7b"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 4,
+              "name": "2022 Ford Mustang",
+              "price": 33440.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2022\", \"mileage\": \"1378\", \"condition\": \"Used\", \"location\": \"Covington, KY\"}"
+            },
+            {
+              "id": 122,
+              "name": "2024 Ford Mustang Mach-E",
+              "price": 27630.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang Mach-E\", \"year\": \"2024\", \"mileage\": \"25221\", \"condition\": \"Used\", \"location\": \"Vero Beach, FL\"}"
+            },
+            {
+              "id": 284,
+              "name": "2021 Ford Mustang",
+              "price": 16960.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2021\", \"mileage\": \"97365\", \"condition\": \"Used\", \"location\": \"Buckner, KY\"}"
+            }
+          ],
+          "count": 3
+        }
+      ]
+    },
+    "latency_ms": 12515.999999995984
+  },
+  {
+    "message": "I want a Honda Odyssey, what have you got?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Honda",
+        "model": "Odyssey"
+      },
+      "outcome": "Honda Odyssey exists in cars_raw.csv (rows at 32900, 37330, 35570, 30640). No price_max given, but make and model are still applied as ilike filters against the record name, so the adapter correctly returns only Honda Odyssey matches."
+    },
+    "actual": {
+      "reply": " We have a few Honda Odyssey models available right now:\n\n- **2019 Honda Odyssey** \u2013 $32,900 \u00b7 33,732 miles \u00b7 Used \u00b7 Cincinnati, OH\n- **2020 Honda Odyssey** \u2013 $30,640 \u00b7 41,022 miles \u00b7 Used \u00b7 Orlando, FL\n- **2024 Honda Odyssey** \u2013 $35,570 \u00b7 14,919 miles \u00b7 Used \u00b7 Cincinnati, OH\n- **2025 Honda Odyssey** \u2013 $37,330 \u00b7 27,397 miles \u00b7 Third-Party Certified \u00b7 Cincinnati, OH\n\nWould you like more details on any of these, or would you like to narrow things down by preference (year, price, location, etc.)?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Honda",
+            "model": "Odyssey"
+          },
+          "id": "chatcmpl-tool-990514bdc55ff165"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 5,
+              "name": "2019 Honda Odyssey",
+              "price": 32900.0,
+              "attributes": "{\"make\": \"Honda\", \"model\": \"Odyssey\", \"year\": \"2019\", \"mileage\": \"33732\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 27,
+              "name": "2025 Honda Odyssey",
+              "price": 37330.0,
+              "attributes": "{\"make\": \"Honda\", \"model\": \"Odyssey\", \"year\": \"2025\", \"mileage\": \"27397\", \"condition\": \"Third-Party Certified\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 64,
+              "name": "2024 Honda Odyssey",
+              "price": 35570.0,
+              "attributes": "{\"make\": \"Honda\", \"model\": \"Odyssey\", \"year\": \"2024\", \"mileage\": \"14919\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 216,
+              "name": "2020 Honda Odyssey",
+              "price": 30640.0,
+              "attributes": "{\"make\": \"Honda\", \"model\": \"Odyssey\", \"year\": \"2020\", \"mileage\": \"41022\", \"condition\": \"Used\", \"location\": \"Orlando, FL\"}"
+            }
+          ],
+          "count": 4
+        }
+      ]
+    },
+    "latency_ms": 10921.000000002095
+  },
+  {
+    "message": "Show me Toyota Camry options",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Toyota",
+        "model": "Camry"
+      },
+      "outcome": "Toyota Camry is well represented in cars_raw.csv (multiple rows from 16405 to 34750). No price_max given; make/model extraction should be correct, and the adapter now genuinely filters on both, so returned matches are actually Toyota Camrys."
+    },
+    "actual": {
+      "reply": "Here are the Toyota Camry options I found in our catalog:\n\n1. **2025 Toyota Camry** \u2013 $29,421  \n   Used \u00b7 39,048 miles \u00b7 Louisville, KY\n\n2. **2025 Toyota Camry** \u2013 $27,560  \n   Used \u00b7 54,596 miles \u00b7 Louisville, KY\n\n3. **2024 Toyota Camry** \u2013 $28,620  \n   Certified \u00b7 16,512 miles \u00b7 Florence, KY\n\n4. **2021 Toyota Camry** \u2013 $16,405  \n   Used \u00b7 115,714 miles \u00b7 Clarksville, IN\n\n5. **2020 Toyota Camry** \u2013 $21,834  \n   Used \u00b7 44,186 miles \u00b7 Orlando, FL\n\nWould you like more details on any of these, or is there a particular year, mileage, or price range you're looking for?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Toyota",
+            "model": "Camry"
+          },
+          "id": "chatcmpl-tool-8cf2cae1b604193b"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 52,
+              "name": "2025 Toyota Camry",
+              "price": 29421.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Camry\", \"year\": \"2025\", \"mileage\": \"39048\", \"condition\": \"Used\", \"location\": \"Louisville, KY\"}"
+            },
+            {
+              "id": 57,
+              "name": "2025 Toyota Camry",
+              "price": 27560.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Camry\", \"year\": \"2025\", \"mileage\": \"54596\", \"condition\": \"Used\", \"location\": \"Louisville, KY\"}"
+            },
+            {
+              "id": 115,
+              "name": "2020 Toyota Camry",
+              "price": 21834.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Camry\", \"year\": \"2020\", \"mileage\": \"44186\", \"condition\": \"Used\", \"location\": \"Orlando, FL\"}"
+            },
+            {
+              "id": 147,
+              "name": "2024 Toyota Camry",
+              "price": 28620.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Camry\", \"year\": \"2024\", \"mileage\": \"16512\", \"condition\": \"Certified\", \"location\": \"Florence, KY\"}"
+            },
+            {
+              "id": 152,
+              "name": "2021 Toyota Camry",
+              "price": 16405.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Camry\", \"year\": \"2021\", \"mileage\": \"115714\", \"condition\": \"Used\", \"location\": \"Clarksville, IN\"}"
+            }
+          ],
+          "count": 9
+        }
+      ]
+    },
+    "latency_ms": 11578.999999997905
+  },
+  {
+    "message": "Do you have a Tesla Model 3 in stock?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Tesla",
+        "model": "Model 3"
+      },
+      "outcome": "One Tesla Model 3 row exists (36460). Correct extraction expected; the adapter now genuinely filters by make/model, so the real result correctly returns just that one matching record."
+    },
+    "actual": {
+      "reply": " Yes, we do have one Tesla Model 3 in stock right now:\n\n- **2025 Tesla Model 3** \u2013 $36,460, used, 9,655 miles, located in Bedford, OH\n\nWould you like more details on this vehicle, or is there anything else I can help you with?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Tesla",
+            "model": "Model 3"
+          },
+          "id": "chatcmpl-tool-943e2f08cf8d80ef"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 54,
+              "name": "2025 Tesla Model 3",
+              "price": 36460.0,
+              "attributes": "{\"make\": \"Tesla\", \"model\": \"Model 3\", \"year\": \"2025\", \"mileage\": \"9655\", \"condition\": \"Used\", \"location\": \"Bedford, OH\"}"
+            }
+          ],
+          "count": 1
+        }
+      ]
+    },
+    "latency_ms": 9639.999999999418
+  },
+  {
+    "message": "I'm interested in a Jeep Wrangler under 30000",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Jeep",
+        "model": "Wrangler",
+        "price_max": 30000
+      },
+      "outcome": "Jeep Wrangler appears many times in cars_raw.csv; several rows are under 30000 (e.g. 25250, 27470, 26224, 29900, 26217, 24327). price_max, make, and model are all genuinely applied by the adapter, so results correctly narrow to Jeep Wranglers under 30000."
+    },
+    "actual": {
+      "reply": "I found a few Jeep Wranglers under $30,000 that might interest you. Here's what's available:\n\n- **2014 Jeep Wrangler** \u2013 $19,260 (37,575 miles, Milford, CT)\n- **2017 Jeep Wrangler** \u2013 $21,910 (58,468 miles, Rock Hill, SC)\n- **2022 Jeep Wrangler** \u2013 $25,250 (61,002 miles, Cincinnati, OH)\n- **2024 Jeep Wrangler** \u2013 $27,470 (25,415 miles, Cuyahoga Falls, OH)\n- **2023 Jeep Wrangler** \u2013 $29,900 (27,075 miles, Dayton, OH)\n\nWould you like more details on any of these, or do any of them look like a good match for what you have in mind?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Jeep",
+            "model": "Wrangler",
+            "price_max": 30000
+          },
+          "id": "chatcmpl-tool-a6ae9fa39378fb1f"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 72,
+              "name": "2017 Jeep Wrangler",
+              "price": 21910.0,
+              "attributes": "{\"make\": \"Jeep\", \"model\": \"Wrangler\", \"year\": \"2017\", \"mileage\": \"58468\", \"condition\": \"Used\", \"location\": \"Rock Hill, SC\"}"
+            },
+            {
+              "id": 88,
+              "name": "2022 Jeep Wrangler",
+              "price": 25250.0,
+              "attributes": "{\"make\": \"Jeep\", \"model\": \"Wrangler\", \"year\": \"2022\", \"mileage\": \"61002\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 95,
+              "name": "2014 Jeep Wrangler",
+              "price": 19260.0,
+              "attributes": "{\"make\": \"Jeep\", \"model\": \"Wrangler\", \"year\": \"2014\", \"mileage\": \"37575\", \"condition\": \"Used\", \"location\": \"Milford, CT\"}"
+            },
+            {
+              "id": 110,
+              "name": "2024 Jeep Wrangler",
+              "price": 27470.0,
+              "attributes": "{\"make\": \"Jeep\", \"model\": \"Wrangler\", \"year\": \"2024\", \"mileage\": \"25415\", \"condition\": \"Used\", \"location\": \"Cuyahoga Falls, OH\"}"
+            },
+            {
+              "id": 132,
+              "name": "2023 Jeep Wrangler",
+              "price": 29900.0,
+              "attributes": "{\"make\": \"Jeep\", \"model\": \"Wrangler\", \"year\": \"2023\", \"mileage\": \"27075\", \"condition\": \"Used\", \"location\": \"Dayton, OH\"}"
+            }
+          ],
+          "count": 9
+        }
+      ]
+    },
+    "latency_ms": 13110.000000000582
+  },
+  {
+    "message": "Any BMW 330i xDrive available?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "BMW",
+        "model": "330i xDrive"
+      },
+      "outcome": "BMW 330i xDrive rows exist at 41050 and 34700 in cars_raw.csv. Correct extraction expected; no price_max mentioned."
+    },
+    "actual": {
+      "reply": " Good news \u2014 we have one BMW 330i xDrive in stock:\n\n- **2023 BMW 330i xDrive** \u2014 $34,700 \u2014 Used, 34,147 miles \u2014 Fairfield, OH\n\nWould you like more details on this one, or is there anything else I can help you find?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "BMW",
+            "model": "330i xDrive"
+          },
+          "id": "chatcmpl-tool-8172adfbff7b3a0e"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 187,
+              "name": "2023 BMW 330i xDrive",
+              "price": 34700.0,
+              "attributes": "{\"make\": \"BMW\", \"model\": \"330i xDrive\", \"year\": \"2023\", \"mileage\": \"34147\", \"condition\": \"Used\", \"location\": \"Fairfield, OH\"}"
+            }
+          ],
+          "count": 1
+        }
+      ]
+    },
+    "latency_ms": 9125.0
+  },
+  {
+    "message": "Kia Telluride under 50000",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Kia",
+        "model": "Telluride",
+        "price_max": 50000
+      },
+      "outcome": "Kia Telluride rows exist from 22984 up to 52750; several are under 50000 (22984, 47550, 30260). price_max, make, and model are all genuinely applied by the adapter, so the real result correctly excludes both the over-50000 rows and any non-Telluride cars."
+    },
+    "actual": {
+      "reply": " I found a few Kia Tellurides under $50,000 that might work for you:\n\n1. **2027 Kia Telluride** \u2013 $47,550 (New, 0 miles, Cincinnati, OH)\n2. **2021 Kia Telluride** \u2013 $22,984 (Used, 98,685 miles, Clarksville, IN)\n3. **2023 Kia Telluride** \u2013 $30,260 (Used, 87,074 miles, Cincinnati, OH)\n\nWould you like more details on any of these, or are you looking for something specific like a certain trim or color?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Kia",
+            "model": "Telluride",
+            "price_max": 50000
+          },
+          "id": "chatcmpl-tool-9cef3b2a2fc31fe3"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 16,
+              "name": "2027 Kia Telluride",
+              "price": 47550.0,
+              "attributes": "{\"make\": \"Kia\", \"model\": \"Telluride\", \"year\": \"2027\", \"mileage\": \"0\", \"condition\": \"New\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 46,
+              "name": "2021 Kia Telluride",
+              "price": 22984.0,
+              "attributes": "{\"make\": \"Kia\", \"model\": \"Telluride\", \"year\": \"2021\", \"mileage\": \"98685\", \"condition\": \"Used\", \"location\": \"Clarksville, IN\"}"
+            },
+            {
+              "id": 323,
+              "name": "2023 Kia Telluride",
+              "price": 30260.0,
+              "attributes": "{\"make\": \"Kia\", \"model\": \"Telluride\", \"year\": \"2023\", \"mileage\": \"87074\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            }
+          ],
+          "count": 3
+        }
+      ]
+    },
+    "latency_ms": 12188.00000000192
+  },
+  {
+    "message": "Chevrolet Silverado 1500 under 35000",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Chevrolet",
+        "model": "Silverado 1500",
+        "price_max": 35000
+      },
+      "outcome": "Silverado 1500 rows include 31972, 33917 under 35000 (others like 38110, 42360, 40970 are above). price_max filtering is genuine."
+    },
+    "actual": {
+      "reply": "Here are a few Chevrolet Silverado 1500 options under $35,000 that match your request:\n\n1. **2022 Chevrolet Silverado 1500** \u2013 $31,972 (Certified, 105,276 miles, Cincinnati, OH)\n2. **2014 Chevrolet Silverado 1500** \u2013 $21,530 (Used, 104,380 miles, Hicksville, OH)\n3. **2025 Chevrolet Silverado 1500** \u2013 $33,917 (Used, 12,770 miles, Milford, OH)\n\nWould you like more details on any of these, or is there something else I can help you narrow down?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Chevrolet",
+            "model": "Silverado 1500",
+            "price_max": 35000
+          },
+          "id": "chatcmpl-tool-ac26caef32d4c410"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 40,
+              "name": "2022 Chevrolet Silverado 1500",
+              "price": 31972.0,
+              "attributes": "{\"make\": \"Chevrolet\", \"model\": \"Silverado 1500\", \"year\": \"2022\", \"mileage\": \"105276\", \"condition\": \"Certified\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 68,
+              "name": "2014 Chevrolet Silverado 1500",
+              "price": 21530.0,
+              "attributes": "{\"make\": \"Chevrolet\", \"model\": \"Silverado 1500\", \"year\": \"2014\", \"mileage\": \"104380\", \"condition\": \"Used\", \"location\": \"Hicksville, OH\"}"
+            },
+            {
+              "id": 91,
+              "name": "2025 Chevrolet Silverado 1500",
+              "price": 33917.0,
+              "attributes": "{\"make\": \"Chevrolet\", \"model\": \"Silverado 1500\", \"year\": \"2025\", \"mileage\": \"12770\", \"condition\": \"Used\", \"location\": \"Milford, OH\"}"
+            }
+          ],
+          "count": 3
+        }
+      ]
+    },
+    "latency_ms": 11578.000000001339
+  },
+  {
+    "message": "GMC Sierra 1500 under 30000",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "GMC",
+        "model": "Sierra 1500",
+        "price_max": 30000
+      },
+      "outcome": "GMC Sierra 1500 rows include 21355 and 26620 under 30000 (42790, 31400, 42438 are above). price_max filtering is real."
+    },
+    "actual": {
+      "reply": "I found a couple of GMC Sierra 1500 options in our inventory under $30,000:\n\n1. **2015 GMC Sierra 1500** \u2013 $21,355  \n   - Mileage: 87,266  \n   - Location: Conway, AR\n\n2. **2017 GMC Sierra 1500** \u2013 $26,620  \n   - Mileage: 49,867  \n   - Location: Hollidaysburg, PA\n\nWould you like more details on either of these, or would you like to narrow things down further (such as a specific year, trim, or mileage range)?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "GMC",
+            "model": "Sierra 1500",
+            "price_max": 30000
+          },
+          "id": "chatcmpl-tool-b0b2b59842e872ba"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 141,
+              "name": "2015 GMC Sierra 1500",
+              "price": 21355.0,
+              "attributes": "{\"make\": \"GMC\", \"model\": \"Sierra 1500\", \"year\": \"2015\", \"mileage\": \"87266\", \"condition\": \"Used\", \"location\": \"Conway, AR\"}"
+            },
+            {
+              "id": 239,
+              "name": "2017 GMC Sierra 1500",
+              "price": 26620.0,
+              "attributes": "{\"make\": \"GMC\", \"model\": \"Sierra 1500\", \"year\": \"2017\", \"mileage\": \"49867\", \"condition\": \"Used\", \"location\": \"Hollidaysburg, PA\"}"
+            }
+          ],
+          "count": 2
+        }
+      ]
+    },
+    "latency_ms": 12625.0
+  },
+  {
+    "message": "What Subaru Crosstrek do you have?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Subaru",
+        "model": "Crosstrek"
+      },
+      "outcome": "Subaru Crosstrek appears multiple times (25840, 27170, 26900, 26080, 27080). No price given; make/model extraction correctness is what's graded."
+    },
+    "actual": {
+      "reply": "Here are the Subaru Crosstreks we currently have available:\n\n1. **2024 Subaru Crosstrek** \u2013 $25,840 \u00b7 Certified \u00b7 33,189 miles \u00b7 Cincinnati, OH\n2. **2024 Subaru Crosstrek** \u2013 $26,080 \u00b7 Certified \u00b7 13,907 miles \u00b7 Orlando, FL\n3. **2024 Subaru Crosstrek** \u2013 $26,900 \u00b7 Used \u00b7 16,827 miles \u00b7 Beckley, WV\n4. **2024 Subaru Crosstrek** \u2013 $27,080 \u00b7 Used \u00b7 18,838 miles \u00b7 Florence, KY\n5. **2026 Subaru Crosstrek** \u2013 $27,170 \u00b7 Used \u00b7 4,322 miles \u00b7 Florence, KY\n\nIs there a particular one you'd like to know more about, or do you have any preferences like year, mileage, or location?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Subaru",
+            "model": "Crosstrek"
+          },
+          "id": "chatcmpl-tool-83fa8d3d1a615ab6"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 43,
+              "name": "2024 Subaru Crosstrek",
+              "price": 25840.0,
+              "attributes": "{\"make\": \"Subaru\", \"model\": \"Crosstrek\", \"year\": \"2024\", \"mileage\": \"33189\", \"condition\": \"Certified\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 118,
+              "name": "2026 Subaru Crosstrek",
+              "price": 27170.0,
+              "attributes": "{\"make\": \"Subaru\", \"model\": \"Crosstrek\", \"year\": \"2026\", \"mileage\": \"4322\", \"condition\": \"Used\", \"location\": \"Florence, KY\"}"
+            },
+            {
+              "id": 213,
+              "name": "2024 Subaru Crosstrek",
+              "price": 26900.0,
+              "attributes": "{\"make\": \"Subaru\", \"model\": \"Crosstrek\", \"year\": \"2024\", \"mileage\": \"16827\", \"condition\": \"Used\", \"location\": \"Beckley, WV\"}"
+            },
+            {
+              "id": 292,
+              "name": "2024 Subaru Crosstrek",
+              "price": 27080.0,
+              "attributes": "{\"make\": \"Subaru\", \"model\": \"Crosstrek\", \"year\": \"2024\", \"mileage\": \"18838\", \"condition\": \"Used\", \"location\": \"Florence, KY\"}"
+            },
+            {
+              "id": 338,
+              "name": "2024 Subaru Crosstrek",
+              "price": 26080.0,
+              "attributes": "{\"make\": \"Subaru\", \"model\": \"Crosstrek\", \"year\": \"2024\", \"mileage\": \"13907\", \"condition\": \"Certified\", \"location\": \"Orlando, FL\"}"
+            }
+          ],
+          "count": 5
+        }
+      ]
+    },
+    "latency_ms": 12921.999999998661
+  },
+  {
+    "message": "Hyundai Tucson under 20000",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Hyundai",
+        "model": "Tucson",
+        "price_max": 20000
+      },
+      "outcome": "Only one Hyundai Tucson row (15315) is under 20000; the others (26610, 23094, 22820) are above. price_max is genuinely applied by the adapter."
+    },
+    "actual": {
+      "reply": "I\u2019m sorry, but I don\u2019t see any Hyundai Tucsons currently available under $20,000 in our inventory.\n\nWould you like me to broaden the search\u2014for example, looking at other Hyundai models under $20,000, or all Tucsons regardless of price? Just let me know how you\u2019d like to proceed.",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Hyundai",
+            "model": "Tucson",
+            "price_max": 20000
+          },
+          "id": "chatcmpl-tool-8f288f102e995e89"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 10718.000000000757
+  },
+  {
+    "message": "Do you have a Nissan Titan pickup?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Nissan",
+        "model": "Titan"
+      },
+      "outcome": "Nissan Titan rows exist at 28905, 24030, 41290. Correct extraction expected."
+    },
+    "actual": {
+      "reply": " Yes, we have a few Nissan Titan pickups in stock:\n\n- **2018 Nissan Titan** \u2013 $28,905 (59,050 miles, Used, Shell Rock, IA)\n- **2017 Nissan Titan** \u2013 $24,030 (81,773 miles, Used, Mansfield, PA)\n- **2022 Nissan Titan** \u2013 $41,290 (40,272 miles, Used, Springdale, OH)\n\nWould you like more details on any of these, or are you looking for a specific year or feature?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Nissan",
+            "model": "Titan"
+          },
+          "id": "chatcmpl-tool-86a02c8005668f72"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 31,
+              "name": "2018 Nissan Titan",
+              "price": 28905.0,
+              "attributes": "{\"make\": \"Nissan\", \"model\": \"Titan\", \"year\": \"2018\", \"mileage\": \"59050\", \"condition\": \"Used\", \"location\": \"Shell Rock, IA\"}"
+            },
+            {
+              "id": 246,
+              "name": "2017 Nissan Titan",
+              "price": 24030.0,
+              "attributes": "{\"make\": \"Nissan\", \"model\": \"Titan\", \"year\": \"2017\", \"mileage\": \"81773\", \"condition\": \"Used\", \"location\": \"Mansfield, PA\"}"
+            },
+            {
+              "id": 341,
+              "name": "2022 Nissan Titan",
+              "price": 41290.0,
+              "attributes": "{\"make\": \"Nissan\", \"model\": \"Titan\", \"year\": \"2022\", \"mileage\": \"40272\", \"condition\": \"Used\", \"location\": \"Springdale, OH\"}"
+            }
+          ],
+          "count": 3
+        }
+      ]
+    },
+    "latency_ms": 9812.999999994645
+  },
+  {
+    "message": "Dodge Challenger under 30000",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Dodge",
+        "model": "Challenger",
+        "price_max": 30000
+      },
+      "outcome": "One Dodge Challenger row (26417) is under 30000; the other two (34920, 37092) are above. price_max filter is real."
+    },
+    "actual": {
+      "reply": " I'm sorry, but I wasn't able to find any Dodge Challengers under $30,000 in our current inventory. \n\nWould you like me to broaden the search a bit\u2014maybe raise the price limit, or look at other Dodge models? Let me know how you'd like to proceed.",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Dodge",
+            "model": "Challenger",
+            "price_max": 30000
+          },
+          "id": "chatcmpl-tool-82b91256c39ed30c"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 9125.0
+  },
+  {
+    "message": "I'd like to see a Land Rover Range Rover",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Land Rover",
+        "model": "Range Rover"
+      },
+      "outcome": "Land Rover Range Rover rows exist at 34726, 40470, 37880. No price given."
+    },
+    "actual": {
+      "reply": " I found a few Land Rover Range Rovers in our inventory:\n\n1. **2021 Land Rover Range Rover** \u2013 $34,726 \u00b7 73,876 miles \u00b7 Used \u00b7 Cincinnati, OH\n2. **2021 Land Rover Range Rover** \u2013 $40,470 \u00b7 54,442 miles \u00b7 Used \u00b7 Cincinnati, OH\n3. **2019 Land Rover Range Rover Velar** \u2013 $23,890 \u00b7 65,676 miles \u00b7 Used \u00b7 Eminence, KY\n4. **2021 Land Rover Range Rover** \u2013 $37,880 \u00b7 62,111 miles \u00b7 Used \u00b7 West Chester, OH\n\nWould you like more details on any of these, or would you like to schedule a time to see one in person?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Land Rover",
+            "model": "Range Rover"
+          },
+          "id": "chatcmpl-tool-a931160eec42f53e"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 83,
+              "name": "2021 Land Rover Range Rover",
+              "price": 34726.0,
+              "attributes": "{\"make\": \"Land Rover\", \"model\": \"Range Rover\", \"year\": \"2021\", \"mileage\": \"73876\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 157,
+              "name": "2021 Land Rover Range Rover",
+              "price": 40470.0,
+              "attributes": "{\"make\": \"Land Rover\", \"model\": \"Range Rover\", \"year\": \"2021\", \"mileage\": \"54442\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 251,
+              "name": "2019 Land Rover Range Rover Velar",
+              "price": 23890.0,
+              "attributes": "{\"make\": \"Land Rover\", \"model\": \"Range Rover Velar\", \"year\": \"2019\", \"mileage\": \"65676\", \"condition\": \"Used\", \"location\": \"Eminence, KY\"}"
+            },
+            {
+              "id": 316,
+              "name": "2021 Land Rover Range Rover",
+              "price": 37880.0,
+              "attributes": "{\"make\": \"Land Rover\", \"model\": \"Range Rover\", \"year\": \"2021\", \"mileage\": \"62111\", \"condition\": \"Used\", \"location\": \"West Chester, OH\"}"
+            }
+          ],
+          "count": 4
+        }
+      ]
+    },
+    "latency_ms": 12703.000000001339
+  },
+  {
+    "message": "I want something reliable and cheap",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {},
+      "outcome": "No concrete make/model/price signal to extract. A reasonable LLM calls search_inventory with no args (or possibly a low price_max guess). Grading should accept tool selection = search_inventory as the primary pass criterion; exact args are not strictly enforced for this ambiguous case."
+    },
+    "actual": {
+      "reply": "Here are a few of the most affordable options we have right now:\n\n- **2021 Jeep Grand Cherokee** \u2013 $13,890 (Used, 126,827 miles, Buckner, KY)\n- **2017 Volkswagen Jetta** \u2013 $14,355 (Used, 47,695 miles, Lenox, MA)\n- **2014 Acura MDX** \u2013 $14,740 (Used, 105,320 miles, Columbus, OH)\n- **2018 Lincoln MKZ** \u2013 $14,865 (Used, 84,145 miles, Lake Worth, FL)\n- **2020 Toyota Corolla** \u2013 $15,000 (Test vehicle)\n\nIf you're looking for maximum reliability on a budget, the **Toyota Corolla** is a great pick \u2014 Toyotas are known for holding up well over time. The **Volkswagen Jetta** is also a good value with low miles for the price.\n\nWould you like more details on any of these, or should I refine the search based on what kind of car you have in mind (sedan, SUV, etc.)?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "sort_by": "price_asc"
+          },
+          "id": "chatcmpl-tool-8e7d786301f2858b"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 76,
+              "name": "2021 Jeep Grand Cherokee",
+              "price": 13890.0,
+              "attributes": "{\"make\": \"Jeep\", \"model\": \"Grand Cherokee\", \"year\": \"2021\", \"mileage\": \"126827\", \"condition\": \"Used\", \"location\": \"Buckner, KY\"}"
+            },
+            {
+              "id": 210,
+              "name": "2017 Volkswagen Jetta",
+              "price": 14355.0,
+              "attributes": "{\"make\": \"Volkswagen\", \"model\": \"Jetta\", \"year\": \"2017\", \"mileage\": \"47695\", \"condition\": \"Used\", \"location\": \"Lenox, MA\"}"
+            },
+            {
+              "id": 89,
+              "name": "2014 Acura MDX",
+              "price": 14740.0,
+              "attributes": "{\"make\": \"Acura\", \"model\": \"MDX\", \"year\": \"2014\", \"mileage\": \"105320\", \"condition\": \"Used\", \"location\": \"Columbus, OH\"}"
+            },
+            {
+              "id": 276,
+              "name": "2018 Lincoln MKZ",
+              "price": 14865.0,
+              "attributes": "{\"make\": \"Lincoln\", \"model\": \"MKZ\", \"year\": \"2018\", \"mileage\": \"84145\", \"condition\": \"Used\", \"location\": \"Lake Worth, FL\"}"
+            },
+            {
+              "id": 1,
+              "name": "Test Toyota Corolla 2020",
+              "price": 15000.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Corolla\", \"year\": 2020}"
+            }
+          ],
+          "count": 338
+        }
+      ]
+    },
+    "latency_ms": 16313.00000000192
+  },
+  {
+    "message": "I need a family car, nothing fancy",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {},
+      "outcome": "'Family car' does not map to a specific make/model in the schema. search_inventory with empty/loose args is the acceptable behavior; a clarifying question from the LLM before calling the tool would also be a reasonable alternate outcome."
+    },
+    "actual": {
+      "reply": "Thanks for your patience! Here are a few practical options that could work well as a family car without going over the top:\n\n- **2021 Jeep Grand Cherokee** \u2013 $13,890 (used, 126,827 miles, Buckner, KY) \u2013 a roomy SUV with plenty of space for the family.\n- **2014 Acura MDX** \u2013 $14,740 (used, 105,320 miles, Columbus, OH) \u2013 a 3-row SUV, great if you need extra seating.\n- **2017 Volkswagen Jetta** \u2013 $14,355 (used, 47,695 miles, Lenox, MA) \u2013 a solid, budget-friendly sedan with low miles.\n\nWould you like me to narrow the results down further \u2014 for example, by body style (SUV vs. sedan), mileage, or location?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "sort_by": "price_asc"
+          },
+          "id": "chatcmpl-tool-9bc803a8fa241186"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 76,
+              "name": "2021 Jeep Grand Cherokee",
+              "price": 13890.0,
+              "attributes": "{\"make\": \"Jeep\", \"model\": \"Grand Cherokee\", \"year\": \"2021\", \"mileage\": \"126827\", \"condition\": \"Used\", \"location\": \"Buckner, KY\"}"
+            },
+            {
+              "id": 210,
+              "name": "2017 Volkswagen Jetta",
+              "price": 14355.0,
+              "attributes": "{\"make\": \"Volkswagen\", \"model\": \"Jetta\", \"year\": \"2017\", \"mileage\": \"47695\", \"condition\": \"Used\", \"location\": \"Lenox, MA\"}"
+            },
+            {
+              "id": 89,
+              "name": "2014 Acura MDX",
+              "price": 14740.0,
+              "attributes": "{\"make\": \"Acura\", \"model\": \"MDX\", \"year\": \"2014\", \"mileage\": \"105320\", \"condition\": \"Used\", \"location\": \"Columbus, OH\"}"
+            },
+            {
+              "id": 276,
+              "name": "2018 Lincoln MKZ",
+              "price": 14865.0,
+              "attributes": "{\"make\": \"Lincoln\", \"model\": \"MKZ\", \"year\": \"2018\", \"mileage\": \"84145\", \"condition\": \"Used\", \"location\": \"Lake Worth, FL\"}"
+            },
+            {
+              "id": 1,
+              "name": "Test Toyota Corolla 2020",
+              "price": 15000.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Corolla\", \"year\": 2020}"
+            }
+          ],
+          "count": 338
+        }
+      ]
+    },
+    "latency_ms": 20421.000000002095
+  },
+  {
+    "message": "What's a good truck for towing a boat?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {},
+      "outcome": "No specific make/model given (many trucks in inventory: F150, Silverado, Sierra, Titan, RAM 1500, etc). Acceptable for the LLM to ask a clarifying question or call search_inventory with no filters; exact args not strictly graded."
+    },
+    "actual": {
+      "reply": "I browsed our current inventory and unfortunately didn't see any trucks available right now \u2014 the results I found were mostly cars, SUVs, and a minivan. That's a bit unusual, so I'd be happy to search again if you tell me more about what you're looking for, like a truck make/model or a price range. \n\nAlternatively, I can help you look at some capable SUVs that are often used for towing boats \u2014 though of course a proper truck might be better for your needs. Would you like me to keep digging, or is there a particular truck you had in mind?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "condition": "Used"
+          },
+          "id": "chatcmpl-tool-a9abf6f3c49ab1cf"
+        },
+        {
+          "name": "search_inventory",
+          "arguments": {},
+          "id": "chatcmpl-tool-a00e8e98d8d5800e"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 3,
+              "name": "2024 Ford Mustang",
+              "price": 46160.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2024\", \"mileage\": \"5241\", \"condition\": \"Used\", \"location\": \"Lebanon, OH\"}"
+            },
+            {
+              "id": 4,
+              "name": "2022 Ford Mustang",
+              "price": 33440.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2022\", \"mileage\": \"1378\", \"condition\": \"Used\", \"location\": \"Covington, KY\"}"
+            },
+            {
+              "id": 5,
+              "name": "2019 Honda Odyssey",
+              "price": 32900.0,
+              "attributes": "{\"make\": \"Honda\", \"model\": \"Odyssey\", \"year\": \"2019\", \"mileage\": \"33732\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 17,
+              "name": "2021 Chevrolet Equinox",
+              "price": 18575.0,
+              "attributes": "{\"make\": \"Chevrolet\", \"model\": \"Equinox\", \"year\": \"2021\", \"mileage\": \"29339\", \"condition\": \"Used\", \"location\": \"Clermont, FL\"}"
+            },
+            {
+              "id": 18,
+              "name": "2024 Tesla Model Y",
+              "price": 37940.0,
+              "attributes": "{\"make\": \"Tesla\", \"model\": \"Model Y\", \"year\": \"2024\", \"mileage\": \"25025\", \"condition\": \"Used\", \"location\": \"Eminence, KY\"}"
+            }
+          ],
+          "count": 224
+        },
+        {
+          "matches": [
+            {
+              "id": 1,
+              "name": "Test Toyota Corolla 2020",
+              "price": 15000.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Corolla\", \"year\": 2020}"
+            },
+            {
+              "id": 3,
+              "name": "2024 Ford Mustang",
+              "price": 46160.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2024\", \"mileage\": \"5241\", \"condition\": \"Used\", \"location\": \"Lebanon, OH\"}"
+            },
+            {
+              "id": 4,
+              "name": "2022 Ford Mustang",
+              "price": 33440.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2022\", \"mileage\": \"1378\", \"condition\": \"Used\", \"location\": \"Covington, KY\"}"
+            },
+            {
+              "id": 5,
+              "name": "2019 Honda Odyssey",
+              "price": 32900.0,
+              "attributes": "{\"make\": \"Honda\", \"model\": \"Odyssey\", \"year\": \"2019\", \"mileage\": \"33732\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 16,
+              "name": "2027 Kia Telluride",
+              "price": 47550.0,
+              "attributes": "{\"make\": \"Kia\", \"model\": \"Telluride\", \"year\": \"2027\", \"mileage\": \"0\", \"condition\": \"New\", \"location\": \"Cincinnati, OH\"}"
+            }
+          ],
+          "count": 338
+        }
+      ]
+    },
+    "latency_ms": 19468.999999997322
+  },
+  {
+    "message": "Show me something sporty",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {},
+      "outcome": "'Sporty' is subjective and not a schema field. search_inventory with empty args is acceptable; args not strictly graded for this case."
+    },
+    "actual": {
+      "reply": "Here are a couple of sporty options currently in our inventory:\n\n**2024 Ford Mustang** \u2013 $46,160  \n5,241 miles, Used \u00b7 Lebanon, OH\n\n**2022 Ford Mustang** \u2013 $33,440  \n1,378 miles, Used \u00b7 Covington, KY\n\nBoth are great sporty picks with low mileage. Would you like more details on either of these, or are you looking for a particular style (like a coupe vs. convertible) or budget range?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "condition": "Used"
+          },
+          "id": "chatcmpl-tool-9b1ae49b8ed0675b"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 3,
+              "name": "2024 Ford Mustang",
+              "price": 46160.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2024\", \"mileage\": \"5241\", \"condition\": \"Used\", \"location\": \"Lebanon, OH\"}"
+            },
+            {
+              "id": 4,
+              "name": "2022 Ford Mustang",
+              "price": 33440.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2022\", \"mileage\": \"1378\", \"condition\": \"Used\", \"location\": \"Covington, KY\"}"
+            },
+            {
+              "id": 5,
+              "name": "2019 Honda Odyssey",
+              "price": 32900.0,
+              "attributes": "{\"make\": \"Honda\", \"model\": \"Odyssey\", \"year\": \"2019\", \"mileage\": \"33732\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 17,
+              "name": "2021 Chevrolet Equinox",
+              "price": 18575.0,
+              "attributes": "{\"make\": \"Chevrolet\", \"model\": \"Equinox\", \"year\": \"2021\", \"mileage\": \"29339\", \"condition\": \"Used\", \"location\": \"Clermont, FL\"}"
+            },
+            {
+              "id": 18,
+              "name": "2024 Tesla Model Y",
+              "price": 37940.0,
+              "attributes": "{\"make\": \"Tesla\", \"model\": \"Model Y\", \"year\": \"2024\", \"mileage\": \"25025\", \"condition\": \"Used\", \"location\": \"Eminence, KY\"}"
+            }
+          ],
+          "count": 224
+        }
+      ]
+    },
+    "latency_ms": 13500.0
+  },
+  {
+    "message": "I want an SUV, but nothing too expensive",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {},
+      "outcome": "'SUV' isn't a make/model field and 'not too expensive' has no concrete number. A reasonable LLM either asks a clarifying question about budget or calls search_inventory with a guessed low-to-mid price_max. Exact args not strictly graded."
+    },
+    "actual": {
+      "reply": "  Thanks for your patience! I found a couple of affordable SUVs that might fit the bill:\n\n- **2021 Jeep Grand Cherokee** \u2013 $13,890 (Used, 126,827 miles, Buckner, KY)\n- **2014 Acura MDX** \u2013 $14,740 (Used, 105,320 miles, Columbus, OH)\n\nWould either of these work for you? I can also search for other options if you have a specific budget or preference in mind.",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "sort_by": "price_asc"
+          },
+          "id": "chatcmpl-tool-a6c42f0f0cbc8b79"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 76,
+              "name": "2021 Jeep Grand Cherokee",
+              "price": 13890.0,
+              "attributes": "{\"make\": \"Jeep\", \"model\": \"Grand Cherokee\", \"year\": \"2021\", \"mileage\": \"126827\", \"condition\": \"Used\", \"location\": \"Buckner, KY\"}"
+            },
+            {
+              "id": 210,
+              "name": "2017 Volkswagen Jetta",
+              "price": 14355.0,
+              "attributes": "{\"make\": \"Volkswagen\", \"model\": \"Jetta\", \"year\": \"2017\", \"mileage\": \"47695\", \"condition\": \"Used\", \"location\": \"Lenox, MA\"}"
+            },
+            {
+              "id": 89,
+              "name": "2014 Acura MDX",
+              "price": 14740.0,
+              "attributes": "{\"make\": \"Acura\", \"model\": \"MDX\", \"year\": \"2014\", \"mileage\": \"105320\", \"condition\": \"Used\", \"location\": \"Columbus, OH\"}"
+            },
+            {
+              "id": 276,
+              "name": "2018 Lincoln MKZ",
+              "price": 14865.0,
+              "attributes": "{\"make\": \"Lincoln\", \"model\": \"MKZ\", \"year\": \"2018\", \"mileage\": \"84145\", \"condition\": \"Used\", \"location\": \"Lake Worth, FL\"}"
+            },
+            {
+              "id": 1,
+              "name": "Test Toyota Corolla 2020",
+              "price": 15000.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Corolla\", \"year\": 2020}"
+            }
+          ],
+          "count": 338
+        }
+      ]
+    },
+    "latency_ms": 34906.00000000268
+  },
+  {
+    "message": "Looking for something fuel efficient",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {},
+      "outcome": "No make/model/price extractable. search_inventory with empty args acceptable; not strictly graded on args."
+    },
+    "actual": {
+      "reply": "I found a few options for you. Here's what's in our current inventory:\n\n1. **Test Toyota Corolla 2020** \u2013 $15,000 (Toyota, 2020) \u2014 a compact sedan, typically very fuel-efficient and a great choice for saving on gas.\n\n2. **2024 Ford Mustang** \u2013 $46,160 (Used, 5,241 miles, Lebanon, OH)\n\n3. **2022 Ford Mustang** \u2013 $33,440 (Used, 1,378 miles, Covington, KY)\n\n4. **2019 Honda Odyssey** \u2013 $32,900 (Used, 33,732 miles, Cincinnati, OH)\n\n5. **2027 Kia Telluride** \u2013 $47,550 (New, Cincinnati, OH)\n\nI don't have the exact MPG ratings in front of me, but the **Toyota Corolla** would be your best bet from these for fuel efficiency. Would you like more details on it, or should I look for other fuel-efficient options like hybrids or compact cars?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {},
+          "id": "chatcmpl-tool-a3a96004167c65e2"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 1,
+              "name": "Test Toyota Corolla 2020",
+              "price": 15000.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Corolla\", \"year\": 2020}"
+            },
+            {
+              "id": 3,
+              "name": "2024 Ford Mustang",
+              "price": 46160.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2024\", \"mileage\": \"5241\", \"condition\": \"Used\", \"location\": \"Lebanon, OH\"}"
+            },
+            {
+              "id": 4,
+              "name": "2022 Ford Mustang",
+              "price": 33440.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2022\", \"mileage\": \"1378\", \"condition\": \"Used\", \"location\": \"Covington, KY\"}"
+            },
+            {
+              "id": 5,
+              "name": "2019 Honda Odyssey",
+              "price": 32900.0,
+              "attributes": "{\"make\": \"Honda\", \"model\": \"Odyssey\", \"year\": \"2019\", \"mileage\": \"33732\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 16,
+              "name": "2027 Kia Telluride",
+              "price": 47550.0,
+              "attributes": "{\"make\": \"Kia\", \"model\": \"Telluride\", \"year\": \"2027\", \"mileage\": \"0\", \"condition\": \"New\", \"location\": \"Cincinnati, OH\"}"
+            }
+          ],
+          "count": 338
+        }
+      ]
+    },
+    "latency_ms": 15171.999999998661
+  },
+  {
+    "message": "What do you have in stock right now?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {},
+      "outcome": "General browse request maps cleanly to search_inventory with no filters. This is the clearest of the ambiguous cases -- args should genuinely be empty here."
+    },
+    "actual": {
+      "reply": "Here\u2019s what I currently have available in our system:\n\n- **Test Toyota Corolla 2020** \u2013 $15,000\n- **2024 Ford Mustang** \u2013 $46,160 (Used, 5,241 miles, Lebanon, OH)\n- **2022 Ford Mustang** \u2013 $33,440 (Used, 1,378 miles, Covington, KY)\n- **2019 Honda Odyssey** \u2013 $32,900 (Used, 33,732 miles, Cincinnati, OH)\n- **2027 Kia Telluride** \u2013 $47,550 (New, 0 miles, Cincinnati, OH)\n\nIs there a particular type of vehicle you\u2019re looking for? I\u2019d be happy to narrow things down for you.",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {},
+          "id": "chatcmpl-tool-a43bb16384f47001"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 1,
+              "name": "Test Toyota Corolla 2020",
+              "price": 15000.0,
+              "attributes": "{\"make\": \"Toyota\", \"model\": \"Corolla\", \"year\": 2020}"
+            },
+            {
+              "id": 3,
+              "name": "2024 Ford Mustang",
+              "price": 46160.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2024\", \"mileage\": \"5241\", \"condition\": \"Used\", \"location\": \"Lebanon, OH\"}"
+            },
+            {
+              "id": 4,
+              "name": "2022 Ford Mustang",
+              "price": 33440.0,
+              "attributes": "{\"make\": \"Ford\", \"model\": \"Mustang\", \"year\": \"2022\", \"mileage\": \"1378\", \"condition\": \"Used\", \"location\": \"Covington, KY\"}"
+            },
+            {
+              "id": 5,
+              "name": "2019 Honda Odyssey",
+              "price": 32900.0,
+              "attributes": "{\"make\": \"Honda\", \"model\": \"Odyssey\", \"year\": \"2019\", \"mileage\": \"33732\", \"condition\": \"Used\", \"location\": \"Cincinnati, OH\"}"
+            },
+            {
+              "id": 16,
+              "name": "2027 Kia Telluride",
+              "price": 47550.0,
+              "attributes": "{\"make\": \"Kia\", \"model\": \"Telluride\", \"year\": \"2027\", \"mileage\": \"0\", \"condition\": \"New\", \"location\": \"Cincinnati, OH\"}"
+            }
+          ],
+          "count": 338
+        }
+      ]
+    },
+    "latency_ms": 12235.000000000582
+  },
+  {
+    "message": "Any deals on used trucks?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {},
+      "outcome": "'Used trucks' and 'deals' are not schema fields (condition/status aren't LLM-settable args here). search_inventory with empty args is acceptable; not strictly graded on args."
+    },
+    "actual": {
+      "reply": " I searched our current used inventory, and unfortunately I\u2019m not seeing any used trucks in the results \u2014 the matches I have right now are coming back as SUVs and sedans. \n\nWould you like me to look for something specific, like a used SUV, or were you set on finding a truck? I\u2019m happy to help narrow it down.",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "condition": "Used",
+            "sort_by": "price_asc"
+          },
+          "id": "chatcmpl-tool-adbeb64b651a2943"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [
+            {
+              "id": 76,
+              "name": "2021 Jeep Grand Cherokee",
+              "price": 13890.0,
+              "attributes": "{\"make\": \"Jeep\", \"model\": \"Grand Cherokee\", \"year\": \"2021\", \"mileage\": \"126827\", \"condition\": \"Used\", \"location\": \"Buckner, KY\"}"
+            },
+            {
+              "id": 210,
+              "name": "2017 Volkswagen Jetta",
+              "price": 14355.0,
+              "attributes": "{\"make\": \"Volkswagen\", \"model\": \"Jetta\", \"year\": \"2017\", \"mileage\": \"47695\", \"condition\": \"Used\", \"location\": \"Lenox, MA\"}"
+            },
+            {
+              "id": 89,
+              "name": "2014 Acura MDX",
+              "price": 14740.0,
+              "attributes": "{\"make\": \"Acura\", \"model\": \"MDX\", \"year\": \"2014\", \"mileage\": \"105320\", \"condition\": \"Used\", \"location\": \"Columbus, OH\"}"
+            },
+            {
+              "id": 276,
+              "name": "2018 Lincoln MKZ",
+              "price": 14865.0,
+              "attributes": "{\"make\": \"Lincoln\", \"model\": \"MKZ\", \"year\": \"2018\", \"mileage\": \"84145\", \"condition\": \"Used\", \"location\": \"Lake Worth, FL\"}"
+            },
+            {
+              "id": 243,
+              "name": "2017 Lincoln MKZ",
+              "price": 15365.0,
+              "attributes": "{\"make\": \"Lincoln\", \"model\": \"MKZ\", \"year\": \"2017\", \"mileage\": \"70232\", \"condition\": \"Used\", \"location\": \"Brodheadsville, PA\"}"
+            }
+          ],
+          "count": 224
+        }
+      ]
+    },
+    "latency_ms": 13235.000000000582
+  },
+  {
+    "message": "Do you have any Porsche 911s?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Porsche",
+        "model": "911"
+      },
+      "outcome": "Verified against cars_raw.csv: Porsche does not appear anywhere in the 350-row make list. The adapter now genuinely filters by make via (name, ilike, \"Porsche\"), so the real system correctly returns zero matches end-to-end."
+    },
+    "actual": {
+      "reply": "I\u2019m sorry, we don\u2019t seem to have any Porsche 911s in the catalog right now. Would you like me to search for another Porsche model or a different sports car for you?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Porsche",
+            "model": "911"
+          },
+          "id": "chatcmpl-tool-99a8a5caf470acf8"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 8311.99999999808
+  },
+  {
+    "message": "I'm looking for a Ferrari, any in stock?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Ferrari"
+      },
+      "outcome": "Ferrari is absent from cars_raw.csv's make list. Correct behavior is zero matches, and the adapter now genuinely enforces that via the make ilike filter."
+    },
+    "actual": {
+      "reply": "I'm sorry, but it looks like we don't have any Ferraris in stock at the moment. Is there another make or model you'd like me to search for?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Ferrari"
+          },
+          "id": "chatcmpl-tool-8d72bd920d142d38"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 8578.000000001339
+  },
+  {
+    "message": "Do you sell Lamborghinis?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Lamborghini"
+      },
+      "outcome": "Lamborghini is absent from cars_raw.csv. Correct behavior is zero matches, and the adapter now genuinely enforces that via the make ilike filter."
+    },
+    "actual": {
+      "reply": "I'm sorry, but it looks like we don't currently have any Lamborghinis in our catalog. Is there anything else I can help you find\u2014perhaps a different make or model?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Lamborghini"
+          },
+          "id": "chatcmpl-tool-b88e58e9ba1ad979"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 7640.999999995984
+  },
+  {
+    "message": "Any Rivian trucks available?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Rivian"
+      },
+      "outcome": "Rivian is absent from cars_raw.csv (the only EVs are Tesla Model 3/Model Y, Chevy Bolt/Blazer EV, Kia EV6, Hyundai Ioniq 5, Nissan Ariya). Correct behavior is zero matches, and the adapter now genuinely enforces that via the make ilike filter."
+    },
+    "actual": {
+      "reply": " I'm sorry, but we don't currently have any Rivian trucks in our catalog. Is there another make or model you'd like me to look for?",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Rivian"
+          },
+          "id": "chatcmpl-tool-887d9768f3bfd58c"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 10219.000000004598
+  },
+  {
+    "message": "I want an Alfa Romeo Giulia",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Alfa Romeo",
+        "model": "Giulia"
+      },
+      "outcome": "Alfa Romeo is absent from cars_raw.csv. Correct behavior is zero matches, and the adapter now genuinely enforces that via the make ilike filter."
+    },
+    "actual": {
+      "reply": " I'm sorry, but I wasn't able to find any Alfa Romeo Giulia in our current inventory. \n\nIs there a different make or model you'd like me to search for, or perhaps a different Alfa Romeo model? I'm happy to keep looking.",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Alfa Romeo",
+            "model": "Giulia"
+          },
+          "id": "chatcmpl-tool-8fab2ca6cc1907b6"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 10014.999999999418
+  },
+  {
+    "message": "Do you have a Toyota under $10,000?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Toyota",
+        "price_max": 10000
+      },
+      "outcome": "Genuinely no match on TWO independent grounds: the cheapest car in the entire cars_raw.csv is 13890 (a Jeep Grand Cherokee), so nothing at all is under 10000, and separately no Toyota row is anywhere near that price. Because price_max IS actually applied by the adapter, this case is reliable end-to-end -- the real system should correctly return zero matches regardless of the make-filtering limitation."
+    },
+    "actual": {
+      "reply": " I searched our catalog for a Toyota under $10,000, but unfortunately nothing matched that criteria right now. \n\nWould you like me to check for Toyotas in a higher price range, or maybe a different make under $10,000? Happy to keep looking with you.",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Toyota",
+            "price_max": 10000
+          },
+          "id": "chatcmpl-tool-8e6dbb509423a4a5"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 10015.999999995984
+  },
+  {
+    "message": "Anything at all under $5,000?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "price_max": 5000
+      },
+      "outcome": "The cheapest car in cars_raw.csv is 13890. price_max=5000 is genuinely below every seeded price, and since price_max filtering is real (not subject to the make/model limitation), the system should correctly return zero matches end-to-end."
+    },
+    "actual": {
+      "reply": "I searched the catalog for anything under $5,000, but nothing came back that matches\u2014so it looks like we don't currently have any items in that price range.\n\nIf you'd like, I can search by a different price point or a specific type of item instead. Just let me know what you're looking for!",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "price_max": 5000
+          },
+          "id": "chatcmpl-tool-84fcf9bfc8b73a21"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 10344.000000004598
+  },
+  {
+    "message": "Do you have a Ford F150 for under $15,000?",
+    "expected": {
+      "tool": "search_inventory",
+      "args": {
+        "make": "Ford",
+        "model": "F150",
+        "price_max": 15000
+      },
+      "outcome": "No Ford F150 row is anywhere near 15000 (the cheapest F150 in cars_raw.csv is 20022). Although the overall cheapest cars in cars_raw.csv (Jeep Grand Cherokee 13890, Volkswagen Jetta 14355, Acura MDX 14740, Lincoln MKZ 14865) ARE under 15000, the adapter now genuinely filters on make and model in addition to price_max, so those non-F150 cars are correctly excluded and the real system returns zero matches end-to-end. This case previously exposed the make-filtering bug (fixed post-Task-5.1); it is retained here as a regression check."
+    },
+    "actual": {
+      "reply": "I searched our current inventory for a Ford F-150 under $15,000, but I'm afraid we don't have any matches right now.\n\nWould you like me to broaden the search \u2014 perhaps to another price range or a different truck model? Or I can check if we have any Ford trucks in general if that would help.",
+      "tool_calls_made": [
+        {
+          "name": "search_inventory",
+          "arguments": {
+            "make": "Ford",
+            "model": "F150",
+            "price_max": 15000
+          },
+          "id": "chatcmpl-tool-9fb2d8b1ddef5316"
+        }
+      ],
+      "tool_results": [
+        {
+          "matches": [],
+          "count": 0
+        }
+      ]
+    },
+    "latency_ms": 8811.99999999808
+  },
+  {
+    "message": "What's your return policy on used cars?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Not a search or lead-creation request; no tool schema covers return policy. Expected behavior is a conversational reply (e.g. deferring to a human/policy page) without any tool call."
+    },
+    "actual": {
+      "reply": " That's a great question, and I want to make sure you get an accurate answer since policies are important. I don't have the return policy details available on my end, but I'd be happy to connect you with a human salesperson who can walk you through the specifics \u2014 or, if you'd like, I can help you browse our current used car inventory in the meantime. What would work best for you?",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 7375.0
+  },
+  {
+    "message": "Do you offer financing or loans?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Financing terms are out of scope for the two available tools (search_inventory, create_lead). Expected behavior is a conversational reply, no tool call."
+    },
+    "actual": {
+      "reply": " That's a great question, but financing and loan options are handled by a human team member, and I'm not able to quote terms or process financing myself. I'd be happy to help you browse our current inventory, check availability on specific cars, or set up a viewing/hold on something you like \u2014 just let me know what you're looking for!",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 6500.0
+  },
+  {
+    "message": "What are your business hours?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "No tool covers hours-of-operation questions. Expected: conversational reply, no tool call."
+    },
+    "actual": {
+      "reply": "I don't have our current business hours on hand, but I'm happy to help you browse our available cars in the meantime. Is there something specific you're looking for today?",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 3438.000000001921
+  },
+  {
+    "message": "Can I speak to a human manager instead?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Escalation request, not a search or lead action. Expected: conversational reply acknowledging the request, no tool call."
+    },
+    "actual": {
+      "reply": " I'm happy to help you however I can, but I'm not able to transfer you directly to a manager. What I can do is pass your details along so a human can reach out to you \u2014 just let me know your name and how to contact you, and I'll get that set up. In the meantime, is there a particular car you're interested in that I can help you find?",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 6593.000000000757
+  },
+  {
+    "message": "Do you take trade-ins on my current car?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Trade-in policy is not covered by either tool. Expected: conversational reply, no tool call."
+    },
+    "actual": {
+      "reply": "I'm not able to process trade-ins \u2014 that would be handled by the actual sales team in person. What I can do is help you find cars in our catalog based on what you're looking for. Anything specific in mind, like make, model, or budget?",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 3828.9999999979045
+  },
+  {
+    "message": "What's the weather like today?",
+    "expected": {
+      "tool": null,
+      "args": {},
+      "outcome": "Entirely unrelated to the dealership domain. Expected: conversational reply (likely redirecting to on-topic help), no tool call."
+    },
+    "actual": {
+      "reply": "I'm not able to check the weather, but I'd be happy to help you find a car in our catalog. Are you looking for anything in particular today \u2014 make, model, budget, or type of vehicle?",
+      "tool_calls_made": [],
+      "tool_results": []
+    },
+    "latency_ms": 3171.0000000020955
+  },
+  {
+    "message": "I want to buy the Toyota RAV4 listed at $34,905. My name is John Smith and my email is john.smith@example.com.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Toyota RAV4",
+        "customer_name": "John Smith",
+        "customer_contact": "john.smith@example.com",
+        "price": 34905
+      },
+      "outcome": "Customer named a specific car, price, name, and contact -- this is a direct purchase-intent statement that should trigger create_lead rather than a further search."
+    },
+    "actual": {
+      "reply": " Great \u2014 thanks, John! I've passed your interest along to our sales team, and they'll be in touch with you at john.smith@example.com to go over the next steps for the Toyota RAV4. Is there anything else I can help you with in the meantime?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "Toyota RAV4",
+            "customer_name": "John Smith",
+            "customer_contact": "john.smith@example.com",
+            "price": 34905,
+            "notes": "Customer wants to buy the Toyota RAV4 listed at $34,905."
+          },
+          "id": "chatcmpl-tool-b64b4c40f0bbd929"
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 900000
+        }
+      ]
+    },
+    "latency_ms": 27578.999999997905
+  },
+  {
+    "message": "Please note my interest in the Ford F150. I'm Sarah Lee, reach me at 555-123-4567.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Ford F150",
+        "customer_name": "Sarah Lee",
+        "customer_contact": "555-123-4567"
+      },
+      "outcome": "Clear lead-creation intent with name and contact provided; no price stated so 'price' may be omitted from args."
+    },
+    "actual": {
+      "reply": "Thanks, Sarah \u2014 I've noted your interest in the Ford F150. Our team has your contact info and will be in touch soon to help you move forward. Is there anything else I can help you with in the meantime?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "Ford F150",
+            "customer_name": "Sarah Lee",
+            "customer_contact": "555-123-4567",
+            "notes": "Customer noted interest in a Ford F150."
+          },
+          "id": "chatcmpl-tool-82c570ebc693695f"
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 900000
+        }
+      ]
+    },
+    "latency_ms": 27218.999999997322
+  },
+  {
+    "message": "Go ahead and set up a lead for the Kia Telluride at $47,550 for me -- Mark Davis, mark.davis@example.com. Note: I need it by next month.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Kia Telluride",
+        "customer_name": "Mark Davis",
+        "customer_contact": "mark.davis@example.com",
+        "price": 47550,
+        "notes": "Needs the car by next month"
+      },
+      "outcome": "Explicit request to create a lead with a timing note; 'notes' capturing the timeline is a reasonable optional extraction."
+    },
+    "actual": {
+      "reply": "Your lead has been set up, Mark. A salesperson will reach out to you about the Kia Telluride at $47,550, and I've noted you need it by next month. Is there anything else I can help you with?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "Kia Telluride",
+            "customer_name": "Mark Davis",
+            "customer_contact": "mark.davis@example.com",
+            "price": 47550,
+            "notes": "Customer needs the vehicle by next month."
+          },
+          "id": "chatcmpl-tool-86c8c2b1cae9b858"
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 900000
+        }
+      ]
+    },
+    "latency_ms": 20312.000000005355
+  },
+  {
+    "message": "I'll take the Jeep Wrangler for $27,470. Contact me at emily.j@example.com, I'm Emily Johnson.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Jeep Wrangler",
+        "customer_name": "Emily Johnson",
+        "customer_contact": "emily.j@example.com",
+        "price": 27470
+      },
+      "outcome": "Clear buy decision with contact details -- create_lead is expected."
+    },
+    "actual": {
+      "reply": "Thank you, Emily! I've passed your request along to our team, and someone will be in touch soon with the next steps for your Jeep Wrangler. Have a great day!",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "Jeep Wrangler",
+            "customer_name": "Emily Johnson",
+            "customer_contact": "emily.j@example.com",
+            "price": 27470,
+            "notes": "Customer wants to buy the Jeep Wrangler priced at $27,470."
+          },
+          "id": "chatcmpl-tool-913695781e19a42c"
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 900000
+        }
+      ]
+    },
+    "latency_ms": 30671.99999999866
+  },
+  {
+    "message": "Can you have someone call me about the Chevrolet Silverado 1500 at $31,972? Name's Robert Green, number 555-987-6543.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Chevrolet Silverado 1500",
+        "customer_name": "Robert Green",
+        "customer_contact": "555-987-6543",
+        "price": 31972
+      },
+      "outcome": "Request for a callback about a specific priced vehicle with contact info is a lead-creation request."
+    },
+    "actual": {
+      "reply": "Thanks, Robert! I've created the lead and someone will reach out to you at **555-987-6543** about the Chevrolet Silverado 1500 at $31,972. Is there anything else I can help you with?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "Chevrolet Silverado 1500",
+            "customer_name": "Robert Green",
+            "customer_contact": "555-987-6543",
+            "price": 31972,
+            "notes": "Customer asked for a call back about the Silverado 1500 at $31,972."
+          },
+          "id": "chatcmpl-tool-ad3403574a1c79d1"
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 900000
+        }
+      ]
+    },
+    "latency_ms": 22375.0
+  },
+  {
+    "message": "I'm very interested in the Tesla Model 3. This is Priya Patel, priya.patel@example.com. I'd like financing info too but mainly want to be contacted.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Tesla Model 3",
+        "customer_name": "Priya Patel",
+        "customer_contact": "priya.patel@example.com",
+        "notes": "Also interested in financing info"
+      },
+      "outcome": "Primary intent is to be contacted about a specific car -- create_lead is expected even though a secondary out-of-scope financing question is mentioned; the financing part may be answered conversationally alongside the tool call."
+    },
+    "actual": {
+      "reply": "Thank you, Priya! I've passed along your interest in the Tesla Model 3, along with your contact info and your request for financing details. A member of our team will reach out to you at priya.patel@example.com soon.\n\nIs there anything else I can help you with in the meantime\u2014perhaps looking at other vehicles in our catalog?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "Tesla Model 3",
+            "customer_name": "Priya Patel",
+            "customer_contact": "priya.patel@example.com",
+            "notes": "Interested in a Tesla Model 3. Mainly wants to be contacted about financing options."
+          },
+          "id": "chatcmpl-tool-9121614acc162e78"
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 900000
+        }
+      ]
+    },
+    "latency_ms": 50485.00000000058
+  },
+  {
+    "message": "Sign me up for the Subaru Crosstrek at $25,840 -- Tom Nguyen, tom.nguyen@example.com.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "Subaru Crosstrek",
+        "customer_name": "Tom Nguyen",
+        "customer_contact": "tom.nguyen@example.com",
+        "price": 25840
+      },
+      "outcome": "Direct request with name, contact, car, and price -- create_lead expected."
+    },
+    "actual": {
+      "reply": "Thanks, Tom! I've passed your interest in the Subaru Crosstrek at $25,840 along to our team, and someone will be in touch with you at tom.nguyen@example.com shortly to help you move forward.\n\nIs there anything else I can help you with in the meantime \u2014 like looking at other vehicles or answering any questions about the Crosstrek?",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "Subaru Crosstrek",
+            "customer_name": "Tom Nguyen",
+            "customer_contact": "tom.nguyen@example.com",
+            "price": 25840,
+            "notes": "Customer interested in the Subaru Crosstrek at $25,840. Wants to sign up / move forward."
+          },
+          "id": "chatcmpl-tool-b776b2572ba564df"
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 900000
+        }
+      ]
+    },
+    "latency_ms": 32733.99999999674
+  },
+  {
+    "message": "Create a lead: I'm Lisa Brown (lisa.brown@example.com), interested in the BMW 330i xDrive for $41,050, please follow up this week.",
+    "expected": {
+      "tool": "create_lead",
+      "args": {
+        "name": "BMW 330i xDrive",
+        "customer_name": "Lisa Brown",
+        "customer_contact": "lisa.brown@example.com",
+        "price": 41050,
+        "notes": "Please follow up this week"
+      },
+      "outcome": "Explicit 'create a lead' phrasing with all fields present -- unambiguous create_lead call."
+    },
+    "actual": {
+      "reply": " I've created a lead for Lisa Brown regarding the BMW 330i xDrive at $41,050. Our team will follow up with you this week. If there's anything else I can help you with in the meantime, feel free to ask!",
+      "tool_calls_made": [
+        {
+          "name": "create_lead",
+          "arguments": {
+            "name": "BMW 330i xDrive - $41,050",
+            "customer_name": "Lisa Brown",
+            "customer_contact": "lisa.brown@example.com",
+            "price": 41050,
+            "notes": "Customer interested in the BMW 330i xDrive at $41,050. Please follow up this week."
+          },
+          "id": "chatcmpl-tool-b4cff06db1d7aba4"
+        }
+      ],
+      "tool_results": [
+        {
+          "lead_id": 900000
+        }
+      ]
+    },
+    "latency_ms": 24046.99999999866
+  }
+]
