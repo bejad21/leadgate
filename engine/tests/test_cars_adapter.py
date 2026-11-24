@@ -1,0 +1,493 @@
+import json as _json
+import os
+from unittest.mock import MagicMock
+
+import pytest
+
+from engine.adapters.cars import CarsAdapter
+
+
+def test_search_inventory_filters_by_price():
+    mock_odoo = MagicMock()
+    mock_odoo.search_read.return_value = [
+        {"name": "Toyota Corolla", "price": 18000.0, "attributes": "2019, automatic"},
+        {"name": "Honda Civic", "price": 21000.0, "attributes": "2020, manual"},
+    ]
+
+    adapter = CarsAdapter(mock_odoo)
+    result = adapter.execute_tool("search_inventory", {"price_max": 30000})
+
+    mock_odoo.search_read.assert_called_once_with(
+        "leadgate.catalog.item",
+        [
+            ("domain_type", "=", "cars"),
+            ("status", "=", "available"),
+            ("price", "<=", 30000),
+        ],
+        ["name", "price", "attributes"],
+    )
+    assert result == {
+        "matches": [
+            {"name": "Toyota Corolla", "price": 18000.0, "attributes": "2019, automatic"},
+            {"name": "Honda Civic", "price": 21000.0, "attributes": "2020, manual"},
+        ],
+        "count": 2,
+    }
+
+
+def test_search_inventory_filters_by_make():
+    mock_odoo = MagicMock()
+    mock_odoo.search_read.return_value = []
+
+    adapter = CarsAdapter(mock_odoo)
+    adapter.execute_tool("search_inventory", {"make": "Toyota"})
+
+    mock_odoo.search_read.assert_any_call(
+        "leadgate.catalog.item",
+        [
+            ("domain_type", "=", "cars"),
+            ("status", "=", "available"),
+            ("name", "ilike", "Toyota"),
+        ],
+        ["name", "price", "attributes"],
+    )
+
+
+def test_search_inventory_filters_by_model():
+    mock_odoo = MagicMock()
+    mock_odoo.search_read.return_value = []
+
+    adapter = CarsAdapter(mock_odoo)
+    adapter.execute_tool("search_inventory", {"model": "Corolla"})
+
+    mock_odoo.search_read.assert_any_call(
+        "leadgate.catalog.item",
+        [
+            ("domain_type", "=", "cars"),
+            ("status", "=", "available"),
+            ("name", "ilike", "Corolla"),
+        ],
+        ["name", "price", "attributes"],
+    )
+
+
+def test_search_inventory_filters_by_make_model_and_price_max_together():
+    mock_odoo = MagicMock()
+    mock_odoo.search_read.return_value = []
+
+    adapter = CarsAdapter(mock_odoo)
+    adapter.execute_tool(
+        "search_inventory", {"make": "Toyota", "model": "Corolla", "price_max": 25000}
+    )
+
+    mock_odoo.search_read.assert_any_call(
+        "leadgate.catalog.item",
+        [
+            ("domain_type", "=", "cars"),
+            ("status", "=", "available"),
+            ("name", "ilike", "Toyota"),
+            ("name", "ilike", "Corolla"),
+            ("price", "<=", 25000),
+        ],
+        ["name", "price", "attributes"],
+    )
+
+
+def test_search_inventory_without_price_max_omits_price_filter():
+    mock_odoo = MagicMock()
+    mock_odoo.search_read.return_value = []
+
+    adapter = CarsAdapter(mock_odoo)
+    adapter.execute_tool("search_inventory", {})
+
+    mock_odoo.search_read.assert_called_once_with(
+        "leadgate.catalog.item",
+        [
+            ("domain_type", "=", "cars"),
+            ("status", "=", "available"),
+        ],
+        ["name", "price", "attributes"],
+    )
+
+
+def test_create_lead_calls_odoo_create_with_crm_lead():
+    mock_odoo = MagicMock()
+    # Only the catalog check finds anything; contact, source and tag lookups come back empty.
+    mock_odoo.search_read.side_effect = lambda model, domain, fields: [{"id": 1}] if model == "leadgate.catalog.item" else []
+    mock_odoo.create.side_effect = [10, 11, 12, 55]  # partner, source, tag, lead
+
+    adapter = CarsAdapter(mock_odoo)
+    result = adapter.execute_tool(
+        "create_lead",
+        {
+            "name": "Toyota Corolla",
+            "customer_name": "Jane Doe",
+            "customer_contact": "jane@example.com",
+            "price": 18000.0,
+            "notes": "Interested in test drive",
+        },
+    )
+
+    created = [(c.args[0], c.args[1]) for c in mock_odoo.create.call_args_list]
+    assert created[0] == ("res.partner", {"name": "Jane Doe", "email": "jane@example.com"})
+    assert created[1] == ("utm.source", {"name": "Telegram"})
+    assert created[2] == ("crm.tag", {"name": "Cars"})
+    model, lead = created[3]
+    assert model == "crm.lead"
+    assert lead["name"] == "Toyota Corolla"
+    assert lead["contact_name"] == "Jane Doe"
+    assert lead["email_from"] == "jane@example.com"
+    assert lead["partner_id"] == 10 and lead["source_id"] == 11 and lead["tag_ids"] == [(6, 0, [12])]
+    assert lead["description"] == "<p>Notes: Interested in test drive</p>"
+    assert lead["expected_revenue"] == 18000.0
+    assert result == {"lead_id": 55}
+
+
+def test_unknown_tool_raises_value_error():
+    adapter = CarsAdapter(MagicMock())
+    with pytest.raises(ValueError):
+        adapter.execute_tool("not_a_tool", {})
+
+
+def _live_odoo_client():
+    """Build an OdooClient against the local Odoo instance, or skip if Odoo is unreachable.
+
+    Raises if ODOO_PASSWORD is unset. Integration-style (no mocking): it shows the make/model ilike
+    filter narrows results over the 350 seeded cars, not just that the domain list was built.
+    """
+    from engine.odoo_client import OdooClient
+
+    url = os.environ.get("ODOO_URL", "http://localhost:8069")
+    db = os.environ.get("ODOO_DB", "leadgate")
+    user = os.environ.get("ODOO_USER", "admin")
+    password = os.environ.get("ODOO_PASSWORD")
+    if not password:
+        # Fail loudly instead of guessing a credential, as config.py does for this variable.
+        raise RuntimeError(
+            "ODOO_PASSWORD is not set -- required to run this live Odoo integration test"
+        )
+    try:
+        client = OdooClient(url, db, user, password)
+        if not client.uid:
+            pytest.skip("Could not authenticate against live Odoo instance")
+        return client
+    except Exception as exc:  # pragma: no cover - environment dependent
+        pytest.skip(f"Live Odoo instance not reachable: {exc}")
+
+
+def test_live_search_inventory_make_filter_only_returns_matching_make():
+    """Integration check against live Odoo (350 seeded cars): a make filter only returns that make.
+
+    execute_tool truncates "matches" to 5 records, so this checks result["count"] (from the full list)
+    against a full recount via search_read, not just the preview.
+    """
+    client = _live_odoo_client()
+    adapter = CarsAdapter(client)
+
+    result = adapter.execute_tool("search_inventory", {"make": "Toyota", "price_max": 40000})
+    assert result["count"] > 0, "expected at least one live Toyota match under 40000"
+
+    for record in result["matches"]:
+        assert "toyota" in record["name"].lower(), (
+            f"non-Toyota record leaked into make-filtered results: {record['name']}"
+        )
+        assert record["price"] <= 40000
+
+    # Check the full result set, not the 5-record preview.
+    full_domain = [
+        ("domain_type", "=", "cars"),
+        ("status", "=", "available"),
+        ("name", "ilike", "Toyota"),
+        ("price", "<=", 40000),
+    ]
+    full_records = client.search_read("leadgate.catalog.item", full_domain, ["name", "price"])
+
+    assert len(full_records) == result["count"], (
+        "full search_read result count should match execute_tool's reported count "
+        "(execute_tool must not be silently under- or over-counting)"
+    )
+    assert len(full_records) > 5, (
+        "expected more than 5 live Toyota matches under 40000 so this test actually "
+        "exercises records past the [:5] truncation point"
+    )
+    non_toyota_leaks = [r["name"] for r in full_records if "toyota" not in r["name"].lower()]
+    assert non_toyota_leaks == [], (
+        f"non-Toyota records leaked into the FULL result set: {non_toyota_leaks}"
+    )
+    over_budget = [r["name"] for r in full_records if r["price"] > 40000]
+    assert over_budget == [], f"records over price_max leaked into the FULL result set: {over_budget}"
+
+    # Without the make filter there are strictly more matches, so the filter narrows the query.
+    unfiltered = adapter.execute_tool("search_inventory", {"price_max": 40000})
+    assert unfiltered["count"] > result["count"], (
+        "expected the unfiltered live query to return more cars than the "
+        "Toyota-filtered query, to prove the make filter is doing real work"
+    )
+
+
+@pytest.mark.parametrize("make", ["Toyota", "Honda", "Ford"])
+def test_live_search_inventory_full_result_set_has_zero_leakage_across_makes(make):
+    client = _live_odoo_client()
+
+    domain = [
+        ("domain_type", "=", "cars"),
+        ("status", "=", "available"),
+        ("name", "ilike", make),
+    ]
+    full_records = client.search_read("leadgate.catalog.item", domain, ["name", "price"])
+
+    assert len(full_records) > 0, f"expected at least one live {make} match"
+    leaks = [r["name"] for r in full_records if make.lower() not in r["name"].lower()]
+    assert leaks == [], f"non-{make} records leaked into the full {make} result set: {leaks}"
+
+
+# Search filters
+
+
+def _car(name, price, year, mileage, condition, location):
+    return {
+        "name": name,
+        "price": float(price),
+        "attributes": _json.dumps(
+            {"make": name.split()[0], "year": year, "mileage": mileage,
+             "condition": condition, "location": location}
+        ),
+    }
+
+
+_FLEET = [
+    _car("2020 Toyota Camry", 21000, 2020, 44000, "Used", "Orlando, FL"),
+    _car("2018 Toyota RAV4", 17500, 2018, 107000, "Used", "Cape Coral, FL"),
+    _car("2024 Toyota Corolla", 21950, 2024, 58000, "Certified", "Louisville, KY"),
+    _car("2025 Toyota Prius", 30000, 2025, 5000, "New", "Delray Beach, FL"),
+]
+
+
+def _search(args):
+    mock_odoo = MagicMock()
+    mock_odoo.search_read.return_value = list(_FLEET)
+    return CarsAdapter(mock_odoo).execute_tool("search_inventory", args), mock_odoo
+
+
+def _names(result):
+    return [m["name"] for m in result["matches"]]
+
+
+def test_price_min_becomes_an_odoo_domain_clause():
+    _, odoo = _search({"price_min": 20000})
+    domain = odoo.search_read.call_args[0][1]
+    assert ("price", ">=", 20000) in domain
+
+
+def test_year_min_filters_older_cars():
+    result, _ = _search({"year_min": 2024})
+    assert _names(result) == ["2024 Toyota Corolla", "2025 Toyota Prius"]
+    assert result["count"] == 2
+
+
+def test_mileage_max_filters_high_mileage_cars():
+    result, _ = _search({"mileage_max": 50000})
+    assert _names(result) == ["2020 Toyota Camry", "2025 Toyota Prius"]
+
+
+def test_condition_filter_is_case_insensitive_and_exact():
+    result, _ = _search({"condition": "certified"})
+    assert _names(result) == ["2024 Toyota Corolla"]
+
+
+def test_location_filter_is_case_insensitive_substring():
+    result, _ = _search({"location": "fl"})
+    assert _names(result) == ["2020 Toyota Camry", "2018 Toyota RAV4", "2025 Toyota Prius"]
+
+
+def test_filters_combine():
+    result, _ = _search({"year_min": 2020, "condition": "Used", "location": "Orlando"})
+    assert _names(result) == ["2020 Toyota Camry"]
+
+
+@pytest.mark.parametrize(
+    "sort_by, expected_first",
+    [
+        ("price_asc", "2018 Toyota RAV4"),
+        ("price_desc", "2025 Toyota Prius"),
+        ("mileage_asc", "2025 Toyota Prius"),
+        ("year_desc", "2025 Toyota Prius"),
+    ],
+)
+def test_sort_by(sort_by, expected_first):
+    result, _ = _search({"sort_by": sort_by})
+    assert _names(result)[0] == expected_first
+
+
+def test_price_asc_orders_all_results():
+    result, _ = _search({"sort_by": "price_asc"})
+    prices = [m["price"] for m in result["matches"]]
+    assert prices == sorted(prices)
+
+
+def test_rows_with_unparseable_attributes_are_skipped_by_attribute_filters():
+    mock_odoo = MagicMock()
+    mock_odoo.search_read.return_value = [
+        {"name": "Broken", "price": 1.0, "attributes": "not json"},
+        _FLEET[0],
+    ]
+    result = CarsAdapter(mock_odoo).execute_tool("search_inventory", {"year_min": 2019})
+    assert _names(result) == ["2020 Toyota Camry"]
+
+
+def test_schema_advertises_new_filters():
+    props = CarsAdapter(MagicMock()).tool_schemas()[0]["function"]["parameters"]["properties"]
+    for key in ("price_min", "year_min", "mileage_max", "condition", "location", "sort_by"):
+        assert key in props
+    assert props["sort_by"]["enum"] == ["price_asc", "price_desc", "mileage_asc", "year_desc"]
+
+
+
+def test_lead_price_is_kept_when_it_matches_a_catalog_item():
+    from unittest.mock import MagicMock
+
+    from engine.adapters.cars import CarsAdapter
+
+    odoo = MagicMock()
+    odoo.search_read.return_value = [{"id": 1}]
+    odoo.create.return_value = 9
+    CarsAdapter(odoo).execute_tool("create_lead", {"name": "X", "customer_name": "Sam", "price": 21834})
+    verify_domain = [c[0][1] for c in odoo.search_read.call_args_list if c[0][0] == "leadgate.catalog.item"][0]
+    assert ("domain_type", "=", "cars") in verify_domain
+    values = [c[0][1] for c in odoo.create.call_args_list if c[0][0] == "crm.lead"][0]
+    assert values["expected_revenue"] == 21834
+    assert "unverified" not in values["description"].lower()
+
+
+def test_lead_price_is_dropped_when_no_catalog_item_has_it():
+    from unittest.mock import MagicMock
+
+    from engine.adapters.cars import CarsAdapter
+
+    odoo = MagicMock()
+    odoo.search_read.return_value = []
+    odoo.create.return_value = 9
+    CarsAdapter(odoo).execute_tool("create_lead", {"name": "X", "customer_name": "Sam", "price": 1})
+    values = [c[0][1] for c in odoo.create.call_args_list if c[0][0] == "crm.lead"][0]
+    assert "expected_revenue" not in values
+    assert "price unverified" in values["description"].lower()
+
+
+def test_lead_result_flags_an_unverified_price_so_the_model_can_say_so():
+    from unittest.mock import MagicMock
+
+    from engine.core.adapter_base import create_verified_lead
+
+    odoo = MagicMock()
+    odoo.search_read.return_value = []
+    odoo.create.return_value = 9
+    result = create_verified_lead(odoo, "cars", {"name": "X", "customer_name": "Sam", "price": 1}, crm_tag="Cars")
+    assert result["lead_id"] == 9
+    assert result["price_verified"] is False
+    assert "do not" in result["note"].lower()
+
+
+def test_lead_result_marks_a_verified_price():
+    from unittest.mock import MagicMock
+
+    from engine.core.adapter_base import create_verified_lead
+
+    odoo = MagicMock()
+    odoo.search_read.return_value = [{"id": 1}]
+    odoo.create.return_value = 9
+    result = create_verified_lead(odoo, "cars", {"name": "X", "customer_name": "Sam", "price": 21834}, crm_tag="Cars")
+    assert result == {"lead_id": 9}
+
+
+# Location matching and non-finite numbers
+
+def _loc_fleet(*places):
+    return [_car(f"{2020 + i} Toyota Camry", 20000 + i, 2020, 10000, "Used", place) for i, place in enumerate(places)]
+
+
+@pytest.mark.parametrize(
+    "query, places, expected",
+    [
+        ("FL", ["Orlando, FL", "Flint, MI", "Dallas, TX"], ["Orlando, FL"]),
+        ("CA", ["Chicago, IL", "Los Angeles, CA"], ["Los Angeles, CA"]),
+        ("IN", ["Austin, TX", "Clarksville, IN"], ["Clarksville, IN"]),
+        ("Orlando", ["Orlando, FL", "Winter Orlando Park, OH"], ["Orlando, FL", "Winter Orlando Park, OH"]),
+        ("louisville, ky", ["Louisville, KY", "Louisville, CO"], ["Louisville, KY"]),
+        ("Florida", ["Orlando, FL", "Flint, MI", "Dallas, TX"], ["Orlando, FL"]),
+        ("florida", ["Orlando, FL", "Flint, MI"], ["Orlando, FL"]),
+        ("Indiana", ["Austin, TX", "Clarksville, IN"], ["Clarksville, IN"]),
+        ("West Virginia", ["Charleston, WV", "Richmond, VA"], ["Charleston, WV"]),
+        ("Orlando, Florida", ["Orlando, FL", "Orlando, CA"], ["Orlando, FL"]),
+        ("Washington", ["Seattle, WA", "Washington, DC"], ["Seattle, WA", "Washington, DC"]),
+    ],
+)
+def test_location_matches_whole_state_codes_and_city_words(query, places, expected):
+    mock_odoo = MagicMock()
+    mock_odoo.search_read.return_value = _loc_fleet(*places)
+    result = CarsAdapter(mock_odoo).execute_tool("search_inventory", {"location": query})
+    got = [_json.loads(m["attributes"])["location"] for m in result["matches"]]
+    assert got == expected
+
+
+def test_non_finite_and_formatted_numbers_in_attributes():
+    mock_odoo = MagicMock()
+    mock_odoo.search_read.return_value = [
+        {"name": "NaN car", "price": 1.0, "attributes": _json.dumps({"mileage": "nan", "year": 2020})},
+        {"name": "Comma car", "price": 2.0, "attributes": _json.dumps({"mileage": "45,000", "year": 2020})},
+        {"name": "Plain car", "price": 3.0, "attributes": _json.dumps({"mileage": "45000", "year": 2020})},
+    ]
+    result = CarsAdapter(mock_odoo).execute_tool("search_inventory", {"mileage_max": 50000})
+    assert _names(result) == ["Comma car", "Plain car"]
+
+
+def _odoo_with(available, unavailable):
+    odoo = MagicMock()
+    odoo.search_read.side_effect = lambda model, domain, fields, **kw: unavailable if ("status", "in", ["reserved", "sold"]) in domain else available
+    return odoo
+
+
+def test_a_named_car_that_is_on_hold_or_sold_is_reported_as_such():
+    held = [{"name": "2024 Cadillac Lyriq", "status": "reserved", "attributes": ""}, {"name": "2022 Cadillac XT5", "status": "sold", "attributes": ""}]
+    result = CarsAdapter(_odoo_with([], held)).execute_tool("search_inventory", {"make": "Cadillac"})
+    assert result["matches"] == [] and result["count"] == 0
+    assert result["unavailable"] == [{"name": "2024 Cadillac Lyriq", "status": "on hold"}, {"name": "2022 Cadillac XT5", "status": "sold"}]
+    assert "never offer one as available" in result["note"].lower()
+
+
+def test_a_search_with_no_make_or_model_does_not_look_for_unavailable_cars():
+    odoo = _odoo_with([{"name": "Toyota Corolla", "price": 18000.0, "attributes": ""}], [{"name": "x", "status": "sold", "attributes": ""}])
+    result = CarsAdapter(odoo).execute_tool("search_inventory", {"price_max": 30000})
+    assert "unavailable" not in result and odoo.search_read.call_count == 1
+
+
+def test_unavailable_cars_respect_the_attribute_filters_too():
+    held = [{"name": "A", "status": "reserved", "attributes": _json.dumps({"condition": "Used"})},
+            {"name": "B", "status": "reserved", "attributes": _json.dumps({"condition": "Certified"})}]
+    result = CarsAdapter(_odoo_with([], held)).execute_tool("search_inventory", {"make": "Cadillac", "condition": "Certified"})
+    assert result["unavailable"] == [{"name": "B", "status": "on hold"}]
+
+
+def test_an_unavailable_item_is_never_offered_as_a_match_or_holdable():
+    from engine.core.agent_loop import _result_item_ids
+
+    held = [{"id": 140, "name": "2024 Cadillac Lyriq", "status": "reserved", "attributes": ""}]
+    result = CarsAdapter(_odoo_with([], held)).execute_tool("search_inventory", {"make": "Cadillac"})
+    assert _result_item_ids(result) == set()  # only matches can be held, so an on-hold car can never become holdable
+
+
+def test_a_model_written_with_a_hyphen_finds_an_item_written_without_one():
+    odoo = MagicMock()
+    row = {"id": 189, "name": "2025 Ford F150", "price": 45480.0, "attributes": "{}"}
+    odoo.search_read.side_effect = lambda model, domain, *a, **k: [] if any(d[0] == "name" for d in domain) else [row]
+
+    result = CarsAdapter(odoo).execute_tool("search_inventory", {"make": "Ford", "model": "F-150"})
+
+    assert [m["id"] for m in result["matches"]] == [189]
+
+
+def test_the_loose_name_read_still_requires_the_make_to_match():
+    odoo = MagicMock()
+    row = {"id": 5, "name": "2020 Toyota Camry", "price": 1.0, "attributes": "{}"}
+    odoo.search_read.side_effect = lambda model, domain, *a, **k: [] if any(d[0] == "name" for d in domain) else [row]
+
+    assert CarsAdapter(odoo).execute_tool("search_inventory", {"make": "Ford", "model": "F-150"})["matches"] == []
