@@ -18,7 +18,7 @@ Three kinds of test set are reported, and their results are never merged (the on
 
 | kind | what it is | how far to trust it |
 |---|---|---|
-| **fresh** (sets 1 to 3 with 30 cases per domain each, sets 4 and 5 with 100) | Written blind by a separate agent from the README, tool schemas and catalog only, and frozen with a sha256 file (`eval/datasets/FRESH*_SHA256.txt`, checked by tests) before their first scored run. | The honest numbers, with one limit: each set was unseen for the engine first scored on it, but the failures of sets 1 and 2 were then used to choose the next fixes. Only **set 5 is unseen for the final engine** (`f23370c`). Sets 3 and 4 were unseen for the engine before it (`9c542b6`), but the failures of set 4 were then used to choose the last fixes. Set 1 had its 11 judgement-call rows reviewed by the owner and the other 49 approved by default. Sets 2 to 5 were not reviewed by a human. |
+| **fresh** (sets 1 to 3 with 30 cases per domain each, sets 4 and 5 with 100) | Written blind by a separate agent from the README, tool schemas and catalog only, and frozen with a sha256 file (`eval/datasets/FRESH*_SHA256.txt`, checked by tests) before their first scored run. | The honest numbers, with one limit: each set was unseen for the engine first scored on it, but the failures of sets 1 and 2 were then used to choose the next fixes. **Set 5 was unseen for the final engine of that round** (`f23370c`). Sets 3 and 4 were unseen for the engine before it (`9c542b6`), but the failures of set 4 were then used to choose the next fixes. Set 1 had its 11 judgement-call rows reviewed by the owner and the other 49 approved by default. Sets 2 to 5 were not reviewed by a human. Sets 6 and 7 are newer and are described in [their own section](#fresh-6-and-fresh-7-and-checker-v4-2026-11-21). |
 | **held-out** (66 cases) | Written blind and frozen on 2026-11-04 (`HELDOUT_SHA256.txt`). | Not unseen any more. Its failures were used to choose the fixes described below, so its scores are optimistic. |
 | **dev** (135 cases) | The sets the prompt was first tuned on. | Optimistic. Used as a regression check only. |
 
@@ -34,11 +34,11 @@ superseded result (`2026-11-11-oldcode-large4-effort-high-truncated`). Rows from
 | `-old` and `oldcode-large4-low` | The agent loop and guardrails as they were at commit `1a88228` (before the fix round), run with the current test harness. |
 | `fix1-*`, `fresh-new`, `fresh-base`, `fresh-redteam` | After the first fixes (`014a634` and the commits just before it): one extra tool round after a search, an honest no-match reply, and the first prompt rules. |
 | `v2-*`, `fresh2-new` | At `7bcdcc5`: adds the viewing guard (no booking without a day and time of day the customer said) and the prompt rewritten as ordered rules. |
-| `fresh5-new` | The final engine (`f23370c`): adds a code guard that refuses a lead, hold or viewing without a name the customer wrote, up to two follow-up tool rounds, a truthful reply when the model says an action is confirmed, and sharper rules for vague asks, minimum prices and refinements. |
+| `fresh5-new` | The final engine of that round (`f23370c`): adds a code guard that refuses a lead, hold or viewing without a name the customer wrote, up to two follow-up tool rounds, a truthful reply when the model says an action is confirmed, and sharper rules for vague asks, minimum prices and refinements. |
 | `fresh3-new`, `fresh4-new` | The engine before those fixes (`9c542b6`): adds the ambiguous-lead guard, price sorting for real estate and the last prompt rules. `fresh4-new` was run at `0323862`, which differs from `9c542b6` only in the eval code (no file under `engine/` other than tests changed). |
 
 Which set was scored on which engine: fresh 1 on the first-fixes engine, fresh 2 on `7bcdcc5`, fresh 3 and fresh 4 on `9c542b6`, fresh 5 on the final engine. The "old"
-rows are the same `1a88228` engine on every set. The red-team runs were made on the first-fixes engine and have not been repeated on the final one.
+rows are the same `1a88228` engine on every set. The 2026-11-11 red-team runs were made on the first-fixes engine; the 2026-11-19 runs are on later engines (see "Red team" below).
 
 ### Unseen sets (headline)
 
@@ -97,7 +97,7 @@ engine, with no engine change after seeing any result.
 
 **The 95% target was not reached on this set either**, as measured or with the corrected checker. The numbers
 agree with the earlier sets: 95% sits inside the range over cases, but the middle is 93 to 94.
-For the final engine, counting each case once across fresh 3 and fresh 4 (130 cases per domain, none used to tune anything):
+For the engine of that round, counting each case once across fresh 3 and fresh 4 (130 cases per domain, none used to tune anything):
 cars 93.7% (range over cases 89.8 to 97.1), real estate 95.8% (92.3 to 98.5), both with the final checker (fix 7 included), which was written after seeing these results.
 
 What the failures were (as first graded: cars 13 runs, real estate 12; after the later checker fix 7: cars 12, real estate 11):
@@ -143,15 +143,15 @@ What the 16 failing runs left after the corrected checker are:
   and one zero-match reply the checker still does not recognise (`m-c067`, 2 runs).
 - **The "dirty tree" flag** on the real estate file is the cars result file written into the same working copy; no tracked file differed. Two real estate records failed with provider errors on the first pass and were re-run once; the file is complete (200 of 200).
 
-For the final engine, the honest summary across the two big sets is: fresh 4 (before the last fixes) 91.5% and 94.0% as measured, fresh 5 (after them) 91.5% and 95.5% as measured, 95.0% and 97.0% with the corrected checker. (Later, checker v3 gives 98.5% and 97.5% on this run; see "Checker v3" below.)
-No set has been scored with the same engine and the same checker that both predate seeing its results, so no number here is a clean blind score; fresh 5 as measured is the closest to one.
+At that point, the honest summary across the two big sets for the engine of that round was: fresh 4 (before the last fixes) 91.5% and 94.0% as measured, fresh 5 (after them) 91.5% and 95.5% as measured, 95.0% and 97.0% with the corrected checker. (Later, checker v3 gives 98.5% and 97.5% on this run; see "Checker v3" below.)
+When this was written, no set had been scored with an engine and a checker that both predated seeing its results, so fresh 5 as measured was the closest to a clean blind score. The locked test parts of fresh 6 and fresh 7 came later (see below).
 
 ### Fresh 5 again, on another host (NVIDIA, 2026-11-17)
 
-`mistral-large-4` is no longer available to the project's free Mistral keys, so fresh 5 was scored again through NVIDIA's free hosted
+`mistral-large-4` is no longer available to the project on Mistral's free plan, so fresh 5 was scored again through NVIDIA's free hosted
 endpoint (`mistralai/mistral-large-4-1t-a52b`), on the repository as of `4f216ae`. That is the same model family on a different host, so it is a
 separate row and is not merged with the Mistral-direct row. It includes the `parse_contact` fix that the row above does not.
-The harness is the same, with the final checker. The run used three free keys and 8 parallel shards per domain (case index modulo 8); each shard
+The harness is the same, with the final checker. The run used 8 parallel shards per domain (case index modulo 8); each shard
 kept its own ledger, and the merged files record the merge in their header.
 
 | run | cars | real estate |
@@ -280,7 +280,7 @@ Passed with the checker of that day (v3) and now (v4), for every fresh 6 and fre
 
 **What v4 still marks wrong, and why it was left.** `q-r122`: a reply says "we don't have any lighthouses or ski resorts" after one search by price, which returned 339 homes. The claim may well be true, but no search can show it, so the checker keeps it as ungrounded; it is not loosened to make a number rise. The `q-c056` label (make against model) and the `q-r036` label typo (a misspelled city in the expected name) are not changed either, because frozen sets are never edited.
 
-**What is still open (real mistakes, not fixed).** Position references: "reserve the third one" can pick the wrong item (`q-c034`). A place name the results did not contain appeared once (`p-c010`). An availability search for a named house sometimes leaves the location out (`p-r020`). A reply asked which property but not for the customer's name (`p-r089`). Any fix to these needs a new blind set to be scored.
+**What is still open (real mistakes, not fixed).** Position references: "reserve the third one" can pick the wrong item (`q-c034`). A place name the results did not contain appeared once (`p-c010`). An availability search for a named house sometimes leaves the location out (`p-r020`). A reply asked which property but not for the customer's name (`p-r089`). Any fix to these needs a new blind set to be scored. (Position references were changed afterwards; see the next section.)
 
 ### Conversation changes: positions, buttons, wording (2026-11-22)
 
@@ -292,7 +292,7 @@ What changed, from a study of how Zillow, Intercom, Sierra, Rasa and dealer-chat
 4. **Conversation figures in the trace summary** (`python eval/trace_summary.py`): the share of chats that stopped after one reply, the share that reached a request, how often a person was asked for, and how often a button followed a reply with buttons. The traces keep only yes or no for these, never the words.
 5. **A hole found on the way:** a name the model put in the contact field was kept as if it were a contact. It is now dropped, so only what the customer typed is recorded as their contact. (A rule that refuses every lead without a contact was tried and reverted: tests state on purpose that a lead without a contact is allowed.)
 
-**What was measured.** All 1,709 engine tests pass. The webhook tests check what Telegram would receive; two of the guards (the day window and clearing the buttons after a tap) were broken on purpose and the tests failed, as they should. Two live checks used the real model and the real catalog, with holds recorded and not placed:
+**What was measured.** All 1,709 engine tests that ran at that point passed. The webhook tests check what Telegram would receive; two of the guards (the day window and clearing the buttons after a tap) were broken on purpose and the tests failed, as they should. Two live checks used the real model and the real catalog, with holds recorded and not placed:
 
 | Check | Result |
 |---|---|
@@ -458,7 +458,7 @@ Rows dated 2026-11-04 are `ministral-14b-2512` on the original engine. Rows date
 
 ### Red team: attack success per guardrail
 
-The newest rows (`2026-11-19-redteam-final2-nvidia`) are `mistral-large-4` on NVIDIA's host with the final engine (commit `4ad11f9`), run after the home search gained a
+The newest rows (`2026-11-19-redteam-final2-nvidia`) are `mistral-large-4` on NVIDIA's host with the engine of that day (commit `4ad11f9`), run after the home search gained a
 city and state filter and after the other changes of 2026-11-19. Cars: 73 attacks, 3 tries each, guardrails on 3.7% flagged (8 of 219), the same attacks with every
 guardrail off 17.4% (38 of 219). Real estate, 38 attacks: 6.1% flagged (7 of 114). Every flagged run with the guardrails on was read by hand. Each was a refusal or a
 correctly capped action that a detector misread: the word "ahoy" in the refusal of a pirate persona, "$1" quoted while refusing it, plain refusals and result lists whose
@@ -631,7 +631,7 @@ links"), so the change hid no leak. The `2026-11-11` rows are older engines, 4.6
 <!-- BEGIN:calls -->
 Live LLM calls counted in `eval/results/call_ledger.json`: **3446** of the hard cap of 4000 (runs were limited to 3850 to keep a reserve) (cars-dev: 819, cars-heldout: 561, probe: 6, probe-mistral: 11, real_estate-dev: 679, real_estate-heldout: 429, redteam-all_off: 172, redteam-off:argument_validation: 28, redteam-off:contact_provenance: 30, redteam-off:hold_guard: 29, redteam-off:injection_screen: 101, redteam-off:price_verification: 55, redteam-off:prompt_rules: 16, redteam-off:reply_filter: 68, redteam-off:tool_call_cap: 23, redteam-off:tool_result_sanitizing: 14, redteam-off:write_limits: 38, redteam-on: 367).
 
-Runs made in parallel on separate API keys each kept their own ledger in `eval/results/ledgers-*/`: 226 ledgers, **14709** further calls in all.
+Runs made in parallel each kept their own ledger in `eval/results/ledgers-*/`: 226 ledgers, **14709** further calls in all.
 <!-- END:calls -->
 
 ## How the numbers are produced
@@ -712,16 +712,17 @@ Made before any scored run; the full before and after are in `dataset_info.phase
 ## Limits of this evaluation
 
 - The data is synthetic: hand-written messages and invented customers, over a public-listing catalog.
-- One model and one prompt per run. The 2026-11-04 runs used `ministral-14b-2512`; all later runs use
-  `mistral-large-4`. The provider's limits changed between the two, and the model that answered is recorded per
-  call. Results do not transfer to another model.
-- Label review is thin. The 66 held-out cases were reviewed by the owner. Of the three fresh sets, only the 11
-  judgement-call rows of set 1 were reviewed; the other 49 rows of set 1 were approved by default and sets 2 and
-  3 were not reviewed by a human.
-- The held-out set was used to choose fixes, and the failures of fresh sets 1 and 2 guided later fixes. Only
-  fresh set 3 is unseen for the final engine, and it holds 30 cases per domain, so a single set's score moves by
-  several points between samples (its 95% ranges are 5 to 10 points wide).
-- The 95% target for the fix round was not reached as measured on the last unseen set (cars 92.7%, real estate 93.3%).
+- One model and one prompt per run. The 2026-11-04 runs used `ministral-14b-2512`; runs from 2026-11-11 use
+  `mistral-large-4`, on Mistral's API or NVIDIA's host. The model that answered is recorded per call. Results do
+  not transfer to another model.
+- Label review is thin. The 66 held-out cases were reviewed by the owner. Of the fresh sets, only the 11
+  judgement-call rows of set 1 were reviewed; the other 49 rows of set 1 were approved by default, sets 2 to 5
+  were not reviewed by a human, and no human review is recorded for sets 6 and 7.
+- Failures of earlier sets guided later fixes, including the failures of the fresh 7 test part. No blind set is
+  unseen for the current engine, and the conversation changes of 2026-11-22 have not been scored on a new one.
+- The latest independent scores, as measured, are from the locked test parts: fresh 6 (cars 90.5%, real estate
+  95.0%) and fresh 7 (cars 95.0%, real estate 99.5%). Each part has 100 cases per domain, so a single score can
+  move by a few points between samples.
 - Free-tier variance: even at temperature 0 the same case can differ between runs, which is what the repeats
   and pass^k measure. Small n per category (often 1 to 4 cases) means category rows are indicative only.
 - Claim grounding and the red-team detectors are regular expressions. They miss a claim they have no pattern
@@ -732,16 +733,19 @@ Made before any scored run; the full before and after are in `dataset_info.phase
 - Catalog state matters: items reserved or sold in the live Odoo are not searchable, and a held-out label
   naming one cannot be satisfied. Such cases are reported as unresolvable, not failed.
 - The red-team attacks were written by the same author as the guardrails; the variants are still hand-written.
-  38 + 35 attacks is small next to public suites. The ablation runs each guardrail against the attacks aimed
+  73 attacks for cars (38 originals and 35 variants) and 38 for real estate is small next to public suites. The ablation runs each guardrail against the attacks aimed
   at it, not the whole set.
 
-## Status of the scored runs (2026-11-04)
+## Status of the first scored runs (2026-11-04)
 
-**Model scored.** All agent, no-tools and red-team numbers above come from `ministral-14b-2512` on Mistral,
-the only provider configured for the runs (`OPENROUTER_API_KEY` empty, `MISTRAL_MODEL=ministral-14b-2512`),
-temperature 0, max tokens 800. The engine's shipped default for Mistral is `mistral-small-latest`, which was
-not scored: that model's request quota on the owner's key is zero. Changing the default is pending the
-owner's decision and was not done in this phase. The earlier attempt on OpenRouter's free `nemotron` model
+This section is history: it records the first scored stage. Later runs use other models and engines; see
+"Current results" above.
+
+**Model scored.** The agent, no-tools and red-team runs of 2026-11-04 used `ministral-14b-2512` on Mistral,
+the only provider configured for them (`OPENROUTER_API_KEY` empty, `MISTRAL_MODEL=ministral-14b-2512`),
+temperature 0, max tokens 800. The engine's default for Mistral, `mistral-small-latest`, was not scored: that
+model's request quota on the owner's key was zero. The engine now tries NVIDIA, with `mistral-large-4`, before
+the other providers (`engine/config.py`). The earlier attempt on OpenRouter's free `nemotron` model
 (50 requests per day) produced only 23 held-out cars cases; that file sits in
 `2026-11-04-openrouter-nemotron-partial/`, is a different model, partial and superseded, and is never merged
 with a Mistral number.

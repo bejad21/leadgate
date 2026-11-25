@@ -74,8 +74,10 @@ which Row Level Security limits to read-only.
   whether the channel is connected and records each live change with what it changed from.
 - `src/components/KeyWall.tsx`, `KeyTag.tsx`: the wall, and one key on its hook.
 - `src/components/TapeCounts.tsx`, `TagReader.tsx`, `SignOutSheet.tsx`, `DomainSwitch.tsx`.
+- `src/components/LeadsView.tsx`, `LeadSlip.tsx`, `ConversationRoll.tsx`, `SignInPlate.tsx`: the Leads tab,
+  fed by `src/lib/usePrivateData.ts` and `useSession.ts`.
 - Typefaces are self-hosted through Fontsource: Fraunces for headlines and figures,
   Instrument Sans for text and JetBrains Mono for numbers and labels.
 
-There is one entrance animation (the keys settling onto their hooks), one count-up on the
-figures and one live animation (the swing). Nothing else moves on its own.
+Motion is limited to the keys settling onto their hooks, a count-up on the figures, the
+tag swing and stamp when a live change arrives, and a short entrance for the conversation roll.

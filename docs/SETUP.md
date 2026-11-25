@@ -10,8 +10,10 @@ project is and what it looks like running, see the [README](../README.md).
 - Node.js and `npm` (for the dashboard)
 - A Kaggle account (for the two source datasets)
 - A Telegram bot token (from [@BotFather](https://t.me/BotFather))
-- An OpenRouter or Mistral API key (OpenRouter has a usable free tier; the engine tries a list
-  of its free models in order, then Mistral if that key is also set)
+- An API key from at least one model provider: NVIDIA ([build.nvidia.com](https://build.nvidia.com),
+  free for development; its default model is the one the published results used), OpenRouter (free
+  tier) or Mistral. With several keys the engine tries NVIDIA first, then OpenRouter's free models
+  in order, then Mistral
 - A Supabase project (the free tier works): it holds the dashboard's data and the engine's own durable state
 - A way to expose `localhost:8000` publicly for Telegram's webhook. [`cloudflared`](https://github.com/cloudflare/cloudflared)'s free, account-less quick
   tunnel works, no sign-up needed
@@ -28,8 +30,13 @@ Fill in `.env`. `.env.example` documents the baseline set:
   for the local Docker setup below: `http://localhost:8069`, `leadgate`, `admin`/`admin`)
 - `ODOO_TIMEOUT_SECONDS` (optional): how long a call to Odoo may wait before it fails.
   Defaults to 30
-- `OPENROUTER_API_KEY`, `MISTRAL_API_KEY` and/or `NVIDIA_API_KEY`: at least one is required. NVIDIA's
-  hosted API has a free tier for development; its queue can be slow, so set `LLM_TIMEOUT_SECONDS=120` with it
+- `NVIDIA_API_KEY`, `OPENROUTER_API_KEY` and/or `MISTRAL_API_KEY`: at least one is required; leave the
+  ones you do not use blank. A provider that is retired, rate limited or failing hands over to the next,
+  but a rejected key (401 or 403) does not. NVIDIA's free queue can be slow, so set
+  `LLM_TIMEOUT_SECONDS=120` with it
+- `LLM_REASONING_EFFORT` (optional: `low`, `medium` or `high`; sent only when set): the published
+  results used `low`. Without it a thinking model such as `mistral-large-4` can spend the whole token
+  budget thinking. It is sent to every configured provider
 - `MISTRAL_MODEL`, `NVIDIA_MODEL` (optional): pin the model each of those providers uses
 - `LLM_TIMEOUT_SECONDS` (optional, 1 to 600, default 30): how long one model call may take
 - `LLM_TEMPERATURE` (optional, 0 to 2, default 0), `LLM_MAX_TOKENS` (optional, default 800) and
@@ -193,6 +200,8 @@ safe on a project that already has the tables. They create:
   Security is on, no policy exists, and the browser roles are denied outright: only the engine's service key
   reads or writes them.
 - `0004`: `public.apply_catalog_event`, the function the status webhook calls (below).
+- `0005`: a fix to the rate-limit function from `0003`, which Postgres refused to run because a variable and a
+  column had the same name.
 
 ### How a status change reaches the dashboard
 
@@ -276,7 +285,7 @@ The module also handles holds. When the assistant holds an item for a customer, 
 checks and records it in one transaction: an item can only be held once, one customer can
 hold one item, and no more than ten holds can be active at a time (change the limit with
 the system parameter `leadgate.max_active_holds`). A scheduled job runs every five minutes
-and puts lapsed holds back on the board. Both the hold and the release are status changes,
+and makes items with lapsed holds available again. Both the hold and the release are status changes,
 so they reach the dashboard through the status webhook like any other. On an
 existing install, upgrade the module after updating:
 
@@ -327,7 +336,7 @@ unchanged. It reads the same `.env`, but three values mean something different i
 - `ODOO_URL` is set to `http://odoo:8069`, because inside the Compose network Odoo is reached by its
   service name, not by `localhost`.
 - Odoo reaches the engine at `http://engine:8000` on the Compose network, which is where
-  `scripts/set_odoo_webhook_param.py` points it. Start the engine in Docker (below) for the status
+  `scripts/set_odoo_webhook_param.py` points it. Start the engine in Docker for the status
   webhook to work from Odoo; if you run `uvicorn` on the host, set `ODOO_STATUS_WEBHOOK_URL` to an address
   Odoo's container can reach (for example `http://host.docker.internal:8000/webhook/odoo-status`).
 - `TRACE_FILE` must be a path the container's unprivileged user can write. A relative path such as
@@ -360,7 +369,9 @@ python eval/trace_summary.py path/to/traces.jsonl
 
 It prints the number of turns, mean and 95th percentile latency, mean tokens per turn, total and mean
 cost, the share of turns that used a failover and a retry round, and the cost per lead (the total cost
-of the turns in which `create_lead` succeeded, divided by their number). `eval/run_eval.py` writes the
+of the turns in which `create_lead` succeeded, divided by their number). When the traces carry a
+`chat_ref` it also prints conversation figures: the share of chats that stopped after one reply or
+reached a request, how often a person was asked for, and how often a button was tapped. `eval/run_eval.py` writes the
 same traces, so a smoke run (`EVAL_RECORD_LEADS=1 TRACE_FILE=... python eval/run_eval.py --domain cars
 --limit 3`) gives the figures without touching `eval/results`: a `--limit` run writes its partial
 results to a temp folder (it says where) and refuses `--results-dir eval/results`.
@@ -437,11 +448,14 @@ leads and conversations. See [dashboard/README.md](../dashboard/README.md) for h
 
 ## 10. Reproduce the evaluation
 
-The stack from the earlier steps must be running (Odoo with the seeded catalog) and `.env` must hold an
-OpenRouter or Mistral key. Pin one model so a failover cannot mix models in a run:
+The stack from the earlier steps must be running (Odoo with the seeded catalog) and `.env` must hold a
+model key. The latest results used NVIDIA's host. Use one provider and one model so a failover cannot mix
+models in a run:
 
 ```bash
-export OPENROUTER_MODELS=nvidia/nemotron-3-ultra-550b-a55b:free   # one model; its name is in every record
+export OPENROUTER_API_KEY= MISTRAL_API_KEY=                        # blank for this shell, so only NVIDIA is used
+export NVIDIA_MODEL=mistralai/mistral-large-4-1t-a52b              # one model; its name is in every record
+export LLM_REASONING_EFFORT=low LLM_TIMEOUT_SECONDS=120            # low effort as in the published runs; NVIDIA is slow
 export EVAL_RECORD_LEADS=1                                         # holds and leads are recorded, not executed
 R=.venv/Scripts/python.exe
 
@@ -474,7 +488,7 @@ held-out 36 + 30 cases x 5 repeats is about 660 calls; the dev sets (73 + 62 cas
 no-tools baseline about 165; a red-team arm is up to 2 calls per non-blocked attack attempt. All counted calls
 are written to `eval/results/call_ledger.json`, and `--max-calls` (default 4000) stops a run when reached.
 
-Free-tier caveat: the free OpenRouter models have per-minute and per-day request limits that differ by
+Free-tier caveat: NVIDIA's free host and the free OpenRouter models have request limits that differ by
 account and change without notice. The runner spaces calls (`--pace`, default 3 s), waits out a 429 for as long
 as the provider says, and stops cleanly, marking the file incomplete, when the daily allowance is gone.
 Run the same command the next day to continue. Latency and success vary between runs even at temperature 0.
@@ -492,7 +506,8 @@ python -m pytest engine/tests -q
 
 A bare `pytest` does the same (`pyproject.toml` limits it to `engine/tests`, so it does not try
 to collect `dashboard/tests/leads_ui_test.py`, which is a Playwright script that needs the
-dashboard and a staff login). On a clean checkout the result is all passed plus 21 skipped:
+dashboard and a staff login). On a clean checkout with `requirements-dev.txt` the result is all passed
+plus 25 skipped (21 if `requirements-tools.txt` is installed too):
 
 - 4 are the live-Odoo checks in `engine/tests/test_cars_adapter.py`: they call a running Odoo
   that holds the 350 seeded cars, and skip themselves when it is unreachable. Because
@@ -505,6 +520,8 @@ dashboard and a staff login). On a clean checkout the result is all passed plus 
   spare, then `LEADGATE_LIVE_STORE=1 python -m pytest engine/tests/test_store_contract.py` reads
   `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` from `.env`. It writes rows under random negative ids and
   deletes them afterwards.
+- 4 more need packages from `requirements-tools.txt`: three chart tests (`matplotlib`) and one migration
+  test (`psycopg2`).
 
 Coverage, from the same install: `python -m pytest --cov=engine`.
 

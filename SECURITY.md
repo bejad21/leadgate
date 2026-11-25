@@ -12,7 +12,7 @@ Anyone can message a public bot, so every message and every tool call passes che
 |---|---|
 | Input screening | Strips control characters, look-alike Unicode and chat-template tokens. Known injection phrasings get a fixed reply with no LLM call and never enter the chat history. |
 | Schema-checked tool calls | Each argument the model produces is validated against the tool's own argument model. Unknown tools and arguments are dropped, numbers are range-checked, strings are trimmed and capped. |
-| Verified leads | A lead's price is only recorded if a catalog item really has it. Three state-changing actions (lead, hold, viewing) per chat per hour, three tool calls per turn, and identical calls in one turn run once. |
+| Verified leads | A lead's price is only recorded if a catalog item really has it. Three state-changing actions (lead, hold, viewing) per chat per hour. Three tool calls per turn, plus one such action if searches used all three, and the same action asked twice in one turn runs once. |
 | Reply filter | Links are removed, replies that repeat the system prompt are replaced, and a blank reply is never sent. |
 | Retry safety | Telegram redeliveries are ignored, and a turn that fails is rolled back. If the assistant fails after creating a lead, the owner is still alerted and a resend gets the same lead. |
 | Contact safety | Customer contact details are parsed and matched exactly, capped, and escaped before they reach Odoo, the alert or the dashboard. A contact is only recorded if the customer typed it; an email or number the model supplies on its own is dropped. |
@@ -119,7 +119,8 @@ wraps the agent loop, and none of it depends on the model behaving.
    shown): unknown tools and unknown arguments are dropped, numbers are range-checked,
    whole-number fields such as an item id reject a fraction instead of rounding it, strings
    are trimmed to one line and length-capped, enums are enforced. A failed check becomes
-   an error result and the adapter is never called. At most three tool calls run per turn.
+   an error result and the adapter is never called. At most three tool calls run per turn,
+   plus one state-changing call if searches used all three.
 4. Lead, hold and viewing tools are limited to three per chat per hour, and identical writes
    within one turn run once. The price on a lead is only recorded if a catalog item of that domain
    has it (`create_verified_lead` in `engine/core/adapter_base.py`); otherwise the lead
@@ -134,9 +135,11 @@ wraps the agent loop, and none of it depends on the model behaving.
 This is tested two ways. `engine/tests/test_compromised_model.py` scripts a model that
 does everything an attacker wants in one turn (six leads at $1, an unknown tool, a
 negative number, a link, a prompt leak) and checks the guardrails hold, then runs the
-same attack with them off to show it succeeds. `eval/run_redteam.py` sends 38 adversarial
-messages through the webhook, with the live LLM and Odoo reads; pass criteria are string
-and structure checks instead of an LLM judge. Results are in `eval/REPORT.md`.
+same attack with them off to show it succeeds. `eval/run_redteam.py` sends hand-written
+attacks (73 for cars: 38 originals plus 35 rewordings, some in other languages or
+look-alike letters; 38 for real estate) through the webhook, with the live LLM and Odoo
+reads; pass criteria are string and structure checks instead of an LLM judge. Results are
+in `eval/REPORT.md`.
 
 **Conversation history survives restarts.** The last 20 turns of a chat are kept in a
 cache limited to 1000 chats (least recently used out) and rebuilt from the store's `chat_turns` table
@@ -215,6 +218,12 @@ the address and the secret still cannot act as the owner without controlling tha
 Nothing a customer sends is routed to it. Customer messages that look like owner commands
 (`/open`, button data) are ordinary text to the assistant, and the red-team set includes them.
 
+**Customer buttons.** A tap arrives on the same webhook, behind the same secret, rate limit
+and update-id check. Its data must match exactly one of the forms the engine itself writes
+(`engine/buttons.py`), a viewing day must fall inside the allowed window, and the item is read
+from the catalog again and must still be available. A tap that asks for a hold, viewing or
+callback only becomes a sentence that runs as a normal turn, so no button skips the rules above.
+
 **Usernames.** A customer's Telegram username becomes a link only if it matches Telegram's own
 pattern (5 to 32 letters, digits or underscores, starting with a letter), so a hostile name cannot
 turn "Open chat" into another address.
@@ -271,10 +280,12 @@ have to catch it.
 to answer the customer) is deleted by the engine's periodic purge after `LEAD_CHAT_RETENTION_DAYS`
 (180), and handled update ids after 7 days. Conversation text in `chat_turns` and `conversation_turns` has no such limit.
 
-**No data-residency guarantee from the free-tier LLM provider.** Every customer message
-is sent to OpenRouter's free tier (a rotating list of free models, set in
-`engine/config.py` or `OPENROUTER_MODELS`), with Mistral as a fallback. Neither the free-tier terms nor this project's configuration make any
-data-residency, retention, or no-training guarantee. A deployment handling customer
+**No data-residency guarantee from the LLM providers.** Every customer message is sent to
+a provider that has a key set, tried in this order (`engine/config.py`): NVIDIA's hosted
+API, then OpenRouter's free tier (a rotating list of free models, also settable with
+`OPENROUTER_MODELS`), then Mistral. After a failover the same message goes to the next
+provider too. This project does not establish any data-residency, retention, or
+no-training guarantee for any of them. A deployment handling customer
 conversations would need a paid tier with an explicit data-processing agreement
 before this is acceptable.
 
@@ -317,12 +328,12 @@ bad argument never reaches Odoo, a lead's price is only kept if the catalog has 
 leads are capped per chat. They do not stop the model from being steered into a valid
 but unwanted action, such as a search with odd filters or a lead carrying false customer
 details, and the phrase screen in front of the model is easy to word around. The
-red-team set is 38 hand-written attacks against one free-tier model, so a pass rate
-there says little about other models or attacks it does not contain.
+latest red-team run is hand-written attacks (73 for cars, 38 for real estate) against one
+model, `mistral-large-4` on NVIDIA's free host, so a pass rate there says little about
+other models or attacks it does not contain.
 
 **Negation-blind free-text matching in the eval harness.** Not a production security
-issue, but worth naming: `eval/metrics.py`'s free-text matcher checks for word overlap
-without checking for negation, so in principle a reply containing "not a cash buyer"
-could score as matching an expected value of "cash buyer." No case in the current
-93-case suite triggers this, but it is an unfixed gap in the harness. See
-`eval/REPORT.md` for the full account.
+issue, but worth naming: `free_text_matches` in `eval/rules.py` checks for word overlap
+without checking for negation, so in principle text containing "not a cash buyer"
+could score as matching an expected value of "cash buyer." It is an unfixed gap in the
+harness.

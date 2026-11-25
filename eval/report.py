@@ -225,7 +225,7 @@ def render_calls(root: Path) -> str:
     per_run = [budget.read_ledger(p).get("calls", 0) for p in sorted(Path(root).glob("ledgers-*/*.json"))]
     if per_run:
         text += (
-            f"\n\nRuns made in parallel on separate API keys each kept their own ledger in `eval/results/ledgers-*/`: "
+            f"\n\nRuns made in parallel each kept their own ledger in `eval/results/ledgers-*/`: "
             f"{len(per_run)} ledgers, **{sum(per_run)}** further calls in all."
         )
     return text

@@ -9,7 +9,7 @@ A Telegram assistant that answers customers from a catalog and hands serious buy
 
 ## Why
 
-Small sellers get the same questions all day and lose buyers who wait for a reply. LeadGate answers at once, only with facts from the catalog, and passes the buyer to a human with the chat attached. It is a personal project, not a production service.
+Small sellers get the same questions all day and lose buyers who wait for a reply. LeadGate answers at once from the catalog and passes the buyer to a human with the chat attached. It is a personal project, not a production service.
 
 ## Demo
 
@@ -31,30 +31,31 @@ flowchart LR
 
 1. A customer writes to the bot.
 2. The agent searches the catalog or creates a lead, using tools that talk to Odoo.
-3. It answers only from what the tool returned.
+3. It is instructed to answer only from what the tool returned.
 4. The owner gets an alert with buttons. Status changes in Odoo show on the dashboard within about a second.
 
 More detail: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## What it does
 
-- **Search** by make, model, price, year, mileage and place for cars, and by price for homes.
+- **Search** by make, model, price, year, mileage and place for cars, and by price, city or state for homes.
 - **Leads** go to Odoo with a contact, the chat source and the catalog item.
 - **Holds and viewings** are requests. The owner confirms them in Telegram.
 - **Owner alerts** with buttons to take, win, lose or reply to a lead.
 - **Buttons for the customer too.** A list of results comes with one button per item. Tapping an item shows it and offers Hold it, Book a viewing and Have someone call me. A viewing asks for the day and the part of the day with buttons. A tap never acts alone: it becomes the sentence the customer would have typed, so the name and contact are still asked for and every guard still runs.
 - **"The third one" means the third one.** The position is worked out in code from what the customer was shown, not left to the model.
+- **Held and sold items are never offered.** If a customer asks about one by car name or place, the assistant can say it is on hold or sold. When a customer asks in English whether an item is still available, the engine prompts the model to search again instead of relying on the earlier list.
 - **Live dashboard** with a key for every item, a staff-only Leads tab and the chat behind each lead.
 - **Works on different data.** Cars and real estate are two unrelated datasets with their own fields and filters. The agent code in `engine/core/` has no car or home words, so a new catalog needs only a small adapter, not a rewrite.
 
 ## Quick start
 
-You need Docker, Python 3.11+, Node.js, and free accounts for Telegram, Supabase, Kaggle and Mistral or OpenRouter.
+You need Docker, Python 3.11+, Node.js, and free accounts for Telegram, Supabase, Kaggle and one model provider (NVIDIA, OpenRouter or Mistral).
 
 ```bash
 cp .env.example .env            # fill it in
 docker compose up -d            # Postgres and Odoo
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-tools.txt   # the tools file is for the setup scripts
 python scripts/apply_migrations.py
 uvicorn engine.main:app         # the engine
 cd dashboard && npm install && npm run dev
@@ -90,7 +91,7 @@ Tested on cases written by separate agents from the README, tool list and catalo
 
 - **The "as measured" rows are the honest scores.** Fresh 6 and fresh 7 are different sets, so the rise is a trend, not a controlled comparison. Each failing run was read: on fresh 7 only one failure is a real mistake of the assistant (cars: "reserve the third one" held the fourth item in one of two runs). The rest were correct replies that the checker or a label marked wrong.
 - **Checker v4 was written after reading those failures**, so its row is not independent. It fixes misreads such as a reply that said "there are currently no Mach-E listed" being marked as not saying nothing was found. It moved 27 of 1,200 graded runs from fail to pass and none from pass to fail. A checker change is never counted as an engine gain. Details, every failure and what is still open: [eval/REPORT.md](eval/REPORT.md) under "Fresh 6 and fresh 7, and checker v4".
-- Real mistakes still open: a place name that the results did not contain (once), an availability search that sometimes leaves the place out. Position references ("the third one") are now resolved in code; that change and the buttons are checked by tests and by live conversations, not by a new blind set, so the fresh 7 numbers above do not include them (REPORT.md, "Conversation changes").
+- Real mistakes still open: a place name that the results did not contain (once), an availability search that sometimes leaves the place out, and a reply that asked which property but not for the customer's name. Position references ("the third one") are now resolved in code; that change and the buttons are checked by tests and by live conversations, not by a new blind set, so the fresh 7 numbers above do not include them (REPORT.md, "Conversation changes").
 
 **Earlier set (fresh 5), 100 cases each**
 
@@ -103,19 +104,18 @@ Tested on cases written by separate agents from the README, tool list and catalo
 - **Only the first row is close to a blind score.** Checker v3 was written on 2026-11-19 after reading the failures of these runs, so the other rows are not independent. Every number is the same stored replies graded again; nothing was re-run for v3. What changed in the checker, and the before and after for every run, is in [eval/REPORT.md](eval/REPORT.md) under "Checker v3".
 - **The NVIDIA row is a re-run, not a new blind test.** It uses the latest engine of that day. A first NVIDIA attempt scored 93.0% on cars and 87.5% on real estate under the same checker because of a bug in the test harness retry (a retried turn reused the failed attempt tool call, so correct answers counted as "no tool"). The bug is fixed and the whole set was run again. The first attempt files are kept.
 - A plain LLM with no tools passed about 25% of an earlier set. A keyword router passed about 45%.
-- **Red team (final engine, 2026-11-19):** 73 hand-written attacks on cars and 38 on real estate, 3 tries each. With the guardrails on, 3.7% of the cars runs and 6.1% of the real-estate runs were flagged; every flag was read by hand and was a refusal or a correctly capped action that a detector misread, and none created too many leads or holds, agreed a made-up price, sent a link or revealed the prompt. With every guardrail off, 17.4% of the cars runs were flagged. An earlier run the same day gave 5.5%, 20.1% and 11.4%.
-- **Tests:** 1,709 engine test cases (21 need live services and are skipped by default) and 32 dashboard tests.
+- **Red team (engine of 2026-11-19):** 73 hand-written attacks on cars and 38 on real estate, 3 tries each. With the guardrails on, 3.7% of the cars runs and 6.1% of the real-estate runs were flagged; every flag was read by hand and was a refusal or a correctly capped action that a detector misread, and none created too many leads or holds, agreed a made-up price, sent a link or revealed the prompt. With every guardrail off, 17.4% of the cars runs were flagged. An earlier run the same day gave 5.5%, 20.1% and 11.4%.
+- **Tests:** 1,731 engine tests and 32 dashboard tests. 21 engine tests need live services and are skipped by default; 4 more are skipped unless `requirements-tools.txt` is installed.
 
 Method, all sets and the known weak spots: [eval/REPORT.md](eval/REPORT.md).
 
 ## Limits
 
 - The test cases are hand-written, not real customer chats.
-- The scores come from one model family. The engine's default free models have not been scored.
+- All the results above were measured with one model, `mistral-large-4`. The other default models (the free OpenRouter list and `mistral-small`) have not been scored on the current engine, so these numbers do not carry over to them.
 - The two hosts differ slightly in how they serve the model, so their rows are listed separately and not merged.
 - The newest locked test parts were unseen for the engine that ran them, but later fixes were chosen from earlier parts' failures, and a human reviewed few of the labels. Checkers v3 and v4 were written after reading the failures of the runs they re-grade.
 - **Memory.** The assistant remembers the last 20 customer turns per chat, and rebuilds them from Supabase after a restart. Only the messages and replies are saved, not the search results behind them, so after a restart it searches again before it holds an item.
-- **On hold or sold.** A search for a named car (make or model) or a named place (city or state, for homes) also tells the assistant which matching items are on hold or sold, so it can say why one is missing. A question like "is it still available?" is always answered from a fresh search, never from the chat's memory of an older one.
 - **Tool calls.** A turn allows 3 searches and one hold, lead or viewing after them. A fourth search is refused.
 
 ## Project structure

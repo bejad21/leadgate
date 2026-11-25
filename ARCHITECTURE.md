@@ -12,7 +12,7 @@ flowchart LR
         WH["/webhook/telegram<br/>secret-token check, rate limit,<br/>retry dedupe, input screening"]
         STATUS["/webhook/odoo-status<br/>shared-secret check, body cap,<br/>validated event"]
         LOOP["agent_loop.run_turn()<br/>domain-agnostic tool-calling loop"]
-        LLM["LLMClient<br/>OpenRouter / Mistral"]
+        LLM["LLMClient<br/>NVIDIA / OpenRouter / Mistral"]
         ADAPT["DomainAdapter<br/>cars.py or real_estate.py<br/>(the only domain-specific code)"]
         WH --> LOOP
         LOOP --> LLM
@@ -120,14 +120,26 @@ updates), strips control characters and chat-template tokens from the text, caps
 length (2000 characters), and turns away messages that match known injection phrasings
 before any LLM call is made. Everything else goes to the agent loop.
 
+**Buttons and positions.** A reply that describes items carries one Telegram button per item
+(`engine/buttons.py`). A tap holds only an action and an item id; it is parsed strictly, counted
+by the same rate limit and update-id check, and the item is read from the catalog again, so one
+that has since been held or sold is not offered. Taps that only navigate (pick an item, pick a
+day) are answered from the catalog without the model. A tap that asks for a hold, viewing or
+callback becomes the sentence the customer would have typed and runs as a normal turn, so every
+rule still applies. When a customer says "the third one", `engine/core/references.py` works out
+the item from the order of the last list they were shown instead of leaving it to the model.
+
 **Agent loop, adapter, Odoo.** `engine/core/agent_loop.py` is the entire decision
 engine, and it has never seen the word "car" or "bedroom." It injects a domain-agnostic
 system prompt, sends the conversation plus whatever tool schemas the active adapter
 declares to the LLM, executes any tool call the model makes by calling
-`adapter.execute_tool(...)`, and, if the model called a tool, makes a second LLM call to
-turn the raw tool result into a grounded natural-language reply. If a call was rejected
-only for bad arguments and nothing was written yet, the model first gets one more round
-with tools to correct it, within the same three-call cap. `CarsAdapter` and
+`adapter.execute_tool(...)`, and, if the model called a tool, calls the LLM again to
+turn the raw tool result into a natural-language reply. While nothing has been written and
+no call has failed for any reason but bad arguments, the model can have up to two more rounds
+with tools (to correct a call, or to hold an item it has just found), within the same
+per-turn cap. A few rules run in code around the model: a hold, lead or viewing needs a name
+the customer wrote, a viewing needs a day and a time of day, and a reply that claims a
+request was passed on when nothing was created is corrected. `CarsAdapter` and
 `RealEstateAdapter` are the only two files that know their domain's vocabulary; each
 translates a tool call into an Odoo `search_read` domain filter or a `crm.lead` create.
 An adapter sets its `domain_type` and the `crm_tag` its leads get (a class without them is
@@ -143,12 +155,13 @@ knows nothing about cars or property. Each tool's arguments are a Pydantic model
 (`engine/core/tools.py`) that both generates the schema the LLM is shown and checks what
 the model sends back before an adapter sees it: unknown keys dropped, numbers coerced and
 range-checked (a fraction for a whole-number field is an error, not rounded), strings
-trimmed to one line and length-capped, enums enforced. A turn executes at most three tool calls, state-changing tools (lead, hold, viewing) are
-limited to three per chat per hour, and a lead's price is only recorded when a catalog item really has it. The
+trimmed to one line and length-capped, enums enforced. A turn runs at most three tool calls, plus one
+state-changing call (lead, hold, viewing) if searches used all three. Only one such action is allowed per
+message and three per chat per hour, and a lead's price is only recorded when a catalog item really has it. The
 final reply has links removed and is replaced outright if it repeats a chunk of the system
 prompt. The system prompt itself tells the model to treat customer text and tool results
-as data. `eval/run_redteam.py` attacks all of this with 38 adversarial messages and checks
-the outcome deterministically.
+as data. `eval/run_redteam.py` attacks all of this with hand-written attacks (73 for cars, 38 for
+real estate) and checks the outcome deterministically.
 
 **Conversation memory.** The last 20 turns of each chat live in an in-memory cache limited
 to 1000 chats (least recently used out). The durable copy is the store's `chat_turns` table

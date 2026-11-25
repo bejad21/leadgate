@@ -4,7 +4,7 @@ A tour of what LeadGate does, in the order a customer and an owner meet it: the 
 
 ## A conversation, end to end
 
-These are runs of the agent loop against the live Odoo instance and the live LLM (not the Telegram app itself; the Telegram webhook is a thin wrapper around this same loop). The catalog is seeded from listing datasets, so every car below exists in it.
+These are runs of the agent loop against the live Odoo instance and the live LLM (not the Telegram app itself; the Telegram webhook adds screening, buttons and chat memory around this same loop). The catalog is seeded from listing datasets, so every car below exists in it.
 
 **Customer:** Do you have any Toyota under 25000?
 
@@ -79,6 +79,10 @@ After an engine restart the new process has no memory of the chat in RAM, so it 
 >
 > Would you like more information on the Camry, or help with anything else?
 
+## Buttons and "the third one"
+
+In Telegram, a reply that lists cars or homes comes with one button per item. Tapping an item shows its details from the catalog with three choices: Hold it, Book a viewing and Have someone call me. A viewing asks for the day and the part of the day with more buttons. A tap that asks for something becomes the sentence the customer would have typed, so the assistant still asks for a name and a contact before it does anything. A customer can also type a position ("reserve the third one"); the engine works out which item that is from the last list they saw.
+
 ## What lands in Odoo
 
 The leads from those conversations show up in Odoo's CRM pipeline as regular opportunities, newest first:
@@ -133,7 +137,7 @@ Replying to an alert sends your text to the customer through the customer bot an
 
 A customer with a public Telegram username also gets an "Open chat" button on their alert, which opens their profile so you can message them from your own account.
 
-The assistant can do two things beyond creating a lead. A customer can ask it to hold a car, or to arrange a viewing on a day they pick. A hold takes the key off the board for 24 hours, and a scheduled job in Odoo puts it back if nobody confirms it. A viewing becomes a meeting on the lead for that day. Both are requests that a person confirms, and the assistant is told not to promise either. Because a hold changes the catalog, it reaches the dashboard the same way an Odoo change does. The price on these leads always comes from the catalog, never from the model or the customer.
+The assistant can do two things beyond creating a lead. A customer can ask it to hold a car, or to arrange a viewing on a day they pick. A hold marks the car as on hold for 24 hours (its tag flips on the board), and a scheduled job in Odoo makes it available again if nobody confirms it. A viewing becomes a meeting on the lead for that day. Both are requests that a person confirms, and the assistant is told not to promise either. Because a hold changes the catalog, it reaches the dashboard the same way an Odoo change does. The price on these leads always comes from the catalog, never from the model or the customer.
 
 ![Odoo lead form for a hold: the contact and phone, the Cars and Reservation tags, the salesperson, a call due today to confirm the hold, and the owner's Telegram reply in the chatter](screenshots/odoo-hold-lead.png)
 
