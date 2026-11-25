@@ -25,8 +25,9 @@ _PROVIDER_SETTINGS = {
     },
 }
 
-# Preference order when several LLM keys are present: OpenRouter first, then Mistral, then NVIDIA as fallbacks.
-_PROVIDER_PREFERENCE = ["OPENROUTER_API_KEY", "MISTRAL_API_KEY", "NVIDIA_API_KEY"]
+# Preference order when several LLM keys are present. NVIDIA is first because its default model is the one the
+# published eval results were measured with; OpenRouter and then Mistral are the fallbacks.
+_PROVIDER_PREFERENCE = ["NVIDIA_API_KEY", "OPENROUTER_API_KEY", "MISTRAL_API_KEY"]
 
 REQUIRED_VARS = [
     "ODOO_URL",
@@ -127,8 +128,8 @@ def configured_llm_models(config: dict) -> list[tuple[str, str]]:
 def get_llm_client(config: dict) -> ChatModel:
     """Build the language-model client from whichever provider keys are configured.
 
-    Each configured provider contributes its models in preference order (OpenRouter's list, then
-    Mistral, then NVIDIA). They are wrapped in a FailoverLLM, so a retired or rate-limited model hands over to
+    Each configured provider contributes its models in preference order (NVIDIA, then OpenRouter's
+    list, then Mistral). They are wrapped in a FailoverLLM, so a retired or rate-limited model hands over to
     the next instead of failing every customer message. With a single model the plain client is
     returned.
     """

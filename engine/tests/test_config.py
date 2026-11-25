@@ -1,3 +1,6 @@
+import re
+from pathlib import Path
+
 import pytest
 
 import engine.config as config_module
@@ -245,13 +248,22 @@ def test_nvidia_model_can_be_pinned_and_a_malformed_one_is_refused(monkeypatch):
         get_llm_client(load_config())
 
 
-def test_nvidia_is_the_last_fallback_after_openrouter_and_mistral(monkeypatch):
+def test_nvidia_is_tried_first_then_openrouter_then_mistral(monkeypatch):
     for key, value in BASE_ENV.items():
         monkeypatch.setenv(key, value)
     monkeypatch.setenv("MISTRAL_API_KEY", "test-mistral-key")
     monkeypatch.setenv("NVIDIA_API_KEY", "test-nvidia-key")
+    monkeypatch.setenv("OPENROUTER_MODELS", "vendor/a:free,vendor/b:free")
     names = [name for name, _ in configured_llm_models(load_config())]
-    assert names[0] == "OPENROUTER_API_KEY" and names[-2:] == ["MISTRAL_API_KEY", "NVIDIA_API_KEY"]
+    assert names == ["NVIDIA_API_KEY", "OPENROUTER_API_KEY", "OPENROUTER_API_KEY", "MISTRAL_API_KEY"]
+
+
+def test_env_example_ships_the_provider_keys_blank():
+    # A made-up placeholder counts as a configured key. The provider answers 401, which does not fail over,
+    # so an unused line left as copied would stop every reply.
+    text = (Path(__file__).resolve().parents[2] / ".env.example").read_text(encoding="utf-8")
+    for name in config_module.LLM_KEY_VARS:
+        assert re.search(rf"^{name}=[ \t]*$", text, flags=re.MULTILINE), name
 
 
 def test_a_short_telegram_webhook_secret_stops_the_engine_at_startup(monkeypatch):
