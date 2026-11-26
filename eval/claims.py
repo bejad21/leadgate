@@ -55,7 +55,9 @@ _DATE_RE = re.compile(  # a calendar date, whose year is not a model year
     re.IGNORECASE,
 )
 _HEDGE_BEFORE_COUNT = re.compile(r"(?:over|more than|at least|upwards of)\s*$", re.IGNORECASE)
-_PLACE_RE = re.compile(r"\b([A-Z][a-z]+(?:[ -][A-Z][a-z]+)*),\s*([A-Z]{2}\b|[A-Z][a-z]+(?: [A-Z][a-z]+)?)")
+# A town word, or an abbreviation that is part of a town's name ("Ft. Thomas", "Port St. Lucie").
+_TOWN_WORD = r"(?:(?:Ft|St|Mt)\.|[A-Z][a-z]+)"
+_PLACE_RE = re.compile(rf"\b({_TOWN_WORD}(?:[ -]{_TOWN_WORD})*),\s*([A-Z]{{2}}\b|[A-Z][a-z]+(?: [A-Z][a-z]+)?)")
 
 
 def _rows(tool_results: list, evidence_rows: list | None) -> list[dict]:
