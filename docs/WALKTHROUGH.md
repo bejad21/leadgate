@@ -81,7 +81,7 @@ After an engine restart the new process has no memory of the chat in RAM, so it 
 
 ## Buttons and "the third one"
 
-In Telegram, a reply that lists cars or homes comes with one button per item. Tapping an item shows its details from the catalog with three choices: Hold it, Book a viewing and Have someone call me. A viewing asks for the day and the part of the day with more buttons. A tap that asks for something becomes the sentence the customer would have typed, so the assistant still asks for a name and a contact before it does anything. A customer can also type a position ("reserve the third one"); the engine works out which item that is from the last list they saw.
+In Telegram, a reply that lists cars or homes comes with one button per item. Tapping an item shows its details from the catalog with three choices: Hold it, Book a viewing and Have someone call me. A viewing asks for the day and the part of the day with more buttons, and a viewing typed without a day gets the same day buttons. When a search finds more than five, a Next 5 button shows the following ones. A tap that asks for something becomes the sentence the customer would have typed, so the assistant still asks for a name and a contact before it does anything. A customer can also type a position ("reserve the third one"); the engine works out which item that is from the last list they saw.
 
 ## What lands in Odoo
 
@@ -130,6 +130,7 @@ The owner can act from Telegram without opening Odoo. The buttons under an alert
 | Contacted | Closes the call task and moves the lead to Qualified |
 | Lost | Archives the lead, and releases the item if it was a hold |
 | Reply | Opens a reply box, described below |
+| Block customer | Ignores that customer from then on, releases their holds and closes the lead; `/unblock 12` undoes it for lead 12 |
 
 A hold alert has "Mark sold" and "Release hold" instead. Marking it sold takes the key off the board and wins the lead. A viewing alert has "Confirm viewing", which tells the customer the day and time of day.
 

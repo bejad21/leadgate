@@ -12,11 +12,11 @@ Anyone can message a public bot, so every message and every tool call passes che
 |---|---|
 | Input screening | Strips control characters, look-alike Unicode and chat-template tokens. Known injection phrasings get a fixed reply with no LLM call and never enter the chat history. |
 | Schema-checked tool calls | Each argument the model produces is validated against the tool's own argument model. Unknown tools and arguments are dropped, numbers are range-checked, strings are trimmed and capped. |
-| Verified leads | A lead's price is only recorded if a catalog item really has it. Three state-changing actions (lead, hold, viewing) per chat per hour. Three tool calls per turn, plus one such action if searches used all three, and the same action asked twice in one turn runs once. |
+| Verified leads | A lead's price is only recorded if the catalog has it, on the item the lead names when it names one. Three state-changing actions (lead, hold, viewing) per chat per hour. Three tool calls per turn, plus one such action if searches used all three, and the same action asked twice in one turn runs once. |
 | Reply filter | Links are removed, replies that repeat the system prompt are replaced, and a blank reply is never sent. |
 | Retry safety | Telegram redeliveries are ignored, and a turn that fails is rolled back. If the assistant fails after creating a lead, the owner is still alerted and a resend gets the same lead. |
 | Contact safety | Customer contact details are parsed and matched exactly, capped, and escaped before they reach Odoo, the alert or the dashboard. A contact is only recorded if the customer typed it; an email or number the model supplies on its own is dropped. |
-| Bounded actions | One state-changing action per message, and three leads, holds or viewings per chat per hour. A hold lasts 24 hours, one customer can hold one item, and at most ten holds are active at once. The price always comes from the catalog. |
+| Bounded actions | One state-changing action per message, and three leads, holds or viewings per chat per hour. A hold lasts 24 hours, one customer (by contact) and one Telegram account can each hold one item, and at most ten holds are active at once. The owner can block a customer. The price always comes from the catalog. |
 | Untrusted catalog text | Whatever the catalog returns is cleaned before the model reads it: links, chat-template tokens and known injection phrasing are removed and long text is cut. |
 | Owner channel | The alert bot's webhook has its own secret and acts only on updates from the owner's chat. Nothing a customer sends can reach it. |
 
@@ -122,11 +122,12 @@ wraps the agent loop, and none of it depends on the model behaving.
    an error result and the adapter is never called. At most three tool calls run per turn,
    plus one state-changing call if searches used all three.
 4. Lead, hold and viewing tools are limited to three per chat per hour, and identical writes
-   within one turn run once. The price on a lead is only recorded if a catalog item of that domain
-   has it (`create_verified_lead` in `engine/core/adapter_base.py`); otherwise the lead
-   is flagged and the model is told not to repeat the price. This proves the price
-   exists in the catalog, not that it belongs to the item named on the lead, so a
-   customer can still attach a real price from a different item.
+   within one turn run once. The price on a lead is only recorded if a catalog item has it and,
+   when the lead's title names an item, the named item is one of those (`create_verified_lead` in
+   `engine/core/adapter_base.py`, and each adapter's `lead_names_item`: a car by its model and any
+   year written, a home by its city and any bedroom count written); otherwise the lead is flagged
+   and the model is told not to repeat the price. A title that names no item ("Listing") keeps any
+   catalog price, and two items that share a name (two Camrys of one year) cannot be told apart.
 5. The final reply has links removed (schemes, `mailto:`, `t.me`, hosts on any common TLD
    such as `evil.shop/pay` or `evil.co.uk`, and IP addresses with a path or port, while email
    addresses are kept), is replaced if it repeats a chunk of the system prompt, and is never
@@ -141,16 +142,17 @@ look-alike letters; 38 for real estate) through the webhook, with the live LLM a
 reads; pass criteria are string and structure checks instead of an LLM judge. Results are
 in `eval/REPORT.md`.
 
-**Conversation history survives restarts.** The last 20 turns of a chat are kept in a
-cache limited to 1000 chats (least recently used out) and rebuilt from the store's `chat_turns` table
-whenever a chat is not in the cache, for example after a restart. Stored turns are screened again on the way back in, so blocked turns, injections and links are never replayed. A turn that fails is rolled back so a retry
+**Conversation history survives restarts.** The last 20 turns of a chat are saved to the store after
+each delivered reply (`chat_state`) and read back before the next. A chat with no saved state is
+rebuilt from its turns in `chat_turns`. Stored turns are screened again on the way back in, so blocked turns, injections and links are never replayed. A turn that fails is rolled back so a retry
 does not stack duplicates, and Telegram redeliveries are ignored by `update_id`, including after a
 restart: the id is claimed with a single insert that ignores duplicates, so of two simultaneous deliveries
 exactly one runs.
 
 **The engine's own tables are closed to the browser.** `chat_turns`, `lead_chats`, `alert_messages`,
-`processed_updates`, `rate_limits` and `lead_flags` (`migrations/0003_engine_state.sql`) hold raw Telegram
-chat ids and message text. Row Level Security is on with no policy, the `anon` and `authenticated` roles
+`processed_updates`, `rate_limits` and `lead_flags` (`migrations/0003_engine_state.sql`), and `chat_state`
+and `blocked_chats` (`migrations/0006_shared_state_privacy_blocks.sql`), hold raw Telegram chat ids and
+message text. Row Level Security is on with no policy, the `anon` and `authenticated` roles
 have their table privileges revoked as well, and the two database functions the engine calls
 (`rate_limit_hit`, `purge_expired`) and the webhook's `apply_catalog_event` are executable by `service_role`
 only. `scripts/verify_leads_rls.py` checks all of this from each visitor's side.
@@ -224,6 +226,23 @@ and update-id check. Its data must match exactly one of the forms the engine its
 from the catalog again and must still be available. A tap that asks for a hold, viewing or
 callback only becomes a sentence that runs as a normal turn, so no button skips the rules above.
 
+**One hold per account, and a block list.** Odoo refuses a second active hold for the same keyed chat
+reference, whatever contact is typed, inside the same locked transaction as the other hold rules. The
+owner's "Block customer" button ignores that chat from then on (no reply, no model call), releases its
+holds and closes the lead; `/unblock <lead>` undoes it.
+
+**A limited Odoo account.** `scripts/create_odoo_engine_user.py` creates an account in the module's
+"LeadGate Engine" group: it can read the catalog, change only an item's status and hold fields (enforced in
+the model), and create and follow up leads and contacts. It cannot create, delete, rename or reprice items,
+manage users, read system parameters or install modules. The engine refuses to start with a default Odoo
+password (`admin`, `odoo`, `password`) unless `LEADGATE_ALLOW_DEFAULT_ODOO_PASSWORD=1`, and warns when it
+is configured to use `admin`.
+
+**Chat text has a deletion period and optional encryption.** The engine's purge deletes chat text older than
+`CHAT_TEXT_RETENTION_DAYS` (default 90) from `chat_turns`, `chat_state` and `conversation_turns`. With
+`CHAT_ENCRYPTION_KEY` set, `chat_turns` and `chat_state` hold ciphertext (Fernet), so a copy of the
+database alone does not show the chats.
+
 **Usernames.** A customer's Telegram username becomes a link only if it matches Telegram's own
 pattern (5 to 32 letters, digits or underscores, starting with a letter), so a hostile name cannot
 turn "Open chat" into another address.
@@ -245,17 +264,16 @@ definitions. The results are in the README. What remains possible is described n
 
 ## What a formal security review would still flag
 
-**A determined person can still tie up inventory.** Holds are limited per customer and
-overall, but a customer identity is an email or phone number that anyone can invent. Someone
-with many Telegram accounts could keep up to ten items on hold, renewing after each 24 hour
-lapse. The owner sees every hold and can release it, and lowering the
-`leadgate.max_active_holds` parameter shrinks the exposure. A real deployment would want
-verified contact details before a hold.
+**Someone with many accounts can still tie up inventory.** Holds are limited per contact, per Telegram
+account and overall, but both contacts and accounts can be made up. Someone with many Telegram accounts
+could keep up to ten items on hold, renewing after each 24 hour lapse, until the owner blocks them. Lowering
+`leadgate.max_active_holds` shrinks the exposure. A real deployment would want verified contact details
+before a hold.
 
-**Run one worker.** Update de-duplication and the rate limits are counted in the store, so workers share them.
-The chat cache and the rule that one chat's messages run one at a time are per process, so with two workers two
-messages of one chat could run side by side and one worker could answer from a history that is a turn behind.
-Hold limits are different: they are enforced inside Odoo and hold across any number of workers.
+**Several workers depend on the store.** With Supabase configured, workers share chats through a leased claim
+(see ARCHITECTURE.md). If the store is unreachable, or a turn runs longer than the 150 seconds another
+worker waits, two messages of one chat can run side by side. The engine refuses to start with more than one
+worker without a store. Hold limits are enforced inside Odoo and hold in every case.
 
 **Owner controls need the right chat id.** Buttons and replies work only from the owner's
 private chat with the alert bot, so `TELEGRAM_ALERTS_CHAT_ID` must be that chat's positive
@@ -268,17 +286,17 @@ chat with the customer is the reliable channel.
 
 **A hostile customer can still waste the owner's time.** Three leads an hour per chat is a
 limit per chat, and chats are free to create. Every lead is alerted, tagged and assigned.
-The alert bot cannot be muted per customer. Rate limiting by Telegram account and a block
-list are not built.
+The owner can block a chat, but only after it has made a lead, and a new account starts fresh.
 
 **The assistant's words are only filtered, not verified.** The reply filter removes links and
 prompt leaks, and tool results carry notes telling the model not to promise a hold or a time.
 A model can still say something inaccurate about what will happen next, and a reader would
 have to catch it.
 
-**The store keeps chat ids for 180 days.** The record of which chat a lead came from (needed
-to answer the customer) is deleted by the engine's periodic purge after `LEAD_CHAT_RETENTION_DAYS`
-(180), and handled update ids after 7 days. Conversation text in `chat_turns` and `conversation_turns` has no such limit.
+**What is kept, and for how long.** The record of which chat a lead came from (needed to answer the
+customer) is deleted after 180 days, handled update ids after 7 days and chat text after
+`CHAT_TEXT_RETENTION_DAYS` (default 90; 0 keeps it). The block list is kept until the owner unblocks.
+Leads, their contact details and their copies in Odoo are not purged.
 
 **No data-residency guarantee from the LLM providers.** Every customer message is sent to
 a provider that has a key set, tried in this order (`engine/config.py`): NVIDIA's hosted
@@ -294,33 +312,20 @@ either way, but there is no reason for strangers to be able to register. Turn of
 users to sign up" in the Supabase dashboard. This project cannot do it for you without an
 access token it does not hold.
 
-**Conversation text is stored in plaintext with no retention limit.** Messages sit in
-Supabase (`chat_turns` and `conversation_turns`) for as long as you keep them. A real deployment would decide how long
-to keep customer messages and delete on request.
+**The dashboard's copy of conversations is not encrypted.** `conversation_turns` is read by the browser, which
+holds no key, so it stays readable to staff accounts and to anyone with the database. `chat_turns` and
+`chat_state` are plaintext too unless `CHAT_ENCRYPTION_KEY` is set. Deleting one customer's data on request
+is not built; only the age-based purge is.
 
 **No authentication on the eval or seed scripts' outputs.** `eval/results/*.json` and
 the seeded catalog data are plain files with no access control beyond the filesystem;
 this is fine for a portfolio artifact but would not be an acceptable pattern for a real
 evaluation pipeline touching real customer transcripts.
 
-**Single points of trust.** The Odoo `admin`/`admin` credentials used throughout local
-setup are development defaults, documented as such, and never intended to survive
-contact with a real deployment, but there is currently no automated check that stops
-someone from running this in a less-trusted environment with those defaults still in
-place.
-
-**The engine authenticates to Odoo entirely as the `admin` service account.**
-`engine/main.py`'s `_get_adapter()` builds a single `OdooClient` from
-`ODOO_URL`/`ODOO_DB`/`ODOO_USER`/`ODOO_PASSWORD`, and every deployment documented in
-`.env.example` and `docs/SETUP.md` configures `ODOO_USER=admin`. There is no separate, scoped service user
-with just the permissions the engine actually needs (read/write on
-`leadgate.catalog.item`, create on `crm.lead`); the engine's XML-RPC calls run with
-full admin rights on the whole Odoo database, identical to a human logging into the
-Odoo UI as `admin`. A compromise of the engine process, or a bug in either adapter that
-lets a caller influence which model or method gets called, would carry the full blast
-radius of an Odoo admin session, not a narrowly scoped one. A production deployment
-should create a dedicated Odoo user with access rules restricted to exactly the models
-and operations the two adapters use, and authenticate as that user instead.
+**The engine's account can still read and edit the CRM.** The limited account is in Odoo's own groups for
+sales (all leads) and contact creation, so a compromised engine could read and change leads and contacts. It
+could also mark items sold. Setup scripts still need the administrator's password; keep it out of the
+engine's environment.
 
 **Prompt-injection defenses are layered, not proven.** The controls under "What's
 covered" limit the worst outcomes in code, whatever the model says: a

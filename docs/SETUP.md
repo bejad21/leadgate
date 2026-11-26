@@ -18,6 +18,19 @@ project is and what it looks like running, see the [README](../README.md).
 - A way to expose `localhost:8000` publicly for Telegram's webhook. [`cloudflared`](https://github.com/cloudflare/cloudflared)'s free, account-less quick
   tunnel works, no sign-up needed
 
+## Upgrading an existing install
+
+Do these in order before starting the new engine:
+
+1. `pip install -r requirements.txt` (adds `cryptography`).
+2. `python scripts/apply_migrations.py` (adds `0006`).
+3. Upgrade the Odoo module and restart Odoo (the commands are under "The catalog inside Odoo" in Step 6).
+4. Create the engine's account (Step 5): set a new `ODOO_USER` and `ODOO_PASSWORD`, put the administrator's in
+   `ODOO_ADMIN_USER` and `ODOO_ADMIN_PASSWORD`, run `python scripts/create_odoo_engine_user.py`, and set
+   `ODOO_SALESPERSON_LOGIN`. An engine still configured with the password `admin` will not start.
+5. Chat text older than `CHAT_TEXT_RETENTION_DAYS` (default 90) is deleted at the next start. Set it to `0`
+   first if you want to keep it.
+
 ## 1. Configure environment variables
 
 ```bash
@@ -26,8 +39,16 @@ cp .env.example .env
 
 Fill in `.env`. `.env.example` documents the baseline set:
 
-- `ODOO_URL`, `ODOO_DB`, `ODOO_USER`, `ODOO_PASSWORD`: Odoo connection (defaults work
-  for the local Docker setup below: `http://localhost:8069`, `leadgate`, `admin`/`admin`)
+- `ODOO_URL`, `ODOO_DB`: where Odoo is (`http://localhost:8069` and `leadgate` for the local Docker
+  setup below)
+- `ODOO_USER`, `ODOO_PASSWORD`: the engine's own limited account (`leadgate-engine` and a password of at
+  least 16 characters that you choose; Step 5 creates it). The engine refuses a default password
+- `ODOO_ADMIN_USER`, `ODOO_ADMIN_PASSWORD`: the administrator, used only by the setup scripts
+- `CHAT_ENCRYPTION_KEY` (optional): encrypts the chat text in the engine's own tables. Make one with
+  `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` and keep it
+  safe; without it the stored text cannot be read
+- `CHAT_TEXT_RETENTION_DAYS` (optional, default 90): chat text older than this is deleted; 0 keeps it
+- `WEB_CONCURRENCY` (optional, default 1): engine worker processes. More than 1 needs Supabase
 - `ODOO_TIMEOUT_SECONDS` (optional): how long a call to Odoo may wait before it fails.
   Defaults to 30
 - `NVIDIA_API_KEY`, `OPENROUTER_API_KEY` and/or `MISTRAL_API_KEY`: at least one is required; leave the
@@ -126,16 +147,16 @@ docker compose exec odoo odoo -d leadgate --db_host=postgres --db_user=<POSTGRES
 ```
 
 The CLI-created database has no usable admin password yet. Set one via `odoo shell`
-(open a Python shell against the running container and run):
+(open a Python shell against the running container and run), with a password of your own:
 
 ```python
 user = env['res.users'].browse(2)
-user.write({'login': 'admin', 'password': 'admin', 'email': 'admin@leadgate.local'})
+user.write({'login': 'admin', 'password': '<your admin password>', 'email': 'admin@leadgate.local'})
 env.cr.commit()
 ```
 
-Confirm Odoo is reachable at `http://localhost:8069` and you can log in with
-`admin`/`admin` (or whatever you set).
+Put that password in `.env` as `ODOO_ADMIN_PASSWORD`, and confirm you can log in at
+`http://localhost:8069`.
 
 ## 4. Install Python dependencies
 
@@ -170,9 +191,19 @@ python data/prepare_real_estate.py    # downloads ahmedshahriarsakib/usa-real-es
 python data/seed_odoo.py              # bulk-creates leadgate.catalog.item records from both CSVs via XML-RPC
 ```
 
-`seed_odoo.py` reads `ODOO_URL`/`ODOO_DB`/`ODOO_USER`/`ODOO_PASSWORD` from `.env` and
+`seed_odoo.py` reads `ODOO_URL`, `ODOO_DB` and the administrator's credentials from `.env` and
 creates one record per CSV row (`domain_type="cars"` or `"real_estate"`), with every
 column besides `price` packed into a JSON `attributes` field.
+
+Then create the engine's limited account (the `ODOO_USER` and `ODOO_PASSWORD` in `.env`):
+
+```bash
+python scripts/create_odoo_engine_user.py
+```
+
+Set `ODOO_SALESPERSON_LOGIN` to the person leads should go to, for example `admin`. On an existing
+install, upgrade the module first (see "The catalog inside Odoo" below). Running the script again resets
+the account's password and groups.
 
 ## 6. Create the Supabase tables and connect Odoo to the engine
 
@@ -202,6 +233,9 @@ safe on a project that already has the tables. They create:
 - `0004`: `public.apply_catalog_event`, the function the status webhook calls (below).
 - `0005`: a fix to the rate-limit function from `0003`, which Postgres refused to run because a variable and a
   column had the same name.
+- `0006`: `chat_state` (each chat's saved history and which worker is answering it), `blocked_chats` (the
+  owner's block list), and a purge that also deletes old chat text. Apply it before starting this version of
+  the engine.
 
 ### How a status change reaches the dashboard
 
@@ -283,8 +317,8 @@ bar. Change a status there and the dashboard updates.
 
 The module also handles holds. When the assistant holds an item for a customer, Odoo
 checks and records it in one transaction: an item can only be held once, one customer can
-hold one item, and no more than ten holds can be active at a time (change the limit with
-the system parameter `leadgate.max_active_holds`). A scheduled job runs every five minutes
+hold one item, one Telegram account can hold one item, and no more than ten holds can be active at a time
+(change the limit with the system parameter `leadgate.max_active_holds`). A scheduled job runs every five minutes
 and makes items with lapsed holds available again. Both the hold and the release are status changes,
 so they reach the dashboard through the status webhook like any other. On an
 existing install, upgrade the module after updating:
@@ -414,7 +448,8 @@ engine, and register the alert bot:
 python -m engine.register_alert_webhook https://<random-words>.trycloudflare.com
 ```
 
-Press a button under an alert, or reply to one, and the engine handles it. Only updates from your own chat are acted on. `python -m engine.register_alert_webhook --remove` takes
+Press a button under an alert, or reply to one, and the engine handles it. "Block customer" ignores that
+customer from then on, releases their holds and closes the lead; send `/unblock <lead number>` to undo it. Only updates from your own chat are acted on. `python -m engine.register_alert_webhook --remove` takes
 the webhook off again. A quick tunnel gets a new address every time it restarts, so run
 the command again after restarting it.
 
@@ -507,17 +542,18 @@ python -m pytest engine/tests -q
 A bare `pytest` does the same (`pyproject.toml` limits it to `engine/tests`, so it does not try
 to collect `dashboard/tests/leads_ui_test.py`, which is a Playwright script that needs the
 dashboard and a staff login). On a clean checkout with `requirements-dev.txt` the result is all passed
-plus 25 skipped (21 if `requirements-tools.txt` is installed too):
+plus 30 skipped (26 if `requirements-tools.txt` is installed too):
 
 - 4 are the live-Odoo checks in `engine/tests/test_cars_adapter.py`: they call a running Odoo
   that holds the 350 seeded cars, and skip themselves when it is unreachable. Because
   `conftest.py` points `ODOO_URL` at `http://odoo.test`, they skip on every run; to run them, set
   `ODOO_URL`, `ODOO_DB`, `ODOO_USER` and `ODOO_PASSWORD` in `SAFE_VALUES` to your local Odoo for
   that one run, and do not commit the change.
-- 17 are `engine/tests/test_store_contract.py` run against a real Supabase project. The same contract
+- 22 are the storage contract (`engine/tests/test_store_contract.py` and the shared-state
+  tests in `test_shared_state_and_privacy.py`) run against a real Supabase project. The same contract
   tests always run against the in-memory store and against `SupabaseStore` talking to an in-process
   stand-in for Supabase's REST interface. For a live run, apply the migrations to a project you can
-  spare, then `LEADGATE_LIVE_STORE=1 python -m pytest engine/tests/test_store_contract.py` reads
+  spare, then `LEADGATE_LIVE_STORE=1 python -m pytest engine/tests/test_store_contract.py engine/tests/test_shared_state_and_privacy.py` reads
   `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` from `.env`. It writes rows under random negative ids and
   deletes them afterwards.
 - 4 more need packages from `requirements-tools.txt`: three chart tests (`matplotlib`) and one migration

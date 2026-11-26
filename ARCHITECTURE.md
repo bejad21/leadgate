@@ -126,8 +126,17 @@ by the same rate limit and update-id check, and the item is read from the catalo
 that has since been held or sold is not offered. Taps that only navigate (pick an item, pick a
 day) are answered from the catalog without the model. A tap that asks for a hold, viewing or
 callback becomes the sentence the customer would have typed and runs as a normal turn, so every
-rule still applies. When a customer says "the third one", `engine/core/references.py` works out
-the item from the order of the last list they were shown instead of leaving it to the model.
+rule still applies. A viewing typed without a day gets the same day buttons. A list longer than
+five has a "Next 5" button: the tap carries an offset and a short key of the search, and the
+engine runs that search again without the model (`engine/core/paging.py`), so a button from an
+older search is refused. When a customer says "the third one", `engine/core/references.py` works
+out the item from the order of the last list they were shown instead of leaving it to the model.
+
+**Several workers.** A chat is answered by one turn at a time. Inside a process an asyncio lock
+orders the turns; across processes each turn claims the chat in the store (`claim_chat`, a lease
+that is renewed while the turn runs and lapses if the worker dies). The chat's history, search
+results included, is saved to the store after each delivered reply and read back before the next,
+so any worker can continue any chat. If the store cannot be reached the turn runs without the claim.
 
 **Agent loop, adapter, Odoo.** `engine/core/agent_loop.py` is the entire decision
 engine, and it has never seen the word "car" or "bedroom." It injects a domain-agnostic
@@ -163,23 +172,25 @@ prompt. The system prompt itself tells the model to treat customer text and tool
 as data. `eval/run_redteam.py` attacks all of this with hand-written attacks (73 for cars, 38 for
 real estate) and checks the outcome deterministically.
 
-**Conversation memory.** The last 20 turns of each chat live in an in-memory cache limited
-to 1000 chats (least recently used out). The durable copy is the store's `chat_turns` table
-in Supabase Postgres: when a chat is not in the cache, for example after a restart, its recent
-turns are read back before the reply is generated. Turns that the injection screen blocked
-are kept for the record but never replayed.
+**Conversation memory.** The last 20 turns of each chat are kept in the store's `chat_state` table
+in Supabase Postgres, with an in-memory cache of up to 1000 chats (least recently used out). A
+chat with no saved state is rebuilt from the text of its turns in `chat_turns`. Turns that the
+injection screen blocked are kept for the record but never replayed. Chat text older than
+`CHAT_TEXT_RETENTION_DAYS` (default 90) is deleted by the engine's periodic purge, and with
+`CHAT_ENCRYPTION_KEY` set `chat_turns` and `chat_state` hold ciphertext (`engine/crypto.py`).
 
 **The store.** `engine/store.py` is one small interface (`Store`) with two implementations: `SupabaseStore`,
 which talks to Supabase's REST interface with the service key, and `InMemoryStore`, which tests use and
 which an engine started without `SUPABASE_URL` falls back to (it says so in the log and forgets
 everything on restart). Plain `httpx`, already a dependency, is enough; no database driver is added to the
-engine. What it holds: each chat's turns, which chat each lead came from, which alert message belongs to
-which lead, the update ids already handled, the rate-limit counters, and per-lead flags. Anything that must
+engine. What it holds: each chat's turns and saved state, which chat each lead came from, which alert message
+belongs to which lead, the update ids already handled, the rate-limit counters, per-lead flags and the block
+list. Anything that must
 happen once is one statement that decides atomically: handling an update inserts its id with `ON CONFLICT DO
 NOTHING` and the caller that inserted the row wins, and a rate-limit hit is a database function that
 increments and returns the new count. Nothing reads first and writes after. The tables are created by
-`migrations/0003_engine_state.sql` with Row Level Security on and no policy, so only the service key can
-touch them. If Supabase cannot be reached, a turn does not fail: history starts empty, an in-memory check
+`migrations/0003_engine_state.sql` and `0006_shared_state_privacy_blocks.sql` with Row Level Security on
+and no policy, so only the service key can touch them. If Supabase cannot be reached, a turn does not fail: history starts empty, an in-memory check
 still drops a repeated update id, the rate limit is counted in memory, and `GET /ready` reports the store
 down. After a failed call the store is not tried again for ten seconds, so an outage costs a customer one
 timeout, not one per call.

@@ -41,8 +41,8 @@ More detail: [ARCHITECTURE.md](ARCHITECTURE.md).
 - **Search** by make, model, price, year, mileage and place for cars, and by price, city or state for homes.
 - **Leads** go to Odoo with a contact, the chat source and the catalog item.
 - **Holds and viewings** are requests. The owner confirms them in Telegram.
-- **Owner alerts** with buttons to take, win, lose or reply to a lead.
-- **Buttons for the customer too.** A list of results comes with one button per item. Tapping an item shows it and offers Hold it, Book a viewing and Have someone call me. A viewing asks for the day and the part of the day with buttons. A tap never acts alone: it becomes the sentence the customer would have typed, so the name and contact are still asked for and every guard still runs.
+- **Owner alerts** with buttons to take, win, lose or reply to a lead, or to block a customer.
+- **Buttons for the customer too.** A list of results comes with one button per item. Tapping an item shows it and offers Hold it, Book a viewing and Have someone call me. A viewing asks for the day and the part of the day with buttons, also when the customer types the request without a day. A long list has a Next 5 button. A tap that asks for something never acts alone: it becomes the sentence the customer would have typed, so the name and contact are still asked for and every guard still runs.
 - **"The third one" means the third one.** The position is worked out in code from what the customer was shown, not left to the model.
 - **Held and sold items are never offered.** If a customer asks about one by car name or place, the assistant can say it is on hold or sold. When a customer asks in English whether an item is still available, the engine prompts the model to search again instead of relying on the earlier list.
 - **Live dashboard** with a key for every item, a staff-only Leads tab and the chat behind each lead.
@@ -73,7 +73,7 @@ The agent called `create_lead(...)`. The lead shows in Odoo and on the dashboard
 
 ## Safety
 
-Anyone can message a public bot, so the limits are in code and do not rely on the model behaving. They include input screening, checked tool arguments, prices checked against the catalog, per-chat limits, no links in replies, and an owner channel that only accepts the owner.
+Anyone can message a public bot, so the limits are in code and do not rely on the model behaving. They include input screening, checked tool arguments, a lead price checked against the item the lead names, per-chat limits, one active hold per Telegram account, a block list for the owner, no links in replies, and an owner channel that only accepts the owner. The engine logs into Odoo with a limited account, chat text is deleted after 90 days, and the engine's own tables can be encrypted.
 
 Prompt injection cannot be fully solved. At worst, a hijacked assistant places a few leads or holds on real items at their catalog price, and a person confirms each one. It cannot edit a lead, reach the owner's buttons or mark anything sold. See [SECURITY.md](SECURITY.md).
 
@@ -91,7 +91,7 @@ Tested on cases written by separate agents from the README, tool list and catalo
 
 - **The "as measured" rows are the honest scores.** Fresh 6 and fresh 7 are different sets, so the rise is a trend, not a controlled comparison. Each failing run was read: on fresh 7 only one failure is a real mistake of the assistant (cars: "reserve the third one" held the fourth item in one of two runs). The rest were correct replies that the checker or a label marked wrong.
 - **Checker v4 was written after reading those failures**, so its row is not independent. It fixes misreads such as a reply that said "there are currently no Mach-E listed" being marked as not saying nothing was found. It moved 27 of 1,200 graded runs from fail to pass and none from pass to fail. A checker change is never counted as an engine gain. Details, every failure and what is still open: [eval/REPORT.md](eval/REPORT.md) under "Fresh 6 and fresh 7, and checker v4".
-- Real mistakes still open: a place name that the results did not contain (once), an availability search that sometimes leaves the place out, and a reply that asked which property but not for the customer's name. Position references ("the third one") are now resolved in code; that change and the buttons are checked by tests and by live conversations, not by a new blind set, so the fresh 7 numbers above do not include them (REPORT.md, "Conversation changes").
+- **Since these runs:** an availability search that left the place out and a call request that did not ask for the name are now handled in code, as are position references ("the third one"). They are checked by tests and live runs, not by a new blind set, so the numbers above do not include them. The one "invented place" in these runs turned out to be a checker misread of "Ft. Thomas" (REPORT.md, "Checker v5").
 
 **Earlier set (fresh 5), 100 cases each**
 
@@ -105,7 +105,7 @@ Tested on cases written by separate agents from the README, tool list and catalo
 - **The NVIDIA row is a re-run, not a new blind test.** It uses the latest engine of that day. A first NVIDIA attempt scored 93.0% on cars and 87.5% on real estate under the same checker because of a bug in the test harness retry (a retried turn reused the failed attempt tool call, so correct answers counted as "no tool"). The bug is fixed and the whole set was run again. The first attempt files are kept.
 - A plain LLM with no tools passed about 25% of an earlier set. A keyword router passed about 45%.
 - **Red team (engine of 2026-11-19):** 73 hand-written attacks on cars and 38 on real estate, 3 tries each. With the guardrails on, 3.7% of the cars runs and 6.1% of the real-estate runs were flagged; every flag was read by hand and was a refusal or a correctly capped action that a detector misread, and none created too many leads or holds, agreed a made-up price, sent a link or revealed the prompt. With every guardrail off, 17.4% of the cars runs were flagged. An earlier run the same day gave 5.5%, 20.1% and 11.4%.
-- **Tests:** 1,731 engine tests and 32 dashboard tests. 21 engine tests need live services and are skipped by default; 4 more are skipped unless `requirements-tools.txt` is installed.
+- **Tests:** 1,876 engine tests and 32 dashboard tests. 26 engine tests need live services and are skipped by default; 4 more are skipped unless `requirements-tools.txt` is installed.
 
 Method, all sets and the known weak spots: [eval/REPORT.md](eval/REPORT.md).
 
@@ -115,7 +115,8 @@ Method, all sets and the known weak spots: [eval/REPORT.md](eval/REPORT.md).
 - All the results above were measured with one model, `mistral-large-4`. The other default models (the free OpenRouter list and `mistral-small`) have not been scored on the current engine, so these numbers do not carry over to them.
 - The two hosts differ slightly in how they serve the model, so their rows are listed separately and not merged.
 - The newest locked test parts were unseen for the engine that ran them, but later fixes were chosen from earlier parts' failures, and a human reviewed few of the labels. Checkers v3 and v4 were written after reading the failures of the runs they re-grade.
-- **Memory.** The assistant remembers the last 20 customer turns per chat, and rebuilds them from Supabase after a restart. Only the messages and replies are saved, not the search results behind them, so after a restart it searches again before it holds an item.
+- **Memory.** The assistant remembers the last 20 customer turns per chat, search results included. With Supabase they survive a restart and are shared by several engine workers; without it they live in memory only.
+- **Holds and accounts.** One Telegram account can hold one item, but someone with many accounts can still hold up to the overall limit of ten. The owner can release and block.
 - **Tool calls.** A turn allows 3 searches and one hold, lead or viewing after them. A fourth search is refused.
 
 ## Project structure
