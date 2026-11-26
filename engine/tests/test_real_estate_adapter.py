@@ -56,7 +56,9 @@ def test_search_listings_without_price_max_omits_price_filter():
 def test_create_lead_calls_odoo_create_with_crm_lead():
     mock_odoo = MagicMock()
     # Only the catalog check finds anything; contact, source and tag lookups come back empty.
-    mock_odoo.search_read.side_effect = lambda model, domain, fields: [{"id": 1}] if model == "leadgate.catalog.item" else []
+    mock_odoo.search_read.side_effect = lambda model, domain, fields: (
+        [{"name": "Toyota Corolla", "attributes": "{}"}] if model == "leadgate.catalog.item" else []
+    )
     mock_odoo.create.side_effect = [10, 11, 12, 55]  # partner, source, tag, lead
 
     adapter = RealEstateAdapter(mock_odoo)
@@ -146,7 +148,7 @@ def test_lead_price_is_kept_when_it_matches_a_catalog_item():
     from engine.adapters.real_estate import RealEstateAdapter
 
     odoo = MagicMock()
-    odoo.search_read.return_value = [{"id": 1}]
+    odoo.search_read.return_value = [{"name": "X", "attributes": "{}"}]  # the item the lead names
     odoo.create.return_value = 9
     RealEstateAdapter(odoo).execute_tool("create_lead", {"name": "X", "customer_name": "Sam", "price": 21834})
     verify_domain = [c[0][1] for c in odoo.search_read.call_args_list if c[0][0] == "leadgate.catalog.item"][0]
@@ -190,7 +192,7 @@ def test_lead_result_marks_a_verified_price():
     from engine.core.adapter_base import create_verified_lead
 
     odoo = MagicMock()
-    odoo.search_read.return_value = [{"id": 1}]
+    odoo.search_read.return_value = [{"name": "X", "attributes": "{}"}]  # the item the lead names
     odoo.create.return_value = 9
     result = create_verified_lead(odoo, "cars", {"name": "X", "customer_name": "Sam", "price": 21834}, crm_tag="Cars")
     assert result == {"lead_id": 9}

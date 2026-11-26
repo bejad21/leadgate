@@ -7,9 +7,11 @@ import logging
 import os
 import threading
 import time
+import uuid
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+from typing import cast
 
 from fastapi import BackgroundTasks, FastAPI, Request, Response
 from fastapi.responses import JSONResponse
@@ -21,7 +23,15 @@ from engine.adapters import ADAPTERS
 from engine.config import LLM_KEY_VARS, configured_llm_models, get_llm_client, load_config, webhook_secret_problem
 from engine.core.actions import VIEWING_WINDOW_DAYS
 from engine.core.agent_loop import PROMPT_VERSION, SYSTEM_PROMPT, AgentTurnResult, run_turn
-from engine.core.guardrails import INJECTION_REFUSAL, filter_reply, is_injection_attempt, sanitize_user_text
+from engine.core.guardrails import (
+    INJECTION_REFUSAL,
+    filter_reply,
+    is_injection_attempt,
+    sanitize_tool_result,
+    sanitize_user_text,
+)
+from engine.core.paging import OFFSET_ARGUMENT, PAGE_SIZE, latest_search, next_page, search_key
+from engine.core.tools import parse_tool_args
 from engine.leads import extract_leads
 from engine.llm_client import Sampling
 from engine.notifier import deliver_lead_alert
@@ -64,7 +74,13 @@ async def lifespan(_app):
     Sampling.from_env()  # a bad LLM_* value stops the engine here, not on the first customer message
     logging_setup.configure_logging()
     tracing.check_trace_file()
-    store_module.get_store()  # a bad SUPABASE_URL stops the engine here, not on the first customer message
+    store_module.text_retention_days()  # a bad deletion period stops the engine here
+    store = store_module.get_store()  # a bad SUPABASE_URL or encryption key stops the engine here
+    if _workers() > 1 and isinstance(store, store_module.InMemoryStore):
+        raise RuntimeError(
+            "WEB_CONCURRENCY is above 1 but SUPABASE_URL and SUPABASE_SERVICE_KEY are not set. Workers share chats "
+            "through the store; run one worker without it."
+        )
     if os.environ.get("TELEGRAM_ALERTS_BOT_TOKEN"):
         problem = owner_chat_id_problem(os.environ.get("TELEGRAM_ALERTS_CHAT_ID"))
         if problem:
@@ -111,9 +127,23 @@ SEEN_UPDATES_MAX = 2000
 _seen_owner_updates: OrderedDict[int, None] = OrderedDict()
 _seen_lock = threading.Lock()
 
-# One turn at a time per chat: the history list and the rollback in the webhook assume it. Entries
-# exist only while a chat has a turn running or waiting, so the registry cannot outgrow the traffic.
+# One turn at a time per chat: the history list and the rollback in the webhook assume it. Inside one process an
+# asyncio lock orders the turns; across workers a claim in the store does. Entries exist only while a chat has a turn
+# running or waiting, so the registry cannot outgrow the traffic.
 _chat_locks: dict[int, list] = {}
+_WORKER_ID = uuid.uuid4().hex[:12]
+# A claim lasts this long and is renewed while the turn runs, so a worker that dies frees its chats soon.
+CHAT_LEASE_SECONDS = 120
+# The longest a turn waits for another worker before it goes ahead anyway: silence would read as "the bot is dead".
+CHAT_LEASE_WAIT_SECONDS = 150
+CHAT_LEASE_POLL_SECONDS = 0.25
+# Chats whose last state could not be saved: the copy in memory is newer than the stored one until a save works.
+_unsaved_chats: set[int] = set()
+
+
+def _workers() -> int:
+    raw = (os.environ.get("WEB_CONCURRENCY") or "1").strip()
+    return int(raw) if raw.isdigit() else 1
 
 
 @asynccontextmanager
@@ -124,11 +154,52 @@ async def _chat_turn(chat_id: int):
     entry[1] += 1
     try:
         async with entry[0]:
-            yield
+            async with _chat_lease(chat_id):
+                yield
     finally:
         entry[1] -= 1
         if entry[1] == 0:
             del _chat_locks[chat_id]
+
+
+@asynccontextmanager
+async def _chat_lease(chat_id: int):
+    """Hold the store's claim on this chat for the turn. If the store cannot be asked, the turn runs without it."""
+    owner = f"{_WORKER_ID}:{uuid.uuid4().hex[:8]}"
+    store = store_module.get_store()
+
+    async def claim() -> bool:
+        return await run_in_threadpool(store.claim_chat, chat_id, owner, CHAT_LEASE_SECONDS)
+
+    async def keep() -> None:
+        while True:
+            await asyncio.sleep(CHAT_LEASE_SECONDS / 4)
+            try:
+                await claim()
+            except Exception as exc:
+                logger.warning("could not renew the claim on a chat (%s)", type(exc).__name__)
+
+    held = False
+    deadline = time.monotonic() + CHAT_LEASE_WAIT_SECONDS
+    try:
+        while not (held := await claim()):
+            if time.monotonic() >= deadline:
+                logger.warning("another worker still holds this chat after %ss; answering anyway", CHAT_LEASE_WAIT_SECONDS)
+                break
+            await asyncio.sleep(CHAT_LEASE_POLL_SECONDS)
+    except Exception as exc:
+        logger.warning("could not claim a chat in the store (%s); answering without the claim", type(exc).__name__)
+    renewal = asyncio.create_task(keep()) if held else None
+    try:
+        yield
+    finally:
+        if renewal:
+            renewal.cancel()
+        if held:
+            try:
+                await run_in_threadpool(store.release_chat, chat_id, owner)
+            except Exception as exc:
+                logger.warning("could not release the claim on a chat (%s)", type(exc).__name__)
 
 
 # User turns of history kept per chat_id. The whole history is resent to the LLM on every call, so
@@ -216,6 +287,15 @@ def _owner_deps() -> owner_bot.OwnerDeps:
         mirror_status=_mirror_status,
         owner_chat_id=int(os.environ["TELEGRAM_ALERTS_CHAT_ID"]),
     )
+
+
+def _is_blocked(chat_id: int) -> bool:
+    """True when the owner has blocked this chat. A store that cannot answer blocks nobody."""
+    try:
+        return store_module.get_store().is_blocked(chat_id) is True
+    except Exception:
+        logger.exception("could not check the block list")
+        return False
 
 
 def _seen_before(update_id, source: str = "customer", seen: OrderedDict | None = None) -> bool:
@@ -426,10 +506,42 @@ async def _json_object(request: Request) -> dict | None:
 # Said when a button no longer fits the catalog or the calendar: the list it came from is old.
 TAP_OUT_OF_DATE = "That button is out of date. Tell me what you are looking for and I will search again."
 TAP_ITEM_GONE = "Sorry, that one is no longer available. Tell me what you are looking for and I will search again."
+NO_MORE_MATCHES = "That was the last of them. Tell me if you want to change the search."
+
+
+def _saved_state(chat_id: int) -> list[dict] | None:
+    """The history another turn saved for this chat, search results included, or None when there is none."""
+    try:
+        state = store_module.get_store().load_state(chat_id)
+        messages = json.loads(state) if state else None
+    except Exception:
+        logger.exception("could not read the chat's saved state")
+        return None
+    if not isinstance(messages, list) or not all(isinstance(m, dict) and "role" in m for m in messages):
+        return None
+    return [m for m in messages if m["role"] != "system"]  # the next turn adds today's prompt
+
+
+async def _save_chat(chat_id: int) -> None:
+    """Keep the chat's history in the store, where the next turn reads it, in this worker or another."""
+    history = conversation_history.get(chat_id)
+    if history is None:
+        return
+    state = json.dumps([m for m in history if m.get("role") != "system"], default=str)
+    try:
+        await run_in_threadpool(store_module.get_store().save_state, chat_id, state)
+    except Exception:
+        logger.exception("could not save the chat's state")
+        _unsaved_chats.add(chat_id)
+        return
+    _unsaved_chats.discard(chat_id)
 
 
 async def _history_for(chat_id: int) -> list[dict]:
-    """The chat's history: the hot copy, or rebuilt from the store on the chat's first message after a restart."""
+    """The chat's history: what was saved last, else the copy in memory, else the stored turns (text only)."""
+    saved = None if chat_id in _unsaved_chats else await run_in_threadpool(_saved_state, chat_id)
+    if saved is not None:
+        conversation_history[chat_id] = saved
     if chat_id in conversation_history:
         conversation_history.move_to_end(chat_id)
     else:
@@ -441,8 +553,8 @@ async def _history_for(chat_id: int) -> list[dict]:
         except Exception:
             logger.exception("could not load the chat's history from the store; starting it empty")
         conversation_history[chat_id] = restored
-        while len(conversation_history) > MAX_TRACKED_CHATS:
-            conversation_history.popitem(last=False)
+    while len(conversation_history) > MAX_TRACKED_CHATS:
+        conversation_history.popitem(last=False)
     return conversation_history[chat_id]
 
 
@@ -489,6 +601,8 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
 
     if await run_in_threadpool(_seen_before, update_id):
         return {"ok": True}
+    if await run_in_threadpool(_is_blocked, chat_id):
+        return {"ok": True}  # the owner blocked this chat: no reply, no model call, nothing kept
 
     text = sanitize_user_text(text)
     if not text:
@@ -574,10 +688,18 @@ async def _customer_turn(
 
         _trim_conversation_history(chat_id)
 
-        # One button per item the reply describes. The customer taps instead of typing the name or the position.
-        markup = buttons.results_keyboard(getattr(result, "shown", None) or [])
+        # A viewing asked for without a day gets the day buttons; otherwise one button per item the reply describes.
+        # The customer taps instead of typing the name, the position or the day.
+        viewing = getattr(result, "viewing_item", None)
+        markup = await _day_buttons(viewing) if viewing else None
+        markup = markup or buttons.results_keyboard(getattr(result, "shown", None) or [], getattr(result, "more", None))
         trace.buttons_shown = len(markup["inline_keyboard"]) if markup else 0
         delivered = await _send(chat_id, result.reply, markup)
+        if delivered:
+            await _save_chat(chat_id)
+        else:
+            # A reply the customer never saw is not stored, but this worker still knows what the turn did.
+            _unsaved_chats.add(chat_id)
 
         background_tasks.add_task(_after_reply, chat_id, text, result, delivered, sender)
         _finish_trace(background_tasks, trace, "reply")
@@ -592,8 +714,64 @@ async def _remember_exchange(chat_id: int, said: str, replied: str, background_t
         history.append({"role": "user", "content": said})
         history.append({"role": "assistant", "content": replied})
         _trim_conversation_history(chat_id)
+        await _save_chat(chat_id)
     background_tasks.add_task(_log_turn, chat_id, said, replied, [])
     background_tasks.add_task(_mirror_turn, chat_id, said, replied, [])
+
+
+async def _send_next_page(chat_id: int, offset: int, key: str, background_tasks: BackgroundTasks) -> None:
+    """The next items of the chat's latest search, read from the catalog again and written without the model. The page
+    goes into the history as a search and its answer, so "the second one", a hold and the next button all work on it."""
+    async with _chat_turn(chat_id):
+        history = await _history_for(chat_id)
+        try:
+            adapter = await run_in_threadpool(_get_adapter)
+            found = latest_search(history, adapter.write_tools)
+            if found is None or search_key(found[0], found[1]) != key:
+                await _send(chat_id, TAP_OUT_OF_DATE)
+                return
+            name, given, _ = found
+            arguments = parse_tool_args(adapter.tool_models()[name], given)
+            result = await run_in_threadpool(adapter.execute_tool, name, {**arguments, OFFSET_ARGUMENT: offset})
+        except Exception:
+            logger.exception("could not read the next page of a search")
+            await _send(chat_id, ERROR_REPLY)
+            return
+        rows = result.get("matches") or []
+        if not rows:
+            await _send(chat_id, NO_MORE_MATCHES)
+            return
+        clean = cast(dict, sanitize_tool_result(result))  # a dict goes in, a dict comes out
+        text = filter_reply(buttons.page_text(offset, result["count"], clean["matches"]), SYSTEM_PROMPT)
+        said = "Show me more."
+        call_id = f"page_{uuid.uuid4().hex}"
+        history += [
+            {"role": "user", "content": said},
+            {"role": "assistant", "content": None, "tool_calls": [
+                {"id": call_id, "type": "function", "function": {"name": name, "arguments": json.dumps(given)}}
+            ]},
+            {"role": "tool", "tool_call_id": call_id, "name": name, "content": json.dumps(clean)},
+            {"role": "assistant", "content": text},
+        ]
+        _trim_conversation_history(chat_id)
+        more = next_page(history, adapter.write_tools, offset + PAGE_SIZE)
+        await _send(chat_id, text, buttons.results_keyboard(rows, more))
+        await _save_chat(chat_id)
+    background_tasks.add_task(_log_turn, chat_id, said, text, [])
+    background_tasks.add_task(_mirror_turn, chat_id, said, text, [])
+
+
+async def _day_buttons(item: dict) -> dict | None:
+    """The day buttons for an item, if the catalog still has it as available."""
+    try:
+        adapter = await run_in_threadpool(_get_adapter)
+        row = await run_in_threadpool(adapter.get_item, item["id"])
+    except Exception:
+        logger.exception("could not look up the item for the day buttons")
+        return None
+    if row is None or row.get("status") != "available":
+        return None
+    return buttons.day_keyboard(item["id"], dt.date.today())
 
 
 async def _handle_tap(tap: dict, update_id: int | None, background_tasks: BackgroundTasks):
@@ -609,12 +787,17 @@ async def _handle_tap(tap: dict, update_id: int | None, background_tasks: Backgr
         return Response(status_code=429)
     if await run_in_threadpool(_seen_before, update_id):
         return {"ok": True}
+    if await run_in_threadpool(_is_blocked, chat_id):
+        return {"ok": True}
 
     parsed = buttons.parse_callback(tap["data"])
     if parsed is None:
         await _send(chat_id, TAP_OUT_OF_DATE)
         return {"ok": True}
     kind, item_id, rest = parsed
+    if kind == buttons.MORE:
+        await _send_next_page(chat_id, item_id, rest[0], background_tasks)  # item_id holds the offset
+        return {"ok": True}
 
     today = dt.date.today()
     if kind in (buttons.DAY, buttons.SLOT):

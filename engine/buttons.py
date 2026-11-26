@@ -10,15 +10,18 @@ import datetime as dt
 import json
 import re
 
+from engine.core.paging import PAGE_SIZE
 from engine.core.tools import VIEWING_SLOTS
 
-PICK, ACT, DAY, SLOT = "pick", "act", "day", "slot"
+PICK, ACT, DAY, SLOT, MORE = "pick", "act", "day", "slot", "more"
 ACTIONS = ("hold", "view", "call")
 SLOT_LABELS = {"morning": "Morning", "afternoon": "Afternoon", "evening": "Evening"}
 DAYS_OFFERED = 6
 
 LABEL_MAX = 56
 _ISO = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+_OFFSET = re.compile(r"[1-9][0-9]{0,3}")  # ASCII digits only
+_KEY = re.compile(r"[0-9a-f]{8}")
 
 
 def _button(text: str, data: str) -> dict:
@@ -47,14 +50,28 @@ def actions_keyboard(item_id: int) -> dict:
     }
 
 
-def results_keyboard(shown: list[dict]) -> dict | None:
-    """One button per item the reply described, in that order. A single item goes straight to its actions."""
-    items = [row for row in shown if isinstance(row.get("id"), int) and not isinstance(row.get("id"), bool)][:5]
+def results_keyboard(shown: list[dict], more: dict | None = None) -> dict | None:
+    """One button per item the reply described, in that order. A single item goes straight to its actions. `more`
+    ({"offset", "key"}) adds a last row for the next page of the same search."""
+    items = [row for row in shown if isinstance(row.get("id"), int) and not isinstance(row.get("id"), bool)][:PAGE_SIZE]
     if not items:
         return None
     if len(items) == 1:
-        return actions_keyboard(items[0]["id"])
-    return {"inline_keyboard": [[_button(item_label(row), f"{PICK}:{row['id']}")] for row in items]}
+        keyboard = actions_keyboard(items[0]["id"])["inline_keyboard"]
+    else:
+        keyboard = [[_button(item_label(row), f"{PICK}:{row['id']}")] for row in items]
+    if more:
+        keyboard = [*keyboard, [_button(f"Next {PAGE_SIZE}", f"{MORE}:{more['offset']}:{more['key']}")]]
+    return {"inline_keyboard": keyboard}
+
+
+def page_text(offset: int, count: int, rows: list[dict]) -> str:
+    """A further page of a search, written from the catalog rows. Items are numbered from 1 on every page, so "the
+    second one" means the second one on screen."""
+    lines = [f"Matches {offset + 1} to {offset + len(rows)} of {count}:"]
+    for number, row in enumerate(rows, 1):
+        lines.append(f"{number}. {item_card(row).replace(chr(10), ' - ', 1)}")
+    return "\n".join(lines)
 
 
 def day_keyboard(item_id: int, today: dt.date) -> dict:
@@ -72,12 +89,15 @@ def slot_keyboard(item_id: int, day: str) -> dict:
 
 
 def parse_callback(data) -> tuple[str, int, list[str]] | None:
-    """(kind, item id, the rest) for a tap this module made, else None. Strict about every part, so nothing else is accepted."""
+    """(kind, item id, the rest) for a tap this module made, else None. Strict about every part, so nothing else is
+    accepted. For a next-page tap the number is the offset and the rest is the search's key."""
     if not isinstance(data, str) or len(data.encode()) > 64:
         return None
     parts = data.split(":")
     kind = parts[0]
     try:
+        if kind == MORE and len(parts) == 3 and _OFFSET.fullmatch(parts[1]) and _KEY.fullmatch(parts[2]):
+            return MORE, int(parts[1]), [parts[2]]
         if kind == PICK and len(parts) == 2:
             return PICK, _id(parts[1]), []
         if kind == ACT and len(parts) == 3 and parts[1] in ACTIONS:

@@ -16,7 +16,7 @@ def test_the_cut_modules_are_gone(name):
 
 
 def test_the_alert_buttons_are_only_take_contacted_lost_reply_and_the_hold_and_viewing_ones():
-    assert set(notifier.ACTIONS) == {"t", "c", "r", "l", "s", "x", "v"}
+    assert set(notifier.ACTIONS) == {"t", "c", "r", "l", "s", "x", "v", "mute"}
     for kind in ("lead", "reservation", "viewing"):
         lead = LeadInfo(lead_id=71, domain_type="cars", item_name="Camry", customer_name="Sarah", email=None, phone=None, price=None, price_verified=True, kind=kind, username="sarah_c")
         codes = {b["callback_data"][0] for row in notifier.alert_keyboard(lead, can_reply=True)["inline_keyboard"] for b in row if "callback_data" in b}

@@ -1,7 +1,8 @@
 """Prove the hold rules on the live Odoo, through the same XML-RPC calls the engine makes.
 
 Uses throw-away catalog items that it creates and deletes, and lowers the global cap
-for the duration of the run, so nothing real is touched. Run from the repo root:
+for the duration of the run, so nothing real is touched. Creating items needs an administrator
+(ODOO_ADMIN_USER and ODOO_ADMIN_PASSWORD when set). Run from the repo root:
 
     python scripts/verify_holds.py
 """
@@ -21,7 +22,9 @@ load_dotenv(os.path.join(ROOT, ".env"))
 from engine import supabase_rest  # noqa: E402
 
 URL = os.environ["ODOO_URL"].rstrip("/")
-DB, USER, PASSWORD = os.environ["ODOO_DB"], os.environ["ODOO_USER"], os.environ["ODOO_PASSWORD"]
+DB = os.environ["ODOO_DB"]
+USER = os.environ.get("ODOO_ADMIN_USER") or os.environ["ODOO_USER"]
+PASSWORD = os.environ.get("ODOO_ADMIN_PASSWORD") or os.environ["ODOO_PASSWORD"]
 uid = xmlrpc.client.ServerProxy(f"{URL}/xmlrpc/2/common").authenticate(DB, USER, PASSWORD, {})
 models = xmlrpc.client.ServerProxy(f"{URL}/xmlrpc/2/object")
 PASSED = FAILED = 0
@@ -111,6 +114,16 @@ def main() -> int:
 
         r = call("leadgate.catalog.item", "action_reserve", [[c]], {"holder": "carol@example.com"})
         check("a released slot can be used again", r.get("ok") is True, str(r))
+
+        call("leadgate.catalog.item", "action_release", [[c]])
+        r = call("leadgate.catalog.item", "action_reserve", [[c]], {"holder": "dan@example.com", "holder_chat": "probe-chat"})
+        check("a hold remembers the account it came from", r.get("ok") is True, str(r))
+        r = call("leadgate.catalog.item", "action_reserve", [[a if call("leadgate.catalog.item", "read", [[a], ["status"]])[0]["status"] == "available" else b]], {"holder": "other@example.com", "holder_chat": "probe-chat"})
+        check("the same account cannot hold a second item under another email", r == {"ok": False, "reason": "holder_already_has_a_hold"}, str(r))
+        call("leadgate.catalog.item", "action_release", [[c]])
+        row = call("leadgate.catalog.item", "read", [[c], ["reserved_chat"]])[0]
+        check("releasing a hold forgets the account", not row["reserved_chat"], str(row))
+        call("leadgate.catalog.item", "action_reserve", [[c]], {"holder": "carol@example.com"})
 
         call("leadgate.catalog.item", "write", [[d], {"status": "reserved"}])
         run_expiry_job()

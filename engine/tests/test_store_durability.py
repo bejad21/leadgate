@@ -53,7 +53,9 @@ def recording_run_turn(monkeypatch, replies=None):
 
     def fake(history, adapter, llm, **kwargs):
         seen.append([dict(m) for m in history])
-        return AgentTurnResult(reply=(replies or ["ok"])[min(len(seen), len(replies or ["ok"])) - 1])
+        reply = (replies or ["ok"])[min(len(seen), len(replies or ["ok"])) - 1]
+        history.append({"role": "assistant", "content": reply})  # as the real loop does
+        return AgentTurnResult(reply=reply)
 
     monkeypatch.setattr(main_module, "run_turn", fake)
     return seen

@@ -86,6 +86,7 @@ ACTIONS = {
     "s": "Mark sold",
     "x": "Release hold",
     "v": "Confirm viewing",
+    "mute": "Block customer",  # a code no earlier button used: old alerts stay on screen
 }
 
 
@@ -103,6 +104,7 @@ def alert_keyboard(lead: LeadInfo, can_reply: bool = True) -> dict:
         rows = [["t", "c"], ["l"]]
     if can_reply:
         rows[-1].insert(0, "r")
+        rows.append(["mute"])  # blocking needs the chat, like replying does
     keyboard = [[_button(code, lead.lead_id) for code in row] for row in rows]
     if valid_username(lead.username):
         keyboard.append([{"text": "Open chat", "url": chat_link(lead.username)}])

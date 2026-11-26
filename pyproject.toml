@@ -13,6 +13,7 @@ dependencies = [
     "httpx>=0.28,<1",
     "python-dotenv>=1.2,<2",
     "pydantic>=2.14,<3",
+    "cryptography>=50,<51",  # encryption of the stored chat text
 ]
 
 [project.optional-dependencies]

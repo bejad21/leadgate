@@ -19,6 +19,10 @@ from engine.odoo_client import OdooClient
 
 o = OdooClient(os.environ["ODOO_URL"], os.environ["ODOO_DB"], os.environ["ODOO_USER"], os.environ["ODOO_PASSWORD"])
 ok = True
+# Removing the probe records needs more than the engine account may do.
+admin = o
+if os.environ.get("ODOO_ADMIN_PASSWORD"):
+    admin = OdooClient(os.environ["ODOO_URL"], os.environ["ODOO_DB"], os.environ.get("ODOO_ADMIN_USER") or "admin", os.environ["ODOO_ADMIN_PASSWORD"])
 
 
 def check(name, cond, detail=""):
@@ -48,9 +52,9 @@ try:
     lost = o.models.execute_kw(o.db, o.uid, o.password, "crm.lead", "search_read", [[("id", "=", lid), ("active", "=", False)]], {"fields": ["probability", "active"]})
     check("marking it lost archives it", bool(lost), str(lost))
 finally:
-    o.models.execute_kw(o.db, o.uid, o.password, "crm.lead", "unlink", [[lid]])
+    admin.call("crm.lead", "unlink", [[lid]])
     pid = o.search_read("res.partner", [("email", "=", "probe.t2@example.com")], ["id"])
     if pid:
-        o.models.execute_kw(o.db, o.uid, o.password, "res.partner", "unlink", [[p["id"] for p in pid]])
+        admin.call("res.partner", "unlink", [[p["id"] for p in pid]])
     check("probe records removed", o.search_read("crm.lead", [("id", "=", lid)], ["id"]) == [])
 print("ALL OK" if ok else "SOME FAILED")

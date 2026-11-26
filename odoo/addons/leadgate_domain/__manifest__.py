@@ -6,12 +6,13 @@ Provides the domain-agnostic leadgate.catalog.item model used by the
 LeadGate engine and its domain adapters (cars / real estate) to query
 catalog inventory regardless of vertical.
 """,
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.1.0",
     "category": "Sales/CRM",
     "author": "LeadGate",
     "license": "LGPL-3",
-    "depends": ["base", "crm", "base_automation"],
+    "depends": ["base", "sales_team", "crm", "base_automation"],
     "data": [
+        "security/engine_group.xml",
         "security/ir.model.access.csv",
         "views/catalog_item_views.xml",
         "data/automated_action.xml",

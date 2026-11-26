@@ -25,7 +25,7 @@ class FakeOdoo:
     def search_read(self, model, domain, fields):
         self.searches.append((model, domain))
         if model == "leadgate.catalog.item":
-            return [{"id": 1}]
+            return [{"name": "2020 Toyota Camry", "attributes": "{}"}]  # has every price
         if model == "res.partner":
             clauses = [c for c in domain if isinstance(c, tuple)]
             emails = [v for f, op, v in clauses if f == "email_normalized"]

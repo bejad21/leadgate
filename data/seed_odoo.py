@@ -4,7 +4,8 @@ Usage:
     .venv/Scripts/python.exe data/seed_odoo.py
 
 Reads ODOO_URL / ODOO_DB / ODOO_USER / ODOO_PASSWORD from .env (or the
-environment), logs into Odoo via XML-RPC, and bulk-creates one
+environment). Creating items needs an administrator: ODOO_ADMIN_USER and
+ODOO_ADMIN_PASSWORD are used instead when set. It logs into Odoo via XML-RPC, and bulk-creates one
 leadgate.catalog.item record per CSV row:
   - cars_raw.csv rows      -> domain_type="cars"
   - real_estate_raw.csv rows -> domain_type="real_estate"
@@ -41,8 +42,8 @@ load_env(DATA_DIR.parent / ".env")
 
 ODOO_URL = os.environ.get("ODOO_URL", "http://localhost:8069")
 ODOO_DB = os.environ.get("ODOO_DB", "leadgate")
-ODOO_USER = os.environ.get("ODOO_USER", "admin")
-ODOO_PASSWORD = os.environ.get("ODOO_PASSWORD")
+ODOO_USER = os.environ.get("ODOO_ADMIN_USER") or os.environ.get("ODOO_USER", "admin")
+ODOO_PASSWORD = os.environ.get("ODOO_ADMIN_PASSWORD") or os.environ.get("ODOO_PASSWORD")
 if not ODOO_PASSWORD:
     # No default: a guessed password could authenticate against the wrong Odoo instance.
     raise SystemExit("ODOO_PASSWORD is not set in .env/the environment - refusing to guess it")

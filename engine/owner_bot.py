@@ -20,6 +20,7 @@ from typing import Any, Callable
 
 from engine.core import followup
 from engine.core.actions import holder_key
+from engine.tracing import chat_ref
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ RELAY_MAX = 3500  # Telegram's limit is 4096 characters
 HELP = (
     "Tap the buttons under an alert to act on a lead. Reply to an alert to write to that customer.\n\n"
     "/open lists leads still waiting for you\n"
+    "/unblock 12 lets the customer of lead 12 write again\n"
     "/help shows this"
 )
 
@@ -250,6 +252,40 @@ def _open_reply_box(deps: OwnerDeps, lead_id: int) -> str:
     return "Type your message as a reply."
 
 
+def _block(deps: OwnerDeps, lead_id: int) -> str:
+    """Ignore this customer's chat from now on, give back whatever they hold and close the lead."""
+    chat = deps.store.get_lead_chat(lead_id)
+    if not chat:
+        return "I do not have this customer's chat, so I cannot block it."
+    deps.store.block_chat(chat["chat_id"], lead_id)  # first: whatever fails next, they are stopped
+    held = deps.odoo.search_read(
+        "leadgate.catalog.item",
+        [("reserved_chat", "=", chat_ref(chat["chat_id"])), ("status", "=", "reserved")],
+        ["id"],
+    )
+    if held:
+        deps.odoo.call("leadgate.catalog.item", "action_release", [[row["id"] for row in held]], {})
+    state, refused = _open_lead(deps, lead_id)
+    if not refused:
+        _release_hold(deps, lead_id, state)
+        followup.complete_activities(deps.odoo, lead_id, "Customer blocked")
+        followup.post_note(deps.odoo, lead_id, "Customer blocked from Telegram.")
+        followup.mark_lost(deps.odoo, lead_id)
+        deps.mirror_status(lead_id, "lost")
+    return f"Blocked. Their messages are ignored. /unblock {lead_id} undoes it."
+
+
+def _unblock(argument: str, deps: OwnerDeps) -> None:
+    number = argument.strip().lstrip("#")
+    if not (number.isascii() and number.isdigit()):
+        deps.owner.send_owner_message("Write the lead's number, for example /unblock 12.")
+        return
+    if deps.store.unblock_lead(int(number)):
+        deps.owner.send_owner_message(f"The customer of lead {number} can write to the assistant again.")
+    else:
+        deps.owner.send_owner_message(f"The customer of lead {number} is not blocked.")
+
+
 _ACTIONS = {
     "t": _take,
     "c": _contacted,
@@ -258,6 +294,7 @@ _ACTIONS = {
     "x": _release,
     "v": _confirm_viewing,
     "r": _open_reply_box,
+    "mute": _block,
 }
 
 
@@ -325,6 +362,8 @@ def _handle_command(text: str, deps: OwnerDeps) -> None:
         deps.owner.send_owner_message(HELP)
     elif command == "/open":
         _list_open(deps)
+    elif command == "/unblock":
+        _unblock(argument, deps)
     else:
         deps.owner.send_owner_message(HELP)
 

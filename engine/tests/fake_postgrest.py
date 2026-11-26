@@ -17,12 +17,16 @@ PRIMARY_KEYS = {
     "alert_messages": ["message_id"],
     "processed_updates": ["source", "update_id"],
     "lead_flags": ["lead_id", "flag"],
+    "chat_state": ["chat_id"],
+    "blocked_chats": ["chat_id"],
 }
 
 
 class FakePostgrest:
     def __init__(self):
-        self.tables: dict[str, list[dict]] = {name: [] for name in ("chat_turns", "lead_chats", "alert_messages", "processed_updates", "lead_flags")}
+        names = ("chat_turns", "lead_chats", "alert_messages", "processed_updates", "lead_flags", "chat_state", "blocked_chats")
+        self.tables: dict[str, list[dict]] = {name: [] for name in names}
+        self.claims: dict[int, tuple[str, float]] = {}
         self.catalog: dict[int, dict] = {}
         self.windows: dict[tuple[str, int], int] = {}
         self.requests: list[httpx.Request] = []
@@ -49,6 +53,11 @@ class FakePostgrest:
                 return httpx.Response(200, json=self._select(path, request.url.params))
             if request.method == "POST":
                 return self._insert(path, request)
+            if request.method == "DELETE":
+                gone = self._select(path, request.url.params)
+                keys = PRIMARY_KEYS[path]
+                self.tables[path] = [r for r in self.tables[path] if not any(all(r[k] == g[k] for k in keys) for g in gone)]
+                return httpx.Response(200, json=gone)
         return httpx.Response(405)
 
     def _select(self, table: str, params) -> list[dict]:
@@ -94,6 +103,16 @@ class FakePostgrest:
             return httpx.Response(200, json=self.windows[slot] <= args["p_max"])
         if name == "apply_catalog_event":
             return httpx.Response(200, json=self._apply_catalog_event(args))
+        if name == "claim_chat":
+            holder = self.claims.get(args["p_chat"])
+            if holder and holder[0] != args["p_owner"] and holder[1] > time.monotonic():
+                return httpx.Response(200, json=False)
+            self.claims[args["p_chat"]] = (args["p_owner"], time.monotonic() + args["p_seconds"])
+            return httpx.Response(200, json=True)
+        if name == "release_chat":
+            if self.claims.get(args["p_chat"], ("",))[0] == args["p_owner"]:
+                del self.claims[args["p_chat"]]
+            return httpx.Response(204)
         if name == "purge_expired":
             return httpx.Response(204)
         return httpx.Response(404)

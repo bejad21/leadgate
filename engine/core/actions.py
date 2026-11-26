@@ -11,14 +11,18 @@ says about either is not trusted.
 import datetime as dt
 import logging
 import re
+from contextvars import ContextVar
 
-from engine.core.adapter_base import create_verified_lead
+from engine.core.adapter_base import create_verified_lead, squash
 from engine.core.crm_contacts import parse_contact
 from engine.core.tools import VIEWING_SLOTS, BookViewingArgs, CreateLeadArgs, ReserveItemArgs, Tool
 
 logger = logging.getLogger(__name__)
 
 HOLD_HOURS = 24
+# The keyed reference of the chat whose turn is running (set by the agent loop), so that Odoo can allow one active
+# hold per account whatever email or phone number is typed.
+CUSTOMER_REF: ContextVar[str | None] = ContextVar("customer_ref", default=None)
 VIEWING_WINDOW_DAYS = 60
 
 _ITEM_FIELDS = ["name", "price", "status", "domain_type", "reserved_for", "reservation_lead_id"]
@@ -55,6 +59,11 @@ def _load_item(odoo, domain_type: str, item_id) -> dict | None:
     return rows[0] if rows else None
 
 
+def _names_the_item(item: dict):
+    """The lead of a hold or a viewing is titled after the item read from the catalog by id."""
+    return lambda lead_name, row: squash(item["name"]) in squash(lead_name) and row.get("name") == item["name"]
+
+
 def _no_such_item() -> dict:
     return _error("That item was not found. Search again and use an item's id from the results.")
 
@@ -88,10 +97,10 @@ def reserve_item(odoo, domain_type: str, args: dict, *, crm_tag: str | None) -> 
     if item["status"] != "available":
         return _error(_HOLD_REFUSALS["not_available"])
 
-    hold = odoo.call(
-        "leadgate.catalog.item", "action_reserve", [[int(args["item_id"])]],
-        {"hours": HOLD_HOURS, "lead_id": 0, "holder": holder},
-    )
+    values = {"hours": HOLD_HOURS, "lead_id": 0, "holder": holder}
+    if CUSTOMER_REF.get():
+        values["holder_chat"] = CUSTOMER_REF.get()
+    hold = odoo.call("leadgate.catalog.item", "action_reserve", [[int(args["item_id"])]], values)
     if not hold.get("ok"):
         return _error(_HOLD_REFUSALS.get(hold.get("reason"), _HOLD_REFUSALS["not_available"]))
 
@@ -102,6 +111,7 @@ def reserve_item(odoo, domain_type: str, args: dict, *, crm_tag: str | None) -> 
             _lead_args(item, f"Hold: {item['name']}", args),
             crm_tag=crm_tag,
             kind="reservation",
+            names_item=_names_the_item(item),
             extra_notes=(f"Reservation request: held for {HOLD_HOURS} hours. Confirm the sale or release it.",),
             follow_up={"summary": f"Confirm the hold on {item['name']} with {args.get('customer_name') or 'the customer'}", "days": 0},
         )
@@ -183,6 +193,7 @@ def book_viewing(
         _lead_args(item, f"Viewing: {item['name']}", args),
         crm_tag=crm_tag,
         kind="viewing",
+        names_item=_names_the_item(item),
         extra_notes=(f"Requested viewing: {day.isoformat()} ({slot}). Confirm the time with the customer.",),
         follow_up={"summary": f"Viewing of {item['name']}: {slot}", "kind": "meeting", "due": day},
     )

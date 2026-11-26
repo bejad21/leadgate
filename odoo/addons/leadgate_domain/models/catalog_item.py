@@ -1,10 +1,14 @@
 from datetime import timedelta
 
 from odoo import api, fields, models
+from odoo.exceptions import AccessError
 
 MAX_ACTIVE_HOLDS_PARAM = "leadgate.max_active_holds"
 DEFAULT_MAX_ACTIVE_HOLDS = 10
 MAX_HOLD_HOURS = 72
+# The only fields the engine's account may change: an item's status and the details of a hold. Names, prices and
+# attributes are the catalog owner's.
+ENGINE_WRITABLE = frozenset({"status", "reserved_until", "reserved_for", "reserved_chat", "reservation_lead_id"})
 
 
 class CatalogItem(models.Model):
@@ -26,6 +30,7 @@ class CatalogItem(models.Model):
         help="A hold placed through the assistant lapses at this time and the item goes back on the board."
     )
     reserved_for = fields.Char(help="Normalised email or phone of the customer holding the item.")
+    reserved_chat = fields.Char(help="Keyed reference of the chat holding the item, never the chat's id.")
     reservation_lead_id = fields.Integer(help="The CRM lead created with this hold.")
 
     # Holds
@@ -37,7 +42,7 @@ class CatalogItem(models.Model):
         except ValueError:
             return DEFAULT_MAX_ACTIVE_HOLDS
 
-    def action_reserve(self, hours=24, lead_id=0, holder=""):
+    def action_reserve(self, hours=24, lead_id=0, holder="", holder_chat=""):
         """Place a timed hold on one item. Returns {"ok": bool, "reason": str, ...}.
 
         Everything that decides whether the hold is allowed happens here, in one transaction under a global
@@ -67,6 +72,14 @@ class CatalogItem(models.Model):
                     (holder,),
                 )
                 held_by_holder = fresh.fetchone() is not None
+            if holder_chat and not held_by_holder:
+                # One active hold per chat too: a new email or phone number does not buy a second one.
+                fresh.execute(
+                    "SELECT 1 FROM leadgate_catalog_item WHERE status = 'reserved' "
+                    "AND reserved_until IS NOT NULL AND reserved_chat = %s LIMIT 1",
+                    (holder_chat,),
+                )
+                held_by_holder = fresh.fetchone() is not None
         if active_holds >= self._max_active_holds():
             return {"ok": False, "reason": "hold_limit_reached"}
         if held_by_holder:
@@ -77,6 +90,7 @@ class CatalogItem(models.Model):
                 "status": "reserved",
                 "reserved_until": until,
                 "reserved_for": holder or False,
+                "reserved_chat": holder_chat or False,
                 "reservation_lead_id": lead_id or 0,
             }
         )
@@ -104,5 +118,9 @@ class CatalogItem(models.Model):
         # by hand (sold, or back to available) the leftover hold data must not linger and
         # trip the expiry job later.
         if "status" in vals and vals["status"] != "reserved" and "reserved_until" not in vals:
-            vals = dict(vals, reserved_until=False, reserved_for=False, reservation_lead_id=0)
+            vals = dict(vals, reserved_until=False, reserved_for=False, reserved_chat=False, reservation_lead_id=0)
+        if not self.env.su and self.env.user.has_group("leadgate_domain.group_engine"):
+            refused = sorted(set(vals) - ENGINE_WRITABLE)
+            if refused:
+                raise AccessError("The LeadGate engine account may only change an item's status and hold: %s" % ", ".join(refused))
         return super().write(vals)

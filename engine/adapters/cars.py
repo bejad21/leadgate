@@ -6,7 +6,8 @@ from typing import Annotated, Literal, get_args
 from pydantic import Field
 
 from engine.core.actions import ACTION_TOOLS, execute_action_tool, shared_tools
-from engine.core.adapter_base import UNAVAILABLE_NOTE, DomainAdapter, create_verified_lead, unavailable_matches
+from engine.core.adapter_base import UNAVAILABLE_NOTE, DomainAdapter, create_verified_lead, squash, unavailable_matches
+from engine.core.paging import OFFSET_ARGUMENT, PAGE_SIZE
 from engine.core.tools import OptionalNumber, OptionalText, OptionalWholeNumber, Tool, ToolArgs, optional_choice
 
 SortBy = Literal["price_asc", "price_desc", "mileage_asc", "year_desc"]
@@ -81,15 +82,10 @@ def _location_matches(query, location) -> bool:
     return any(q == p or (len(q) > 2 and q in p) for p in parts)
 
 
-def _squash(text) -> str:
-    """Letters and digits only, lower case: "F-150", "F 150" and "f150" all read the same."""
-    return re.sub(r"[^a-z0-9]", "", str(text).lower())
-
-
 def _name_matches(record: dict, args: dict) -> bool:
     """The make and model a customer wrote appear in the item's name, whatever the hyphens and spaces."""
-    name = _squash(record.get("name", ""))
-    return all(_squash(args[key]) in name for key in ("make", "model") if args.get(key))
+    name = squash(record.get("name", ""))
+    return all(squash(args[key]) in name for key in ("make", "model") if args.get(key))
 
 
 def _matches_attribute_filters(record: dict, args: dict) -> bool:
@@ -129,12 +125,24 @@ def _sort_key(sort_by: str):
 class CarsAdapter(DomainAdapter):
     domain_type = "cars"
     crm_tag = "Cars"
+    generic_title_words = frozenset({"car", "cars", "vehicle", "auto"})
 
     def tools(self) -> list[Tool]:
         return [
             Tool("search_inventory", "Search available cars. Every filter is optional and they combine.", CarSearchArgs),
             *shared_tools("car"),
         ]
+
+    def lead_names_item(self, lead_name: str, row: dict) -> bool:
+        """A car is named by its model ("Camry"). A model year written in the title must be the car's year."""
+        if super().lead_names_item(lead_name, row):
+            return True
+        attrs = _attrs(row) or {}
+        model = squash(attrs.get("model"))
+        if not model or model not in squash(lead_name):
+            return False
+        years = set(re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", lead_name))
+        return not years or str(attrs.get("year")) in years
 
     def execute_tool(self, name: str, args: dict) -> dict:
         if name == "search_inventory":
@@ -159,7 +167,8 @@ class CarsAdapter(DomainAdapter):
                 records = [r for r in records if _matches_attribute_filters(r, args)]
             if args.get("sort_by") in SORT_OPTIONS:
                 records = sorted(records, key=_sort_key(args["sort_by"]), reverse=args["sort_by"] in ("price_desc", "year_desc"))
-            result = {"matches": records[:5], "count": len(records)}
+            offset = args.get(OFFSET_ARGUMENT, 0)  # set by the engine for the "Next 5" button only
+            result = {"matches": records[offset : offset + PAGE_SIZE], "count": len(records)}
             if args.get("make") or args.get("model"):  # a named car is the one a customer asks about by status
                 held = unavailable_matches(
                     self.odoo,
@@ -171,7 +180,10 @@ class CarsAdapter(DomainAdapter):
                     result["note"] = UNAVAILABLE_NOTE
             return result
         if name == "create_lead":
-            return create_verified_lead(self.odoo, self.domain_type, args, crm_tag=self.crm_tag)
+            return create_verified_lead(
+                self.odoo, self.domain_type, args, crm_tag=self.crm_tag,
+                names_item=self.lead_names_item, names_no_item=self.title_names_no_item,
+            )
         if name in ACTION_TOOLS:
             return execute_action_tool(self.odoo, self.domain_type, name, args, crm_tag=self.crm_tag)
         raise ValueError(f"Unknown tool: {name}")

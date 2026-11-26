@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -39,6 +40,12 @@ REQUIRED_VARS = [
     "ACTIVE_DOMAIN",
 ]
 
+logger = logging.getLogger(__name__)
+
+# Passwords Odoo ships with or that setups commonly start from. The engine refuses them unless a local test setup
+# says LEADGATE_ALLOW_DEFAULT_ODOO_PASSWORD=1.
+DEFAULT_ODOO_PASSWORDS = frozenset({"admin", "odoo", "password"})
+
 # At least one of these must be present.
 LLM_KEY_VARS = list(_PROVIDER_PREFERENCE)
 
@@ -75,6 +82,17 @@ def load_config() -> dict:
     weak = webhook_secret_problem("TELEGRAM_WEBHOOK_SECRET", os.environ["TELEGRAM_WEBHOOK_SECRET"])
     if weak:
         raise RuntimeError(weak + " (generate one with: python -c \"import secrets; print(secrets.token_urlsafe(32))\")")
+    allowed = os.environ.get("LEADGATE_ALLOW_DEFAULT_ODOO_PASSWORD") == "1"
+    if os.environ["ODOO_PASSWORD"].strip().lower() in DEFAULT_ODOO_PASSWORDS and not allowed:
+        raise RuntimeError(
+            "ODOO_PASSWORD is a default password. Create the engine's own Odoo account "
+            "(scripts/create_odoo_engine_user.py) or, for a throwaway local setup only, set "
+            "LEADGATE_ALLOW_DEFAULT_ODOO_PASSWORD=1."
+        )
+    if os.environ["ODOO_USER"].strip().lower() == "admin":
+        logger.warning(
+            "ODOO_USER is admin, which can do anything in Odoo. scripts/create_odoo_engine_user.py makes a limited account."
+        )
     if os.environ["ACTIVE_DOMAIN"] not in ADAPTERS:
         # Caught here, at startup, rather than as a wrong catalog or a failure on the first message.
         raise RuntimeError(

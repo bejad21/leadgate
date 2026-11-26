@@ -29,6 +29,8 @@ SOLD = {"id": 77, "name": "2020 Toyota Camry", "price": 21000.0, "status": "sold
 
 
 class Catalog:
+    write_tools = frozenset({"create_lead", "reserve_item", "book_viewing"})
+
     def __init__(self, *rows):
         self.rows = {r["id"]: r for r in rows}
         self.lookups: list[int] = []

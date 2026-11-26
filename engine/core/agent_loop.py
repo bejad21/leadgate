@@ -10,13 +10,21 @@ from typing import cast
 
 import httpx
 
+from engine.core.actions import CUSTOMER_REF
 from engine.core.adapter_base import DomainAdapter
 from engine.core.crm_contacts import customer_contact
 from engine.core.guardrails import NO_MATCH_REPLY, TOOL_CALL_CAP, WRITES_PER_TURN, filter_reply, sanitize_tool_result
-from engine.core.references import last_listed, order_by_appearance, resolve_reference, rows_in_results
+from engine.core.paging import PAGE_SIZE, next_page
+from engine.core.references import (
+    last_listed,
+    order_by_appearance,
+    resolve_reference,
+    rows_in_history,
+    rows_in_results,
+)
 from engine.core.tools import parse_tool_args
 from engine.llm_client import INVALID_ARGUMENTS, ChatModel, LLMResponse, ToolCall
-from engine.tracing import ToolTrace, TurnTrace, prompt_version
+from engine.tracing import ToolTrace, TurnTrace, chat_ref, prompt_version
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +49,10 @@ class AgentTurnResult:
     # The items of this turn's search that the reply describes, in the order it describes them. A front end that can offer
     # buttons (Telegram) puts one under each; empty when the turn searched nothing or acted instead.
     shown: list[dict] = field(default_factory=list)
+    # What the "Next 5" button carries ({"offset", "key"}), when the search found more than the reply could show.
+    more: dict | None = None
+    # The item of a viewing the customer asked for without naming a day, so the front end can offer the days.
+    viewing_item: dict | None = None
 
 # System prompt for every conversation. Domain-agnostic on purpose: no catalog's own vocabulary.
 SYSTEM_PROMPT = (
@@ -202,6 +214,25 @@ def _with_resolved_item(call, models, adapter, history, tool_results):
     if chosen is not None and chosen not in {row["id"] for row in last_listed(history, extra)}:
         return call, False
     return ToolCall(name=call.name, arguments={**call.arguments, "item_id": wanted["id"]}, id=call.id), True
+
+
+def _with_named_place(call, adapter, latest_text: str):
+    """An availability question is searched with what the customer named, even when the model left some of it out."""
+    if call.name in adapter.write_tools or not isinstance(call.arguments, dict):
+        return call
+    if not _AVAILABILITY_QUESTION.search(latest_text):
+        return call
+    arguments = adapter.complete_search(call.name, call.arguments, latest_text)
+    return call if arguments == call.arguments else ToolCall(name=call.name, arguments=arguments, id=call.id)
+
+
+def _record_arguments(history: list[dict], call) -> None:
+    """Write the arguments a call actually ran with into the assistant message that asked for it."""
+    for message in reversed(history):
+        for asked in message.get("tool_calls") or []:
+            if asked.get("id") == call.id:
+                asked["function"]["arguments"] = json.dumps(call.arguments)
+                return
 
 
 def _shown_for_buttons(reply: str, tool_results: list[dict], executed_calls: list, adapter) -> list[dict]:
@@ -654,6 +685,66 @@ def _may_use_tools_again(tool_results: list[dict], seen_writes: dict, executed: 
     return all(_is_argument_error(r) or not (isinstance(r, dict) and "error" in r) for r in tool_results)
 
 
+# A customer who asks to be called. With no name anywhere in the chat, the reply must ask for it.
+_CALL_REQUEST = re.compile(
+    r"\b(?:call|phone|ring)\s+me\b|\bcall(?:\s+me)?\s+back\b|\bgive\s+me\s+a\s+(?:call|ring)\b"
+    r"|\b(?:agent|someone|somebody|a person|salesperson)\s+(?:can\s+|could\s+|to\s+)?(?:call|phone|ring|contact)\b",
+    re.IGNORECASE,
+)
+_NO_CALL = re.compile(r"\b(?:don'?t|do not|never|no need to|stop)\b[^.?!]{0,20}\b(?:call|phone|ring|contact)", re.IGNORECASE)
+# Any sign of a name: an introduction, two capitalised words in a row, or one word before a contact. It errs towards
+# "given", because asking someone their name twice is worse than leaving the model's reply as it was.
+_NAME_GIVEN = re.compile(
+    r"(?i:\b(?:my name(?:'s| is)|name\s*:|i am|i'm|this is|it's)\s+)"
+    r"(?!(?i:interested|looking|after|here|on|at|the|a|an|not|just|still|also)\b)[A-Z][a-z]+"
+    r"|\b(?!(?:Can|Could|Would|Will|Please|My|The|Is|Are|Hi|Hello|Hey|Thanks|Thank|Call|Have|Has|Do|Does|Good|I|A|An)\b)"
+    r"[A-Z][a-z]+[ \t]+(?!(?:Is|Please|Here)\b)[A-Z][a-z]+\b"
+    r"|(?:^|[.!?]\s+)(?!(?:Hi|Hello|Hey|Thanks|Yes|No|Ok|Okay|Sure|Please)\b)[A-Z][a-z]+\s*,\s*(?=\+?\d|[\w.+-]+@)"
+)
+ASK_NAME_TOO = "Could you also tell me your name?"
+
+
+def _needs_the_name(history: list[dict], reply: str) -> bool:
+    users = [m["content"] for m in history if m.get("role") == "user" and isinstance(m.get("content"), str)]
+    if not users or not _CALL_REQUEST.search(users[-1]) or _NO_CALL.search(users[-1].replace("\u2019", "'")):
+        return False
+    if re.search(r"\bname\b", reply, re.IGNORECASE):
+        return False
+    return not any(_NAME_GIVEN.search(text) for text in users)
+
+
+_VIEWING_REQUEST = re.compile(
+    r"\bview(?:ing)?\b(?!\s+(?:more|other|the\s+(?:list|options|rest)))|\bvisit\b|\btest[- ]?driv\w+"
+    r"|\bcome\s+(?:and\s+|to\s+)?see\b|\bappointment\b"
+    r"|\bsee\s+(?:it|that(?:\s+one)?|this(?:\s+one)?|the\s+(?:first|second|third|fourth|fifth|last)(?:\s+one)?|number\s+\d)\b",
+    re.IGNORECASE,
+)
+
+
+def _viewing_without_day(history: list[dict], executed_calls: list, tool_results: list[dict], write_tools) -> dict | None:
+    """The item of a viewing the customer asked for in words without naming a day, when it is clear which item: the one
+    the model tried to book, the one pointed at by position, or the only one in view."""
+    text = _latest_user_text(history)
+    month_free = re.sub(r"\bmay\s+(?:i|we)\b", " ", text, flags=re.IGNORECASE)  # "May I view it?" names no day
+    if not _VIEWING_REQUEST.search(text) or _DAY_WORDS.search(month_free) or _DAY_WORDS_OTHER.search(month_free):
+        return None
+    for call, result in zip(executed_calls, tool_results, strict=False):
+        if call.name in write_tools and isinstance(result, dict) and "error" not in result:
+            return None
+    found = rows_in_results(tool_results)
+    rows = {row["id"]: row for row in [*rows_in_history(history), *found]}
+    for call in executed_calls:
+        if call.name == "book_viewing" and isinstance(call.arguments, dict):
+            chosen = _item_id(call.arguments.get("item_id"))
+            if chosen in rows:
+                return rows[chosen]
+    pointed = resolve_reference(text, history, found)
+    if pointed is not None:
+        return pointed
+    listed = last_listed(history, found)
+    return listed[0] if len(listed) == 1 else None
+
+
 def _run_guarded_tool(call, models, adapter, position, chat_id, write_limiter, seen_writes, shown_ids=None) -> tuple[dict, str]:
     """Run one model-requested tool call behind the guardrails.
 
@@ -751,9 +842,11 @@ def run_turn(
     trace.domain = trace.domain or adapter.domain_type
     trace.prompt_version = PROMPT_VERSION
     started = time.monotonic()
+    token = CUSTOMER_REF.set(chat_ref(chat_id) if chat_id is not None else None)
     try:
         result = _run_turn(history, adapter, _TracedChat(llm, trace), chat_id, write_limiter, tool_events, trace)
     finally:
+        CUSTOMER_REF.reset(token)
         trace.latency_ms = round((time.monotonic() - started) * 1000)
     result.trace = trace
     return result
@@ -805,6 +898,10 @@ def _run_turn(history, adapter, llm, chat_id, write_limiter, tool_events, trace:
             call, changed = _with_resolved_item(call, models, adapter, history, tool_results)
             if changed:
                 item_corrections.append(call.name)
+            placed = _with_named_place(call, adapter, _latest_user_text(history))
+            if placed is not call:
+                _record_arguments(history, placed)  # the "Next 5" button must repeat the search that ran
+                call = placed
             tool_started = time.monotonic()
             if call.name == "book_viewing" and not customer_gave_day_and_time(customer_text):
                 result, outcome = {"error": NO_TIME_GIVEN}, "validation_error"
@@ -887,9 +984,18 @@ def _run_turn(history, adapter, llm, chat_id, write_limiter, tool_events, trace:
     if tool_results and (claims_confirmed(reply) or item_corrections):
         # When the item was corrected, the reply is built from the tool's own result, so it names the item that was really held.
         reply = request_passed_on_reply(tool_results) or reply
+    if reply and not seen_writes and _needs_the_name(history, reply):
+        reply = f"{reply.rstrip()} {ASK_NAME_TOO}"
     # Keep the reply in the conversation: without it the model cannot see what
     # it told the customer earlier in the same chat.
     history.append({"role": "assistant", "content": reply})
 
     shown = _shown_for_buttons(reply, tool_results, executed_calls, adapter)
-    return AgentTurnResult(reply=reply, tool_calls_made=executed_calls, tool_results=tool_results, shown=shown)
+    return AgentTurnResult(
+        reply=reply,
+        tool_calls_made=executed_calls,
+        tool_results=tool_results,
+        shown=shown,
+        more=next_page(history, adapter.write_tools, PAGE_SIZE) if shown else None,
+        viewing_item=_viewing_without_day(history, executed_calls, tool_results, adapter.write_tools),
+    )

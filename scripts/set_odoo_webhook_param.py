@@ -2,6 +2,7 @@
 
     python scripts/set_odoo_webhook_param.py
 
+System parameters need an administrator: ODOO_ADMIN_USER and ODOO_ADMIN_PASSWORD are used when set.
 Needs ODOO_URL, ODOO_DB, ODOO_USER, ODOO_PASSWORD and ODOO_WEBHOOK_SECRET (at least 16 characters; it
 must be the same value the engine runs with) in .env. The address is the engine's name on the Compose
 network, not `localhost`: Odoo's outbound POST is made from inside the `odoo` container, which cannot
@@ -37,8 +38,8 @@ def main() -> int:
 
     url = os.environ.get("ODOO_URL", "http://localhost:8069")
     db = os.environ["ODOO_DB"]
-    username = os.environ["ODOO_USER"]
-    password = os.environ["ODOO_PASSWORD"]
+    username = os.environ.get("ODOO_ADMIN_USER") or os.environ["ODOO_USER"]
+    password = os.environ.get("ODOO_ADMIN_PASSWORD") or os.environ["ODOO_PASSWORD"]
 
     common = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common")
     uid = common.authenticate(db, username, password, {})

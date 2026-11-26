@@ -6,14 +6,21 @@ What it holds:
   Supabase is a one-way hash), and which alert message belongs to which lead, so the owner can answer
 - which update ids were already handled, so a redelivery does not run a turn twice
 - the rate-limit counters, and the per-lead flags
+- the saved state of each chat and which worker is answering it, so several workers can share the chats
+- the chats the owner has blocked
 
-SupabaseStore keeps all of it in Postgres through Supabase's REST interface (migrations/0003).
+Chat text is deleted after CHAT_TEXT_RETENTION_DAYS, and SupabaseStore encrypts it when CHAT_ENCRYPTION_KEY is set
+(engine/crypto.py).
+
+SupabaseStore keeps all of it in Postgres through Supabase's REST interface (migrations/0003 and 0006).
 InMemoryStore is the same interface in a dict: tests use it, and so does an engine started with no
 SUPABASE_URL (it forgets everything on restart, and says so in the log).
 
 Anything that must happen once is a single statement that decides atomically (an insert that ignores
 duplicates, an increment that returns the new count). Nothing reads first and writes after.
 """
+import datetime as dt
+import json
 import logging
 import os
 import threading
@@ -23,10 +30,12 @@ from typing import Any, Protocol
 import httpx
 
 from engine import supabase_rest
+from engine.crypto import TextCipher, UnreadableText, is_sealed
 
 logger = logging.getLogger(__name__)
 
 LEAD_CHAT_RETENTION_DAYS = 180
+DEFAULT_TEXT_RETENTION_DAYS = 90
 UPDATE_RETENTION_DAYS = 7
 REQUEST_TIMEOUT_SECONDS = 4.0
 # After a failed call the store is not tried again for this long, so an outage costs each customer
@@ -36,6 +45,16 @@ UNAVAILABLE_COOLDOWN_SECONDS = 10.0
 
 class StoreUnavailable(RuntimeError):
     """The store could not be reached or refused the request. The message names no URL or key."""
+
+
+def text_retention_days() -> int:
+    """How many days chat text is kept (CHAT_TEXT_RETENTION_DAYS, default 90). 0 keeps it for ever."""
+    raw = (os.environ.get("CHAT_TEXT_RETENTION_DAYS") or "").strip()
+    if not raw:
+        return DEFAULT_TEXT_RETENTION_DAYS
+    if not raw.isdigit():
+        raise ValueError(f"CHAT_TEXT_RETENTION_DAYS must be a whole number of days (0 keeps chat text), got {raw!r}")
+    return int(raw)
 
 
 class Store(Protocol):
@@ -75,9 +94,30 @@ class Store(Protocol):
 
     def set_flag(self, lead_id: int, flag: str) -> None: ...
 
+    def claim_chat(self, chat_id: int, owner: str, seconds: int) -> bool:
+        """Take this chat for `owner` for `seconds`. True for the holder (again too, which extends the claim), False
+        while someone else holds it."""
+        ...
+
+    def release_chat(self, chat_id: int, owner: str) -> None: ...
+
+    def load_state(self, chat_id: int) -> str | None:
+        """The chat's saved history as the engine wrote it, or None."""
+        ...
+
+    def save_state(self, chat_id: int, state: str) -> None: ...
+
+    def block_chat(self, chat_id: int, lead_id: int) -> None: ...
+
+    def is_blocked(self, chat_id: int) -> bool: ...
+
+    def unblock_lead(self, lead_id: int) -> bool:
+        """Remove the block made from this lead. False when there was none."""
+        ...
+
     def purge_expired(self) -> None:
-        """Delete state that is no longer needed: old update ids, finished rate-limit windows, and
-        lead chats older than LEAD_CHAT_RETENTION_DAYS."""
+        """Delete state that is no longer needed: old update ids, finished rate-limit windows, lead chats older than
+        LEAD_CHAT_RETENTION_DAYS, and chat text older than the deletion period."""
         ...
 
 
@@ -89,8 +129,12 @@ def _tool_call_dicts(tool_calls: list[Any]) -> list[dict]:
 
 
 class InMemoryStore:
-    def __init__(self):
+    def __init__(self, clock=time.time):
+        self._clock = clock
         self._lock = threading.Lock()
+        self._states: dict[int, tuple[str, float]] = {}  # chat id -> (state, when saved)
+        self._claims: dict[int, tuple[str, float]] = {}  # chat id -> (owner, until)
+        self._blocked: dict[int, int] = {}  # chat id -> lead id
         self._turns: list[dict] = []
         self._updates: set[tuple[str, int]] = set()
         self._windows: dict[tuple[str, int], int] = {}
@@ -114,7 +158,7 @@ class InMemoryStore:
         with self._lock:
             self._turns.append(
                 {"chat_id": chat_id, "domain_type": domain_type, "message": message, "reply": reply,
-                 "tool_calls": _tool_call_dicts(tool_calls), "blocked": blocked}
+                 "tool_calls": _tool_call_dicts(tool_calls), "blocked": blocked, "at": self._clock()}
             )
 
     def claim_update(self, source, update_id):
@@ -160,8 +204,52 @@ class InMemoryStore:
         with self._lock:
             self._flags.add((lead_id, flag))
 
+    def claim_chat(self, chat_id, owner, seconds):
+        with self._lock:
+            holder = self._claims.get(chat_id)
+            if holder and holder[0] != owner and holder[1] > time.monotonic():
+                return False
+            self._claims[chat_id] = (owner, time.monotonic() + seconds)
+            return True
+
+    def release_chat(self, chat_id, owner):
+        with self._lock:
+            if self._claims.get(chat_id, ("",))[0] == owner:
+                del self._claims[chat_id]
+
+    def load_state(self, chat_id):
+        with self._lock:
+            saved = self._states.get(chat_id)
+            return saved[0] if saved else None
+
+    def save_state(self, chat_id, state):
+        with self._lock:
+            self._states[chat_id] = (state, self._clock())
+
+    def block_chat(self, chat_id, lead_id):
+        with self._lock:
+            self._blocked[chat_id] = lead_id
+
+    def is_blocked(self, chat_id):
+        with self._lock:
+            return chat_id in self._blocked
+
+    def unblock_lead(self, lead_id):
+        with self._lock:
+            chats = [chat for chat, lead in self._blocked.items() if lead == lead_id]
+            for chat in chats:
+                del self._blocked[chat]
+            return bool(chats)
+
     def purge_expired(self) -> None:
-        """Nothing to expire: memory is gone at the next restart."""
+        """Only chat text expires here; everything else is gone at the next restart anyway."""
+        days = text_retention_days()
+        if not days:
+            return
+        oldest = self._clock() - days * 86400
+        with self._lock:
+            self._turns = [t for t in self._turns if t["at"] >= oldest]
+            self._states = {chat: saved for chat, saved in self._states.items() if saved[1] >= oldest}
 
 
 class SupabaseStore:
@@ -172,7 +260,11 @@ class SupabaseStore:
     row level security on and no policy, so only the service key can touch them.
     """
 
-    def __init__(self, base_url: str, service_key: str, *, client: httpx.Client | None = None, clock=time.monotonic):
+    def __init__(
+        self, base_url: str, service_key: str, *, client: httpx.Client | None = None, clock=time.monotonic,
+        cipher: TextCipher | None = None,
+    ):
+        self._cipher = cipher
         self._rest = f"{base_url.rstrip('/')}/rest/v1"
         self._headers = supabase_rest.service_headers(service_key)
         self._client = client or httpx.Client(timeout=REQUEST_TIMEOUT_SECONDS)
@@ -187,7 +279,20 @@ class SupabaseStore:
         key = os.environ.get("SUPABASE_SERVICE_KEY")
         if not base or not key:
             return None
-        return cls(base, key)
+        cipher = TextCipher.from_env()
+        if cipher is None:
+            logger.warning("CHAT_ENCRYPTION_KEY is not set; chat text is stored unencrypted")
+        return cls(base, key, cipher=cipher)
+
+    def _seal(self, text: str) -> str:
+        return self._cipher.seal(text) if self._cipher else text
+
+    def _open(self, value: str) -> str:
+        if not is_sealed(value):
+            return value  # written without a key
+        if self._cipher is None:
+            raise UnreadableText("stored text is encrypted and CHAT_ENCRYPTION_KEY is not set")
+        return self._cipher.open(value)
 
     def _call(self, method: str, path: str, *, params=None, body=None, prefer: str | None = None, probe: bool = False):
         """One request. Raises StoreUnavailable on any failure; a recent failure short-circuits (except `probe`)."""
@@ -211,7 +316,8 @@ class SupabaseStore:
         return response.json()
 
     def ping(self) -> None:
-        self._call("GET", "lead_chats", params={"select": "lead_id", "limit": "1"}, probe=True)
+        # chat_state comes with the newest migration, so /ready reports a project where it was not applied.
+        self._call("GET", "chat_state", params={"select": "chat_id", "limit": "1"}, probe=True)
 
     def load_history(self, chat_id, limit_turns=20):
         rows = self._call(
@@ -221,16 +327,61 @@ class SupabaseStore:
         )
         history: list[dict] = []
         for row in reversed(rows or []):
-            history.append({"role": "user", "content": row["message"]})
-            history.append({"role": "assistant", "content": row["reply"]})
+            try:
+                message, reply = self._open(row["message"]), self._open(row["reply"])
+            except UnreadableText as exc:
+                logger.warning("a stored turn was left out: %s", exc)
+                continue
+            history.append({"role": "user", "content": message})
+            history.append({"role": "assistant", "content": reply})
         return history
 
     def log_turn(self, chat_id, domain_type, message, reply, tool_calls, blocked=False):
+        calls: Any = _tool_call_dicts(tool_calls)
+        if self._cipher:
+            calls = {"sealed": self._cipher.seal(json.dumps(calls, default=str))}
         self._call(
             "POST", "chat_turns", prefer="return=minimal",
-            body={"chat_id": chat_id, "domain_type": domain_type, "message": message, "reply": reply,
-                  "tool_calls": _tool_call_dicts(tool_calls), "blocked": blocked},
+            body={"chat_id": chat_id, "domain_type": domain_type, "message": self._seal(message),
+                  "reply": self._seal(reply), "tool_calls": calls, "blocked": blocked},
         )
+
+    def claim_chat(self, chat_id, owner, seconds):
+        answer = self._call("POST", "rpc/claim_chat", body={"p_chat": chat_id, "p_owner": owner, "p_seconds": seconds})
+        return answer is True
+
+    def release_chat(self, chat_id, owner):
+        self._call("POST", "rpc/release_chat", body={"p_chat": chat_id, "p_owner": owner})
+
+    def load_state(self, chat_id):
+        rows = self._call("GET", "chat_state", params={"chat_id": f"eq.{chat_id}", "select": "state", "limit": "1"})
+        if not rows or rows[0].get("state") is None:
+            return None
+        try:
+            return self._open(rows[0]["state"])
+        except UnreadableText as exc:
+            logger.warning("a saved chat state was ignored: %s", exc)
+            return None
+
+    def save_state(self, chat_id, state):
+        self._call(
+            "POST", "chat_state", params={"on_conflict": "chat_id"}, prefer="resolution=merge-duplicates,return=minimal",
+            body={"chat_id": chat_id, "state": self._seal(state),
+                  "updated_at": dt.datetime.now(dt.timezone.utc).isoformat()},
+        )
+
+    def block_chat(self, chat_id, lead_id):
+        self._call(
+            "POST", "blocked_chats", params={"on_conflict": "chat_id"}, prefer="resolution=merge-duplicates,return=minimal",
+            body={"chat_id": chat_id, "lead_id": lead_id},
+        )
+
+    def is_blocked(self, chat_id):
+        return bool(self._call("GET", "blocked_chats", params={"chat_id": f"eq.{chat_id}", "select": "chat_id", "limit": "1"}))
+
+    def unblock_lead(self, lead_id):
+        rows = self._call("DELETE", "blocked_chats", params={"lead_id": f"eq.{lead_id}"}, prefer="return=representation")
+        return bool(rows)
 
     def claim_update(self, source, update_id):
         rows = self._call(
@@ -290,7 +441,8 @@ class SupabaseStore:
     def purge_expired(self) -> None:
         self._call(
             "POST", "rpc/purge_expired",
-            body={"p_update_days": UPDATE_RETENTION_DAYS, "p_lead_chat_days": LEAD_CHAT_RETENTION_DAYS},
+            body={"p_update_days": UPDATE_RETENTION_DAYS, "p_lead_chat_days": LEAD_CHAT_RETENTION_DAYS,
+                  "p_text_days": text_retention_days()},
         )
 
 

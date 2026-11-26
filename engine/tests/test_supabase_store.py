@@ -73,7 +73,8 @@ def test_history_asks_for_unblocked_turns_newest_first_with_a_limit(world):
 def test_purge_passes_the_retention_periods(world):
     fake, _, store = world
     store.purge_expired()
-    assert json.loads(fake.requests[0].content) == {"p_update_days": store_module.UPDATE_RETENTION_DAYS, "p_lead_chat_days": store_module.LEAD_CHAT_RETENTION_DAYS}
+    assert json.loads(fake.requests[0].content) == {"p_update_days": store_module.UPDATE_RETENTION_DAYS, "p_lead_chat_days": store_module.LEAD_CHAT_RETENTION_DAYS,
+                                                    "p_text_days": store_module.DEFAULT_TEXT_RETENTION_DAYS}
 
 
 # Failure

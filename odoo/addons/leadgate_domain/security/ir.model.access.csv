@@ -1,2 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_leadgate_catalog_item,access_leadgate_catalog_item,model_leadgate_catalog_item,base.group_user,1,1,1,1
+access_leadgate_catalog_item,access_leadgate_catalog_item,model_leadgate_catalog_item,base.group_user,1,1,0,0
+access_leadgate_catalog_item_admin,access_leadgate_catalog_item_admin,model_leadgate_catalog_item,base.group_system,1,1,1,1
+access_leadgate_catalog_item_engine,access_leadgate_catalog_item_engine,model_leadgate_catalog_item,group_engine,1,1,0,0
+access_leadgate_engine_ir_model,access_leadgate_engine_ir_model,base.model_ir_model,group_engine,1,0,0,0
+access_leadgate_engine_ir_model_data,access_leadgate_engine_ir_model_data,base.model_ir_model_data,group_engine,1,0,0,0
